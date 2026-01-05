@@ -78,7 +78,7 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
                 value={nomeAzienda}
                 onChange={(e) => setNomeAzienda(e.target.value)}
                 placeholder="Inserisci il nome dell'azienda"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
 
@@ -89,6 +89,7 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
               {logo ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={logo}
                       alt="Logo azienda"
@@ -161,7 +162,7 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
               <div className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Modalità Scura</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Attiva il tema scuro per l'interfaccia</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Attiva il tema scuro per l&apos;interfaccia</p>
                 </div>
                 <button
                   type="button"

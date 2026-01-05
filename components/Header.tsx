@@ -14,6 +14,7 @@ export default function Header({ settings, onSettingsClick }: HeaderProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {settings.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={settings.logo}
                 alt={settings.nomeAzienda || 'Logo Azienda'}

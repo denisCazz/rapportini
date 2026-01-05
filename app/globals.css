@@ -20,11 +20,24 @@ body {
 
 /* Assicura che il testo negli input sia sempre visibile */
 input, textarea, select {
-  color: rgb(17, 24, 39) !important; /* gray-900 */
+  color: rgb(17, 24, 39); /* gray-900 */
+}
+
+.dark input, .dark textarea, .dark select {
+  color: rgb(255, 255, 255); /* white */
+}
+
+.dark select option {
+  background-color: rgb(55, 65, 81); /* gray-700 */
+  color: rgb(255, 255, 255); /* white */
 }
 
 input::placeholder, textarea::placeholder {
-  color: rgb(156, 163, 175) !important; /* gray-400 */
+  color: rgb(156, 163, 175); /* gray-400 */
+}
+
+.dark input::placeholder, .dark textarea::placeholder {
+  color: rgb(107, 114, 128); /* gray-500 - più scuro per dark mode */
 }
 
 /* Animazioni per il modal */
