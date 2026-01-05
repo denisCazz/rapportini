@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  color: rgb(17, 24, 39); /* gray-900 */
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(249, 250, 251) /* gray-50 */
+    )
+    rgb(249, 250, 251);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Assicura che il testo negli input sia sempre visibile */
+input, textarea, select {
+  color: rgb(17, 24, 39) !important; /* gray-900 */
+}
+
+input::placeholder, textarea::placeholder {
+  color: rgb(156, 163, 175) !important; /* gray-400 */
+}
+
+/* Animazioni per il modal */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
