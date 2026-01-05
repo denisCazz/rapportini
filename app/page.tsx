@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Rapportino, AziendaSettings } from '@/types';
 import { storage } from '@/lib/storage';
+import { auth } from '@/lib/auth';
 import { exportAllPDFs } from '@/lib/pdfGenerator';
 import RapportinoForm from '@/components/RapportinoForm';
 import RapportiniList from '@/components/RapportiniList';
@@ -10,12 +12,21 @@ import SettingsModal from '@/components/SettingsModal';
 import Header from '@/components/Header';
 
 export default function Home() {
+  const router = useRouter();
   const [rapportini, setRapportini] = useState<Rapportino[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<AziendaSettings>({});
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Verifica autenticazione
+    if (!auth.isAuthenticated()) {
+      router.push('/login');
+      return;
+    }
+    
+    setIsAuthenticated(true);
     setRapportini(storage.getRapportini());
     const loadedSettings = storage.getSettings();
     setSettings(loadedSettings);
@@ -26,7 +37,7 @@ export default function Home() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, []);
+  }, [router]);
 
   const handleSaveRapportino = (rapportino: Rapportino) => {
     storage.saveRapportino(rapportino);
@@ -60,11 +71,21 @@ export default function Home() {
     await exportAllPDFs(rapportini, settings);
   };
 
+  const handleLogout = () => {
+    auth.logout();
+    router.push('/login');
+  };
+
+  if (!isAuthenticated) {
+    return null; // Mostra nulla mentre verifica l'autenticazione
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <Header 
         settings={settings} 
         onSettingsClick={() => setShowSettings(true)}
+        onLogout={handleLogout}
       />
       
       <main className="container mx-auto px-4 py-8 max-w-7xl">

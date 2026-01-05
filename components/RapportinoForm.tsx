@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Rapportino, Operatore, Cliente, Intervento } from '@/types';
 import { format } from 'date-fns';
+import { DEFAULT_OPERATORE } from '@/lib/auth';
 
 interface RapportinoFormProps {
   onSave: (rapportino: Rapportino) => void;
@@ -12,11 +13,11 @@ interface RapportinoFormProps {
 export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps) {
   const [step, setStep] = useState(1);
   const [operatore, setOperatore] = useState<Operatore>({
-    nome: '',
-    cognome: '',
-    telefono: '',
-    email: '',
-    qualifica: '',
+    nome: DEFAULT_OPERATORE.nome,
+    cognome: DEFAULT_OPERATORE.cognome,
+    telefono: DEFAULT_OPERATORE.telefono,
+    email: DEFAULT_OPERATORE.email,
+    qualifica: DEFAULT_OPERATORE.qualifica,
   });
   const [cliente, setCliente] = useState<Cliente>({
     nome: '',
