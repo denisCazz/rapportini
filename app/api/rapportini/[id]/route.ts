@@ -27,15 +27,14 @@ export async function GET(
         utente:utenti(id, nome, cognome, telefono, email, qualifica),
         cliente:clienti(*)
       `)
-      .eq('id', params.id)
-      .single();
+      .eq('id', params.id);
 
     // Se è un operatore (non admin), verifica che il rapportino appartenga all'utente
     if (userRole !== 'admin') {
       query = query.eq('utente_id', userId);
     }
 
-    const { data: rapportino, error } = await query;
+    const { data: rapportino, error } = await query.single();
 
     if (error || !rapportino) {
       return NextResponse.json(
