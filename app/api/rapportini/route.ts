@@ -1,0 +1,227 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import { Rapportino } from '@/types';
+import { getUserIdFromRequest } from '@/lib/api-auth';
+
+// GET - Ottieni tutti i rapportini (filtrati per utente se operatore)
+export async function GET(request: NextRequest) {
+  try {
+    // Ottieni ID utente dalla richiesta
+    const userId = getUserIdFromRequest(request);
+    const userRole = request.headers.get('x-user-ruolo') || 'operatore';
+
+    // Costruisci la query base
+    let query = supabase
+      .from('rapportini')
+      .select(`
+        *,
+        utente:utenti(id, nome, cognome, telefono, email, qualifica),
+        cliente:clienti(*)
+      `)
+      .order('data_intervento', { ascending: false });
+
+    // Se è un operatore (non admin), mostra solo i suoi rapportini
+    if (userRole !== 'admin' && userId) {
+      query = query.eq('utente_id', userId);
+    }
+
+    const { data: rapportini, error } = await query;
+
+    if (error) throw error;
+
+    // Trasforma i dati dal formato DB al formato dell'app
+    const formattedRapportini: Rapportino[] = rapportini.map((r: any) => ({
+      id: r.id,
+      operatore: {
+        nome: r.utente?.nome || '',
+        cognome: r.utente?.cognome || '',
+        telefono: r.utente?.telefono || '',
+        email: r.utente?.email || '',
+        qualifica: r.utente?.qualifica || '',
+      },
+      cliente: {
+        nome: r.cliente.nome,
+        cognome: r.cliente.cognome,
+        ragioneSociale: r.cliente.ragione_sociale || '',
+        indirizzo: r.cliente.indirizzo,
+        citta: r.cliente.citta,
+        cap: r.cliente.cap,
+        telefono: r.cliente.telefono,
+        email: r.cliente.email || '',
+        partitaIva: r.cliente.partita_iva || '',
+        codiceFiscale: r.cliente.codice_fiscale || '',
+      },
+      intervento: {
+        data: r.data_intervento,
+        ora: r.ora_intervento,
+        tipoStufa: r.tipo_stufa as 'pellet' | 'legno',
+        marca: r.marca,
+        modello: r.modello,
+        numeroSerie: r.numero_serie || '',
+        tipoIntervento: r.tipo_intervento,
+        descrizione: r.descrizione,
+        materialiUtilizzati: r.materiali_utilizzati || '',
+        note: r.note || '',
+        firmaCliente: r.firma_cliente || '',
+      },
+      dataCreazione: r.data_creazione || r.created_at,
+    }));
+
+    return NextResponse.json(formattedRapportini);
+  } catch (error: any) {
+    console.error('Error fetching rapportini:', error);
+    return NextResponse.json(
+      { error: error.message || 'Errore nel recupero dei rapportini' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Crea un nuovo rapportino
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const rapportino: Rapportino = body.rapportino || body;
+    const userId = body.userId || getUserIdFromRequest(request);
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'ID utente non fornito. Effettua il login.' },
+        { status: 401 }
+      );
+    }
+
+    // Verifica che l'utente esista
+    const { data: utente, error: utenteError } = await supabase
+      .from('utenti')
+      .select('id, ruolo')
+      .eq('id', userId)
+      .single();
+
+    if (utenteError || !utente) {
+      return NextResponse.json(
+        { error: 'Utente non trovato' },
+        { status: 404 }
+      );
+    }
+
+    // Solo operatori possono creare rapportini (admin può vedere tutto ma non creare)
+    if (utente.ruolo !== 'operatore') {
+      return NextResponse.json(
+        { error: 'Solo gli operatori possono creare rapportini' },
+        { status: 403 }
+      );
+    }
+
+    // Cerca o crea cliente
+    // Normalizza i dati per evitare duplicati (trim e lowercase per nome/cognome)
+    const nomeNormalizzato = rapportino.cliente.nome.trim();
+    const cognomeNormalizzato = rapportino.cliente.cognome.trim();
+    const telefonoNormalizzato = rapportino.cliente.telefono.trim();
+
+    let clienteId: string | null = null;
+
+    // Prima cerca per nome + cognome + telefono (match esatto)
+    let { data: clienteData, error: clienteError } = await supabase
+      .from('clienti')
+      .select('id')
+      .eq('nome', nomeNormalizzato)
+      .eq('cognome', cognomeNormalizzato)
+      .eq('telefono', telefonoNormalizzato)
+      .maybeSingle();
+
+    if (clienteData) {
+      clienteId = clienteData.id;
+    } else {
+      // Se non trovato, cerca solo per nome + cognome (potrebbe essere lo stesso cliente con telefono diverso)
+      const { data: clienteNomeCognome, error: errorNomeCognome } = await supabase
+        .from('clienti')
+        .select('id')
+        .eq('nome', nomeNormalizzato)
+        .eq('cognome', cognomeNormalizzato)
+        .limit(1)
+        .maybeSingle();
+
+      if (clienteNomeCognome) {
+        // Trovato cliente con stesso nome e cognome - usa quello esistente
+        clienteId = clienteNomeCognome.id;
+      }
+    }
+
+    // Se non trovato, crea nuovo cliente
+    if (!clienteId) {
+      const { data: newCliente, error: createClienteError } = await supabase
+        .from('clienti')
+        .insert({
+          nome: nomeNormalizzato,
+          cognome: cognomeNormalizzato,
+          ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
+          indirizzo: rapportino.cliente.indirizzo.trim(),
+          citta: rapportino.cliente.citta.trim(),
+          cap: rapportino.cliente.cap.trim(),
+          telefono: telefonoNormalizzato,
+          email: rapportino.cliente.email?.trim() || null,
+          partita_iva: rapportino.cliente.partitaIva?.trim() || null,
+          codice_fiscale: rapportino.cliente.codiceFiscale?.trim() || null,
+        })
+        .select('id')
+        .single();
+
+      if (createClienteError) {
+        // Se l'errore è dovuto a un constraint UNIQUE, prova a cercare di nuovo
+        if (createClienteError.code === '23505') {
+          const { data: existingCliente } = await supabase
+            .from('clienti')
+            .select('id')
+            .eq('nome', nomeNormalizzato)
+            .eq('cognome', cognomeNormalizzato)
+            .eq('telefono', telefonoNormalizzato)
+            .maybeSingle();
+          
+          if (existingCliente) {
+            clienteId = existingCliente.id;
+          } else {
+            throw createClienteError;
+          }
+        } else {
+          throw createClienteError;
+        }
+        } else {
+          clienteId = newCliente.id;
+        }
+    }
+
+    // Crea rapportino usando l'ID utente
+    const { data: newRapportino, error: rapportinoError } = await supabase
+      .from('rapportini')
+      .insert({
+        utente_id: userId,
+        cliente_id: clienteId,
+        data_intervento: rapportino.intervento.data,
+        ora_intervento: rapportino.intervento.ora,
+        tipo_stufa: rapportino.intervento.tipoStufa,
+        marca: rapportino.intervento.marca,
+        modello: rapportino.intervento.modello,
+        numero_serie: rapportino.intervento.numeroSerie || null,
+        tipo_intervento: rapportino.intervento.tipoIntervento,
+        descrizione: rapportino.intervento.descrizione,
+        materiali_utilizzati: rapportino.intervento.materialiUtilizzati || null,
+        note: rapportino.intervento.note || null,
+        firma_cliente: rapportino.intervento.firmaCliente || null,
+        data_creazione: rapportino.dataCreazione || new Date().toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (rapportinoError) throw rapportinoError;
+
+    return NextResponse.json({ id: newRapportino.id, success: true });
+  } catch (error: any) {
+    console.error('Error creating rapportino:', error);
+    return NextResponse.json(
+      { error: error.message || 'Errore nella creazione del rapportino' },
+      { status: 500 }
+    );
+  }
+}
+

@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Rapportino, AziendaSettings } from '@/types';
 import { storage } from '@/lib/storage';
 import { auth } from '@/lib/auth';
+import { api } from '@/lib/api';
 import { exportAllPDFs } from '@/lib/pdfGenerator';
 import RapportinoForm from '@/components/RapportinoForm';
 import RapportiniList from '@/components/RapportiniList';
@@ -18,6 +20,8 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Verifica autenticazione
@@ -27,7 +31,7 @@ export default function Home() {
     }
     
     setIsAuthenticated(true);
-    setRapportini(storage.getRapportini());
+    loadRapportini();
     const loadedSettings = storage.getSettings();
     setSettings(loadedSettings);
     
@@ -37,17 +41,40 @@ export default function Home() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+
   }, [router]);
 
-  const handleSaveRapportino = (rapportino: Rapportino) => {
-    storage.saveRapportino(rapportino);
-    setRapportini(storage.getRapportini());
-    setShowForm(false);
+  const loadRapportini = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.getRapportini();
+      setRapportini(data);
+    } catch (err: any) {
+      setError(err.message || 'Errore nel caricamento dei rapportini');
+      console.error('Error loading rapportini:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteRapportino = (id: string) => {
-    storage.deleteRapportino(id);
-    setRapportini(storage.getRapportini());
+  const handleSaveRapportino = async (rapportino: Rapportino) => {
+    try {
+      await api.createRapportino(rapportino);
+      await loadRapportini();
+      setShowForm(false);
+    } catch (err: any) {
+      alert(err.message || 'Errore nel salvataggio del rapportino');
+    }
+  };
+
+  const handleDeleteRapportino = async (id: string) => {
+    try {
+      await api.deleteRapportino(id);
+      await loadRapportini();
+    } catch (err: any) {
+      alert(err.message || 'Errore nell\'eliminazione del rapportino');
+    }
   };
 
   const handleSaveSettings = (newSettings: AziendaSettings) => {
@@ -63,7 +90,7 @@ export default function Home() {
     }
   };
 
-  const handleExport = async () => {
+  const handleExportPDFs = async () => {
     if (rapportini.length === 0) {
       alert('Nessun rapportino da esportare');
       return;
@@ -71,8 +98,8 @@ export default function Home() {
     await exportAllPDFs(rapportini, settings);
   };
 
-  const handleLogout = () => {
-    auth.logout();
+  const handleLogout = async () => {
+    await auth.logout();
     router.push('/login');
   };
 
@@ -86,34 +113,36 @@ export default function Home() {
         settings={settings} 
         onSettingsClick={() => setShowSettings(true)}
         onLogout={handleLogout}
+        onNewRapportino={() => setShowForm(true)}
+        onExportPDF={handleExportPDFs}
       />
       
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Bitora - Gestione Rapportini
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Dashboard
             </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Sistema per la gestione degli interventi su stufe a pellet e legno
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md"
-            >
-              + Nuovo Rapportino
-            </button>
-            <button
-              onClick={handleExport}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
-            >
-              📤 Esporta Tutti i PDF
-            </button>
-          </div>
+          <p className="text-gray-600 dark:text-gray-300">
+            Gestione rapportini di intervento su stufe a pellet e legno
+          </p>
         </div>
+
+        {error && (
+          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-red-800 dark:text-red-200">{error}</p>
+              <button
+                onClick={loadRapportini}
+                className="ml-auto text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline text-sm"
+              >
+                Riprova
+              </button>
+            </div>
+          </div>
+        )}
 
         {showForm && (
           <RapportinoForm
@@ -122,11 +151,18 @@ export default function Home() {
           />
         )}
 
-        <RapportiniList
-          rapportini={rapportini}
-          onDelete={handleDeleteRapportino}
-          settings={settings}
-        />
+        {loading ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento rapportini...</p>
+          </div>
+        ) : (
+          <RapportiniList
+            rapportini={rapportini}
+            onDelete={handleDeleteRapportino}
+            settings={settings}
+          />
+        )}
 
         {showSettings && (
           <SettingsModal

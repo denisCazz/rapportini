@@ -59,9 +59,24 @@ export default function RapportinoDetail({ rapportino, settings, onClose }: Rapp
                   className="h-12 w-auto sm:h-16 object-contain print:h-20"
                 />
               ) : (
-                <div className="h-12 w-12 sm:h-16 sm:w-16 bg-primary-600 rounded-lg flex items-center justify-center print:h-20 print:w-20 flex-shrink-0">
-                  <span className="text-white font-bold text-xl sm:text-2xl print:text-3xl">R</span>
-                </div>
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logo.png"
+                    alt={settings.nomeAzienda || 'Logo Azienda'}
+                    className="h-12 w-auto sm:h-16 object-contain print:h-20"
+                    onError={(e) => {
+                      // Se il logo non esiste, mostra il fallback
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  <div className="h-12 w-12 sm:h-16 sm:w-16 bg-primary-600 rounded-lg flex items-center justify-center print:h-20 print:w-20 flex-shrink-0" style={{ display: 'none' }}>
+                    <span className="text-white font-bold text-xl sm:text-2xl print:text-3xl">R</span>
+                  </div>
+                </>
               )}
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white print:text-3xl">
