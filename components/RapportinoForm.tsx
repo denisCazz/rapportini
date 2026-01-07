@@ -213,7 +213,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dati Operatore</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci le informazioni dell'operatore che esegue l'intervento</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci le informazioni dell&apos;operatore che esegue l&apos;intervento</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,7 +291,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dati Cliente</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci le informazioni del cliente per cui viene eseguito l'intervento</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci le informazioni del cliente per cui viene eseguito l&apos;intervento</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -507,7 +507,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dati Intervento</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci i dettagli dell'intervento eseguito</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci i dettagli dell&apos;intervento eseguito</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
