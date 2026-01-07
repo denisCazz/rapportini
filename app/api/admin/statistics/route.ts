@@ -131,7 +131,9 @@ export async function GET(request: NextRequest) {
       (a, b) => b.statistiche.totale - a.statistiche.totale
     );
 
-    return NextResponse.json(statistiche);
+    const response = NextResponse.json(statistiche);
+    response.headers.set('Cache-Control', 'no-store, must-revalidate');
+    return response;
   } catch (error: any) {
     console.error('Error fetching statistics:', error);
     return NextResponse.json(

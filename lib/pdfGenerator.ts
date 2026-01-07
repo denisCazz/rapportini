@@ -51,7 +51,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   let textX = margin;
   
   // Usa il logo dalle settings o il logo di default
-  const logoToUse = settings.logo || '/logo.png';
+  const logoToUse = settings.logo || '/logo.avif';
   
   if (logoToUse) {
     try {

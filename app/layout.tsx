@@ -2,7 +2,12 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+// Ottimizzazione font loading con display swap
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap', // Migliora il rendering del font
+  preload: true,
+})
 
 export const metadata: Metadata = {
   title: 'Bitora - Gestione Rapportini',
@@ -17,7 +22,7 @@ export const metadata: Metadata = {
     description: 'Sistema per la gestione dei rapportini di assistenza stufe a pellet e legno',
     images: [
       {
-        url: '/logo.png',
+        url: '/logo.avif',
         width: 1200,
         height: 630,
         alt: 'Bitora Logo',
@@ -31,7 +36,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Bitora - Gestione Rapportini',
     description: 'Sistema per la gestione dei rapportini di assistenza stufe a pellet e legno',
-    images: ['/logo.png'],
+    images: ['/logo.avif'],
   },
 }
 

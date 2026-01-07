@@ -3,12 +3,17 @@ import { supabase } from '@/lib/supabase';
 import { getUserIdFromRequest } from '@/lib/api-auth';
 import { Rapportino } from '@/types';
 
+// Cache configuration per Next.js 16.1
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET - Ottieni un singolo rapportino
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = getUserIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
@@ -27,7 +32,7 @@ export async function GET(
         utente:utenti(id, nome, cognome, telefono, email, qualifica),
         cliente:clienti(*)
       `)
-      .eq('id', params.id);
+      .eq('id', id);
 
     // Se è un operatore (non admin), verifica che il rapportino appartenga all'utente
     if (userRole !== 'admin') {
@@ -81,7 +86,9 @@ export async function GET(
       dataCreazione: rapportino.data_creazione || rapportino.created_at,
     };
 
-    return NextResponse.json(formattedRapportino);
+    const response = NextResponse.json(formattedRapportino);
+    response.headers.set('Cache-Control', 'no-store, must-revalidate');
+    return response;
   } catch (error: any) {
     console.error('Error fetching rapportino:', error);
     return NextResponse.json(
@@ -94,9 +101,10 @@ export async function GET(
 // DELETE - Elimina un rapportino
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = getUserIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
@@ -112,7 +120,7 @@ export async function DELETE(
       const { data: rapportino, error: fetchError } = await supabase
         .from('rapportini')
         .select('utente_id')
-        .eq('id', params.id)
+        .eq('id', id)
         .single();
 
       if (fetchError || !rapportino) {
@@ -133,7 +141,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('rapportini')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) throw error;
 

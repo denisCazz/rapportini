@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -52,8 +52,12 @@ export default function AdminPage() {
   const [selectedRapportino, setSelectedRapportino] = useState<Rapportino | null>(null);
   const [loadingRapportino, setLoadingRapportino] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const hasLoadedRef = useRef(false); // Previene doppie chiamate in React Strict Mode
 
   useEffect(() => {
+    // Previene doppie chiamate in React Strict Mode
+    if (hasLoadedRef.current) return;
+    
     if (!auth.isAuthenticated()) {
       router.push('/login');
       return;
@@ -65,6 +69,7 @@ export default function AdminPage() {
       return;
     }
     
+    hasLoadedRef.current = true;
     setIsAuthenticated(true);
     const loadedSettings = storage.getSettings();
     setSettings(loadedSettings);
@@ -78,7 +83,8 @@ export default function AdminPage() {
     }
     
     loadStatistics();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Rimuoviamo router dalle dipendenze - non è necessario
 
   const loadStatistics = async () => {
     try {

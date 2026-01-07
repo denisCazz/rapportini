@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Rapportino, AziendaSettings } from '@/types';
 import { storage } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
-import { exportAllPDFs } from '@/lib/pdfGenerator';
-import RapportinoForm from '@/components/RapportinoForm';
+import { Suspense, lazy } from 'react';
 import RapportiniList from '@/components/RapportiniList';
 import Header from '@/components/Header';
+
+// Dynamic import per componenti pesanti - migliora il bundle splitting
+const RapportinoForm = lazy(() => import('@/components/RapportinoForm'));
 
 export default function Home() {
   const router = useRouter();
@@ -21,14 +23,19 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false); // Previene doppie chiamate in React Strict Mode
 
   useEffect(() => {
+    // Previene doppie chiamate in React Strict Mode
+    if (hasLoadedRef.current) return;
+    
     // Verifica autenticazione
     if (!auth.isAuthenticated()) {
       router.push('/login');
       return;
     }
     
+    hasLoadedRef.current = true;
     setIsAuthenticated(true);
     loadRapportini();
     const loadedSettings = storage.getSettings();
@@ -42,8 +49,8 @@ export default function Home() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Rimuoviamo router dalle dipendenze - non è necessario
 
   const loadRapportini = async () => {
     try {
@@ -97,7 +104,14 @@ export default function Home() {
       alert('Nessun rapportino da esportare');
       return;
     }
-    await exportAllPDFs(rapportini, settings);
+    try {
+      // Dynamic import solo quando necessario per ridurre il bundle iniziale
+      const { exportAllPDFs } = await import('@/lib/pdfGenerator');
+      await exportAllPDFs(rapportini, settings);
+    } catch (error: any) {
+      console.error('Error exporting PDFs:', error);
+      alert('Errore durante l\'esportazione dei PDF');
+    }
   };
 
   const handleLogout = async () => {
@@ -146,10 +160,17 @@ export default function Home() {
         )}
 
         {showForm && (
-          <RapportinoForm
-            onSave={handleSaveRapportino}
-            onCancel={() => setShowForm(false)}
-          />
+          <Suspense fallback={
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento form...</p>
+            </div>
+          }>
+            <RapportinoForm
+              onSave={handleSaveRapportino}
+              onCancel={() => setShowForm(false)}
+            />
+          </Suspense>
         )}
 
         {loading ? (

@@ -100,7 +100,7 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/logo.avif"
             alt="Logo"
             className="h-32 w-auto object-contain mx-auto mb-6"
             onError={(e) => {

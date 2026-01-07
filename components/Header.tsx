@@ -108,18 +108,20 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
               Dashboard
             </Link>
             
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onNewRapportino?.();
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-base font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nuovo Rapportino
-            </button>
+            {onNewRapportino && (
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onNewRapportino();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-base font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Nuovo Rapportino
+              </button>
+            )}
             
             {user.ruolo === 'admin' && (
               <Link
@@ -138,7 +140,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
               </Link>
             )}
             
-            {onExportPDF && (
+            {onExportPDF && !isActive('/admin') && (
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
@@ -192,7 +194,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src="/logo.png"
+                src="/logo.avif"
                 alt={settings.nomeAzienda || 'Logo Azienda'}
                 className="h-12 w-auto sm:h-20 md:h-24 object-contain"
                 onError={(e) => {
@@ -295,15 +297,17 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
                 Dashboard
               </Link>
               
-              <button
-                onClick={onNewRapportino}
-                className="px-2 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all flex items-center gap-1 sm:gap-2 font-medium text-xs sm:text-sm shadow-md hover:shadow-lg whitespace-nowrap"
-              >
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Nuovo Rapportino
-              </button>
+              {onNewRapportino && (
+                <button
+                  onClick={onNewRapportino}
+                  className="px-2 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all flex items-center gap-1 sm:gap-2 font-medium text-xs sm:text-sm shadow-md hover:shadow-lg whitespace-nowrap"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Nuovo Rapportino
+                </button>
+              )}
               
               {user.ruolo === 'admin' && (
                 <Link
@@ -321,7 +325,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
                 </Link>
               )}
               
-              {onExportPDF && (
+              {onExportPDF && !isActive('/admin') && (
                 <button
                   onClick={onExportPDF}
                   className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-1 sm:gap-2 font-medium text-xs sm:text-sm shadow-md hover:shadow-lg whitespace-nowrap"

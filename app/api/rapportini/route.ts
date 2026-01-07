@@ -3,6 +3,10 @@ import { supabase } from '@/lib/supabase';
 import { Rapportino } from '@/types';
 import { getUserIdFromRequest } from '@/lib/api-auth';
 
+// Cache configuration per Next.js 16.1
+export const dynamic = 'force-dynamic'; // Disabilita caching per dati dinamici
+export const revalidate = 0; // Non cacheare
+
 // GET - Ottieni tutti i rapportini (filtrati per utente se operatore)
 export async function GET(request: NextRequest) {
   try {
@@ -67,7 +71,10 @@ export async function GET(request: NextRequest) {
       dataCreazione: r.data_creazione || r.created_at,
     }));
 
-    return NextResponse.json(formattedRapportini);
+    const response = NextResponse.json(formattedRapportini);
+    // Aggiungi cache headers per ottimizzare le richieste
+    response.headers.set('Cache-Control', 'no-store, must-revalidate');
+    return response;
   } catch (error: any) {
     console.error('Error fetching rapportini:', error);
     return NextResponse.json(
