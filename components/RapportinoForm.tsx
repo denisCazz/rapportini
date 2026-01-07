@@ -60,6 +60,18 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
   const [showClientiList, setShowClientiList] = useState(false);
   const [isSearchingClienti, setIsSearchingClienti] = useState(false);
+  
+  // Stati per marche, modelli e materiali
+  const [marche, setMarche] = useState<Array<{ id: string; nome: string }>>([]);
+  const [modelli, setModelli] = useState<Array<{ id: string; nome: string; marca_id: string }>>([]);
+  const [materiali, setMateriali] = useState<Array<{ id: string; nome: string; descrizione?: string; modello_id: string }>>([]);
+  const [selectedMateriali, setSelectedMateriali] = useState<string[]>([]);
+  const [marcaId, setMarcaId] = useState<string>('');
+  const [modelloId, setModelloId] = useState<string>('');
+  const [showMarcaInput, setShowMarcaInput] = useState(false);
+  const [showModelloInput, setShowModelloInput] = useState(false);
+  const [showMaterialeInput, setShowMaterialeInput] = useState(false);
+  const [newMaterialeNome, setNewMaterialeNome] = useState('');
 
   // Cerca clienti esistenti quando nome e cognome sono inseriti
   useEffect(() => {
@@ -105,6 +117,68 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     }
   }, [showClientiList]);
 
+  // Carica marche al mount
+  useEffect(() => {
+    const loadMarche = async () => {
+      try {
+        const response = await fetch('/api/marche');
+        if (response.ok) {
+          const data = await response.json();
+          setMarche(data);
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento marche:', error);
+      }
+    };
+    loadMarche();
+  }, []);
+
+  // Carica modelli quando cambia la marca
+  useEffect(() => {
+    const loadModelli = async () => {
+      if (marcaId) {
+        try {
+          const response = await fetch(`/api/modelli?marca_id=${marcaId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setModelli(data);
+          }
+        } catch (error) {
+          console.error('Errore nel caricamento modelli:', error);
+        }
+      } else {
+        setModelli([]);
+        setModelloId('');
+        setIntervento(prev => ({ ...prev, modello: '' }));
+        setMateriali([]);
+        setSelectedMateriali([]);
+      }
+    };
+    loadModelli();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marcaId]);
+
+  // Carica materiali quando cambia il modello
+  useEffect(() => {
+    const loadMateriali = async () => {
+      if (modelloId) {
+        try {
+          const response = await fetch(`/api/materiali?modello_id=${modelloId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setMateriali(data);
+          }
+        } catch (error) {
+          console.error('Errore nel caricamento materiali:', error);
+        }
+      } else {
+        setMateriali([]);
+        setSelectedMateriali([]);
+      }
+    };
+    loadMateriali();
+  }, [modelloId]);
+
   const handleSelectCliente = (clienteSelezionato: Cliente) => {
     setCliente({
       ...clienteSelezionato,
@@ -137,11 +211,28 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       return;
     }
 
+    // Combina materiali selezionati con materiali manuali
+    const materialiSelezionati = selectedMateriali
+      .map(id => {
+        const materiale = materiali.find(m => m.id === id);
+        return materiale ? materiale.nome : null;
+      })
+      .filter(Boolean)
+      .join(', ');
+    
+    const materialiFinali = [
+      materialiSelezionati,
+      intervento.materialiUtilizzati || ''
+    ].filter(Boolean).join('; ');
+
     const rapportino: Rapportino = {
       id: `rapp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       operatore,
       cliente,
-      intervento,
+      intervento: {
+        ...intervento,
+        materialiUtilizzati: materialiFinali || undefined,
+      },
       dataCreazione: new Date().toISOString(),
     };
 
@@ -553,25 +644,170 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
                 Marca <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={intervento.marca}
-                onChange={(e) => setIntervento({ ...intervento, marca: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
-                required
-              />
+              <div className="flex gap-2">
+                {!showMarcaInput ? (
+                  <>
+                    <select
+                      value={marcaId}
+                      onChange={async (e) => {
+                        const selectedId = e.target.value;
+                        if (selectedId === 'new') {
+                          setShowMarcaInput(true);
+                          setMarcaId('');
+                        } else {
+                          setMarcaId(selectedId);
+                          const selectedMarca = marche.find(m => m.id === selectedId);
+                          setIntervento({ ...intervento, marca: selectedMarca?.nome || '' });
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                      required
+                    >
+                      <option value="">Seleziona marca...</option>
+                      {marche.map((marca) => (
+                        <option key={marca.id} value={marca.id} className="bg-white dark:bg-gray-700">
+                          {marca.nome}
+                        </option>
+                      ))}
+                      <option value="new" className="bg-white dark:bg-gray-700 font-semibold">
+                        + Nuova marca
+                      </option>
+                    </select>
+                  </>
+                ) : (
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={intervento.marca}
+                      onChange={(e) => setIntervento({ ...intervento, marca: e.target.value })}
+                      placeholder="Inserisci nuova marca"
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (intervento.marca.trim()) {
+                          try {
+                            const response = await fetch('/api/marche', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ nome: intervento.marca.trim() }),
+                            });
+                            if (response.ok) {
+                              const newMarca = await response.json();
+                              setMarche([...marche, newMarca]);
+                              setMarcaId(newMarca.id);
+                            }
+                          } catch (error) {
+                            console.error('Errore creazione marca:', error);
+                          }
+                        }
+                        setShowMarcaInput(false);
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      Salva
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMarcaInput(false);
+                        setIntervento({ ...intervento, marca: '' });
+                      }}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                    >
+                      Annulla
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
                 Modello <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={intervento.modello}
-                onChange={(e) => setIntervento({ ...intervento, modello: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
-                required
-              />
+              <div className="flex gap-2">
+                {!showModelloInput ? (
+                  <>
+                    <select
+                      value={modelloId}
+                      onChange={async (e) => {
+                        const selectedId = e.target.value;
+                        if (selectedId === 'new') {
+                          setShowModelloInput(true);
+                          setModelloId('');
+                        } else {
+                          setModelloId(selectedId);
+                          const selectedModello = modelli.find(m => m.id === selectedId);
+                          setIntervento({ ...intervento, modello: selectedModello?.nome || '' });
+                        }
+                      }}
+                      disabled={!marcaId}
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      required
+                    >
+                      <option value="">{marcaId ? 'Seleziona modello...' : 'Seleziona prima una marca'}</option>
+                      {modelli.map((modello) => (
+                        <option key={modello.id} value={modello.id} className="bg-white dark:bg-gray-700">
+                          {modello.nome}
+                        </option>
+                      ))}
+                      {marcaId && (
+                        <option value="new" className="bg-white dark:bg-gray-700 font-semibold">
+                          + Nuovo modello
+                        </option>
+                      )}
+                    </select>
+                  </>
+                ) : (
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={intervento.modello}
+                      onChange={(e) => setIntervento({ ...intervento, modello: e.target.value })}
+                      placeholder="Inserisci nuovo modello"
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (intervento.modello.trim() && marcaId) {
+                          try {
+                            const response = await fetch('/api/modelli', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
+                            });
+                            if (response.ok) {
+                              const newModello = await response.json();
+                              setModelli([...modelli, newModello]);
+                              setModelloId(newModello.id);
+                            }
+                          } catch (error) {
+                            console.error('Errore creazione modello:', error);
+                          }
+                        }
+                        setShowModelloInput(false);
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      Salva
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowModelloInput(false);
+                        setIntervento({ ...intervento, modello: '' });
+                      }}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                    >
+                      Annulla
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
@@ -613,12 +849,126 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
                 Materiali Utilizzati
               </label>
-              <textarea
-                value={intervento.materialiUtilizzati}
-                onChange={(e) => setIntervento({ ...intervento, materialiUtilizzati: e.target.value })}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
-              />
+              <div className="space-y-2">
+                {/* Combobox multi-select per materiali */}
+                <div className="relative">
+                  <div className="min-h-[100px] max-h-[200px] overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-700">
+                    {materiali.length > 0 ? (
+                      <div className="space-y-1">
+                        {materiali.map((materiale) => (
+                          <label
+                            key={materiale.id}
+                            className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedMateriali.includes(materiale.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedMateriali([...selectedMateriali, materiale.id]);
+                                } else {
+                                  setSelectedMateriali(selectedMateriali.filter(id => id !== materiale.id));
+                                }
+                              }}
+                              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {materiale.nome}
+                              {materiale.descrizione && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                  - {materiale.descrizione}
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                        {modelloId ? 'Nessun materiale disponibile per questo modello' : 'Seleziona prima un modello'}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Pulsante per aggiungere nuovo materiale */}
+                  {modelloId && (
+                    <div className="mt-2">
+                      {!showMaterialeInput ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowMaterialeInput(true)}
+                          className="w-full px-4 py-2 text-sm border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          + Aggiungi nuovo materiale
+                        </button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newMaterialeNome}
+                            onChange={(e) => setNewMaterialeNome(e.target.value)}
+                            placeholder="Nome materiale"
+                            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (newMaterialeNome.trim() && modelloId) {
+                                try {
+                                  const response = await fetch('/api/materiali', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ 
+                                      nome: newMaterialeNome.trim(), 
+                                      modello_id: modelloId 
+                                    }),
+                                  });
+                                  if (response.ok) {
+                                    const newMateriale = await response.json();
+                                    setMateriali([...materiali, newMateriale]);
+                                    setSelectedMateriali([...selectedMateriali, newMateriale.id]);
+                                    setNewMaterialeNome('');
+                                    setShowMaterialeInput(false);
+                                  }
+                                } catch (error) {
+                                  console.error('Errore creazione materiale:', error);
+                                }
+                              }
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            Salva
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowMaterialeInput(false);
+                              setNewMaterialeNome('');
+                            }}
+                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                          >
+                            Annulla
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Input manuale per materiali aggiuntivi */}
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    Materiali aggiuntivi (opzionale)
+                  </label>
+                  <textarea
+                    value={intervento.materialiUtilizzati || ''}
+                    onChange={(e) => setIntervento({ ...intervento, materialiUtilizzati: e.target.value })}
+                    placeholder="Inserisci materiali aggiuntivi non presenti nella lista..."
+                    rows={2}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+                  />
+                </div>
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
