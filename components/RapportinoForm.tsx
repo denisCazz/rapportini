@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Rapportino, Operatore, Cliente, Intervento } from '@/types';
 import { format } from 'date-fns';
-import { DEFAULT_OPERATORE } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 interface RapportinoFormProps {
   onSave: (rapportino: Rapportino) => void;
@@ -13,12 +13,26 @@ interface RapportinoFormProps {
 export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps) {
   const [step, setStep] = useState(1);
   const [operatore, setOperatore] = useState<Operatore>({
-    nome: DEFAULT_OPERATORE.nome,
-    cognome: DEFAULT_OPERATORE.cognome,
-    telefono: DEFAULT_OPERATORE.telefono,
-    email: DEFAULT_OPERATORE.email,
-    qualifica: DEFAULT_OPERATORE.qualifica,
+    nome: '',
+    cognome: '',
+    telefono: '',
+    email: '',
+    qualifica: '',
   });
+  
+  // Carica i dati operatore dall'utente loggato
+  useEffect(() => {
+    const user = auth.getUser();
+    if (user) {
+      setOperatore({
+        nome: user.nome || '',
+        cognome: user.cognome || '',
+        telefono: user.telefono || '',
+        email: user.email || '',
+        qualifica: user.qualifica || '',
+      });
+    }
+  }, []);
   const [cliente, setCliente] = useState<Cliente>({
     nome: '',
     cognome: '',
@@ -43,6 +57,66 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     materialiUtilizzati: '',
     note: '',
   });
+  const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
+  const [showClientiList, setShowClientiList] = useState(false);
+  const [isSearchingClienti, setIsSearchingClienti] = useState(false);
+
+  // Cerca clienti esistenti quando nome e cognome sono inseriti
+  useEffect(() => {
+    const searchClienti = async () => {
+      if (step === 2 && cliente.nome.trim().length >= 2 && cliente.cognome.trim().length >= 2) {
+        setIsSearchingClienti(true);
+        try {
+          const response = await fetch(
+            `/api/clienti/search?nome=${encodeURIComponent(cliente.nome.trim())}&cognome=${encodeURIComponent(cliente.cognome.trim())}`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            setClientiEsistenti(data);
+            setShowClientiList(data.length > 0);
+          }
+        } catch (error) {
+          console.error('Errore nella ricerca clienti:', error);
+        } finally {
+          setIsSearchingClienti(false);
+        }
+      } else {
+        setClientiEsistenti([]);
+        setShowClientiList(false);
+      }
+    };
+
+    const timeoutId = setTimeout(searchClienti, 500); // Debounce di 500ms
+    return () => clearTimeout(timeoutId);
+  }, [cliente.nome, cliente.cognome, step]);
+
+  // Chiudi la lista quando si clicca fuori
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showClientiList && !target.closest('.clienti-list-container')) {
+        setShowClientiList(false);
+      }
+    };
+
+    if (showClientiList) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showClientiList]);
+
+  const handleSelectCliente = (clienteSelezionato: Cliente) => {
+    setCliente({
+      ...clienteSelezionato,
+      // Mantieni i campi già compilati se non vuoti
+      ragioneSociale: clienteSelezionato.ragioneSociale || cliente.ragioneSociale,
+      email: clienteSelezionato.email || cliente.email,
+      partitaIva: clienteSelezionato.partitaIva || cliente.partitaIva,
+      codiceFiscale: clienteSelezionato.codiceFiscale || cliente.codiceFiscale,
+    });
+    setShowClientiList(false);
+    setClientiEsistenti([]);
+  };
 
   const validateStep = (): boolean => {
     if (step === 1) {
@@ -75,44 +149,73 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 mb-8">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Nuovo Rapportino</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 mb-8 animate-slideUp">
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">Nuovo Rapportino</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Compila tutti i campi obbligatori per creare un nuovo rapportino</p>
+          </div>
           <button
             onClick={onCancel}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            aria-label="Chiudi"
           >
-            ✕
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="flex items-center gap-2 mb-6">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center flex-1">
               <div
-                className={`flex-1 h-2 rounded-full ${
-                  s <= step ? 'bg-primary-600' : 'bg-gray-300'
+                className={`flex-1 h-2 rounded-full transition-all duration-300 ${
+                  s <= step ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
                 }`}
               />
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
                   s < step
-                    ? 'bg-primary-600 text-white'
+                    ? 'bg-primary-600 text-white shadow-lg'
                     : s === step
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                    ? 'bg-primary-600 text-white shadow-lg ring-4 ring-primary-200 dark:ring-primary-900'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                 }`}
               >
-                {s < step ? '✓' : s}
+                {s < step ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  s
+                )}
               </div>
             </div>
           ))}
         </div>
+        <div className="flex gap-2 text-xs text-gray-600 dark:text-gray-400">
+          <span className={step === 1 ? 'font-semibold text-primary-600 dark:text-primary-400' : ''}>1. Operatore</span>
+          <span>•</span>
+          <span className={step === 2 ? 'font-semibold text-primary-600 dark:text-primary-400' : ''}>2. Cliente</span>
+          <span>•</span>
+          <span className={step === 3 ? 'font-semibold text-primary-600 dark:text-primary-400' : ''}>3. Intervento</span>
+        </div>
       </div>
 
       {step === 1 && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Dati Operatore</h3>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+              <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dati Operatore</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci le informazioni dell'operatore che esegue l'intervento</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -179,33 +282,125 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       )}
 
       {step === 2 && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Dati Cliente</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
             <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dati Cliente</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci le informazioni del cliente per cui viene eseguito l'intervento</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
                 Nome <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={cliente.nome}
-                onChange={(e) => setCliente({ ...cliente, nome: e.target.value })}
+                onChange={(e) => {
+                  setCliente({ ...cliente, nome: e.target.value });
+                  setShowClientiList(true);
+                }}
+                onFocus={() => {
+                  if (clientiEsistenti.length > 0) {
+                    setShowClientiList(true);
+                  }
+                }}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                 required
               />
+              {isSearchingClienti && (
+                <div className="absolute right-3 top-9">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                </div>
+              )}
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
                 Cognome <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={cliente.cognome}
-                onChange={(e) => setCliente({ ...cliente, cognome: e.target.value })}
+                onChange={(e) => {
+                  setCliente({ ...cliente, cognome: e.target.value });
+                  setShowClientiList(true);
+                }}
+                onFocus={() => {
+                  if (clientiEsistenti.length > 0) {
+                    setShowClientiList(true);
+                  }
+                }}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                 required
               />
             </div>
+            
+            {/* Lista clienti esistenti */}
+            {showClientiList && clientiEsistenti.length > 0 && (
+              <div className="md:col-span-2 relative z-10 clienti-list-container">
+                <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg shadow-xl mt-2 max-h-64 overflow-y-auto">
+                  <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Trovati {clientiEsistenti.length} cliente{clientiEsistenti.length > 1 ? 'i' : ''} esistente{clientiEsistenti.length > 1 ? 'i' : ''} - Seleziona per precompilare i dati
+                    </p>
+                  </div>
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {clientiEsistenti.map((clienteEsistente) => (
+                      <button
+                        key={clienteEsistente.nome + clienteEsistente.cognome + clienteEsistente.telefono}
+                        type="button"
+                        onClick={() => handleSelectCliente(clienteEsistente)}
+                        className="w-full text-left p-3 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {clienteEsistente.nome} {clienteEsistente.cognome}
+                              {clienteEsistente.ragioneSociale && (
+                                <span className="text-sm font-normal text-gray-600 dark:text-gray-400 ml-2">
+                                  • {clienteEsistente.ragioneSociale}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {clienteEsistente.indirizzo}, {clienteEsistente.citta} ({clienteEsistente.cap})
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                              📞 {clienteEsistente.telefono}
+                              {clienteEsistente.email && ` • ✉️ ${clienteEsistente.email}`}
+                            </p>
+                          </div>
+                          <svg className="w-5 h-5 text-primary-600 dark:text-primary-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowClientiList(false);
+                        setClientiEsistenti([]);
+                      }}
+                      className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    >
+                      Continua con nuovo cliente
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
                 Ragione Sociale
@@ -303,8 +498,18 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       )}
 
       {step === 3 && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Dati Intervento</h3>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+              <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dati Intervento</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inserisci i dettagli dell'intervento eseguito</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
@@ -430,28 +635,37 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
         </div>
       )}
 
-      <div className="flex justify-between mt-6 pt-6 border-t border-gray-200">
+      <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => step > 1 && setStep(step - 1)}
             disabled={step === 1}
-            className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+            className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2"
           >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
             Indietro
           </button>
           {step < 3 ? (
             <button
               onClick={() => validateStep() && setStep(step + 1)}
               disabled={!validateStep()}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
             >
               Avanti
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
             </button>
           ) : (
             <button
               onClick={handleSubmit}
               disabled={!validateStep()}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
             >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
               Salva Rapportino
             </button>
           )}

@@ -50,11 +50,15 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   const logoY = 5;
   let textX = margin;
   
-  if (settings.logo) {
+  // Usa il logo dalle settings o il logo di default
+  const logoToUse = settings.logo || '/logo.png';
+  
+  if (logoToUse) {
     try {
       // Carica l'immagine per ottenere le dimensioni
       const img = new Image();
-      img.src = settings.logo;
+      img.crossOrigin = 'anonymous'; // Necessario per caricare immagini da URL esterni
+      img.src = logoToUse;
       
       // Aspetta che l'immagine sia caricata
       await new Promise<void>((resolve, reject) => {
@@ -83,16 +87,33 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
         logoHeightMm = logoWidthMm / aspectRatio;
       }
       
-      // Determina il formato dell'immagine dal data URL
+      // Se il logo è un URL (non base64), convertilo in base64
+      let logoData = logoToUse;
       let format = 'PNG';
-      if (settings.logo.startsWith('data:image/jpeg') || settings.logo.startsWith('data:image/jpg')) {
-        format = 'JPEG';
-      } else if (settings.logo.startsWith('data:image/png')) {
-        format = 'PNG';
+      
+      if (logoToUse.startsWith('data:image/')) {
+        // È già un data URL
+        logoData = logoToUse;
+        if (logoToUse.startsWith('data:image/jpeg') || logoToUse.startsWith('data:image/jpg')) {
+          format = 'JPEG';
+        } else if (logoToUse.startsWith('data:image/png')) {
+          format = 'PNG';
+        }
+      } else if (logoToUse.startsWith('/') || logoToUse.startsWith('http')) {
+        // È un URL, convertilo in base64 usando canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          logoData = canvas.toDataURL('image/png');
+          format = 'PNG';
+        }
       }
       
       // Aggiungi il logo al PDF (jsPDF usa già mm come unità)
-      doc.addImage(settings.logo, format, logoX, logoY, logoWidthMm, logoHeightMm);
+      doc.addImage(logoData, format, logoX, logoY, logoWidthMm, logoHeightMm);
       
       // Sposta il testo a destra del logo
       textX = logoX + logoWidthMm + 5;
@@ -398,14 +419,37 @@ export const downloadPDF = async (rapportino: Rapportino, settings: AziendaSetti
 };
 
 export const exportAllPDFs = async (rapportini: Rapportino[], settings: AziendaSettings) => {
+  // Import dinamico di JSZip
+  const JSZip = (await import('jszip')).default;
+  
+  // Crea un nuovo archivio ZIP
+  const zip = new JSZip();
+  
+  // Genera tutti i PDF e aggiungili allo ZIP
   for (let i = 0; i < rapportini.length; i++) {
     const rapportino = rapportini[i];
     const doc = await generatePDF(rapportino, settings);
-    const fileName = `Rapportino_${rapportino.cliente.cognome}_${format(new Date(rapportino.intervento.data), 'yyyyMMdd')}_${i + 1}.pdf`;
-    doc.save(fileName);
-    // Piccolo delay tra i download per evitare problemi
-    if (i < rapportini.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
+    
+    // Crea un nome file univoco per evitare conflitti
+    const clienteNome = rapportino.cliente.cognome.replace(/[^a-zA-Z0-9]/g, '_');
+    const dataStr = format(new Date(rapportino.intervento.data), 'yyyyMMdd');
+    const fileName = `Rapportino_${clienteNome}_${dataStr}_${rapportino.id.substring(0, 8)}.pdf`;
+    
+    // Genera il PDF come blob e aggiungilo allo ZIP
+    const pdfBlob = doc.output('blob');
+    zip.file(fileName, pdfBlob);
   }
+  
+  // Genera lo ZIP e scaricalo
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  const zipUrl = URL.createObjectURL(zipBlob);
+  const link = document.createElement('a');
+  link.href = zipUrl;
+  link.download = `Rapportini_${format(new Date(), 'yyyyMMdd_HHmmss')}.zip`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // Rilascia l'URL del blob
+  setTimeout(() => URL.revokeObjectURL(zipUrl), 100);
 };

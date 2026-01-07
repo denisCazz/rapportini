@@ -1,46 +1,60 @@
 const STORAGE_KEY_AUTH = 'auth_token';
 const STORAGE_KEY_USER = 'user_data';
 
-// Credenziali fittizie per il login
-export const FAKE_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin123',
-};
-
 export interface User {
+  id: string;
   username: string;
+  ruolo: 'admin' | 'operatore';
   nome: string;
   cognome: string;
+  telefono?: string;
+  email?: string;
+  qualifica?: string;
 }
 
 export const auth = {
-  // Login fittizio
-  login: (username: string, password: string): boolean => {
-    if (
-      username === FAKE_CREDENTIALS.username &&
-      password === FAKE_CREDENTIALS.password
-    ) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY_AUTH, 'authenticated');
-        localStorage.setItem(
-          STORAGE_KEY_USER,
-          JSON.stringify({
-            username,
-            nome: 'Gianfranco',
-            cognome: 'Tropini',
-          })
-        );
+  // Login tramite API
+  login: async (username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Errore durante il login' };
       }
-      return true;
+
+      if (data.success && data.user) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY_AUTH, 'authenticated');
+          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user));
+        }
+        return { success: true, user: data.user };
+      }
+
+      return { success: false, error: 'Errore durante il login' };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Errore di connessione' };
     }
-    return false;
   },
 
   // Logout
-  logout: (): void => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY_AUTH);
-      localStorage.removeItem(STORAGE_KEY_USER);
+  logout: async (): Promise<void> => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY_AUTH);
+        localStorage.removeItem(STORAGE_KEY_USER);
+      }
     }
   },
 
@@ -55,6 +69,18 @@ export const auth = {
     if (typeof window === 'undefined') return null;
     const userData = localStorage.getItem(STORAGE_KEY_USER);
     return userData ? JSON.parse(userData) : null;
+  },
+
+  // Verifica se l'utente è admin
+  isAdmin: (): boolean => {
+    const user = auth.getUser();
+    return user?.ruolo === 'admin';
+  },
+
+  // Verifica se l'utente è operatore
+  isOperatore: (): boolean => {
+    const user = auth.getUser();
+    return user?.ruolo === 'operatore';
   },
 };
 
