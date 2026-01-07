@@ -68,3 +68,13 @@ input::placeholder, textarea::placeholder {
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
 }
+
+/* Nascondi scrollbar ma mantieni lo scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
