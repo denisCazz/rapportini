@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
@@ -12,11 +12,43 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const hasCheckedAuth = useRef(false);
 
   useEffect(() => {
-    // Se già autenticato, reindirizza alla home
-    if (auth.isAuthenticated()) {
-      router.push('/');
+    // Evita controlli multipli
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
+
+    // Se siamo sulla pagina di login, significa che il middleware ci ha lasciato passare
+    // Quindi NON siamo autenticati lato server (no cookie valido)
+    // Puliamo il localStorage per evitare inconsistenze
+    const user = auth.getUser();
+    const isAuth = auth.isAuthenticated();
+    
+    // Se il localStorage dice che siamo autenticati ma siamo sulla pagina di login,
+    // significa che il cookie è scaduto/invalido - puliamo il localStorage
+    if (user || isAuth) {
+      // Verifichiamo se abbiamo davvero un cookie valido facendo una chiamata API
+      fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
+        .then(res => {
+          if (res.ok) {
+            // Cookie valido, possiamo andare alla home
+            router.replace('/');
+          } else {
+            // Cookie non valido, puliamo localStorage
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+          }
+        })
+        .catch(() => {
+          // Errore, puliamo localStorage per sicurezza
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        });
     }
   }, [router]);
 
@@ -79,7 +111,7 @@ export default function LoginPage() {
               htmlFor="username"
               className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
             >
-              Username
+              Username o Email
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -95,7 +127,7 @@ export default function LoginPage() {
                 required
                 disabled={isLoading}
                 className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
-                placeholder="Inserisci username"
+                placeholder="Username o email"
                 autoComplete="username"
               />
             </div>

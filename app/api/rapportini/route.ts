@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { Rapportino } from '@/types';
 import { getUserIdFromRequest } from '@/lib/api-auth';
+import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
+import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
 
 // Cache configuration per Next.js 16.1
 export const dynamic = 'force-dynamic'; // Disabilita caching per dati dinamici
@@ -14,7 +16,15 @@ export async function GET(request: NextRequest) {
     const userId = getUserIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
-    // Costruisci la query base
+    // Valida e ottieni i parametri di filtro
+    const validation = validateQueryParams(rapportiniFilterSchema, request.nextUrl.searchParams);
+    const filters = validation.success ? validation.data : { page: 1, limit: 20 };
+
+    // Costruisci la query base con conteggio
+    let countQuery = supabase
+      .from('rapportini')
+      .select('*', { count: 'exact', head: true });
+
     let query = supabase
       .from('rapportini')
       .select(`
@@ -27,14 +37,54 @@ export async function GET(request: NextRequest) {
     // Se è un operatore (non admin), mostra solo i suoi rapportini
     if (userRole !== 'admin' && userId) {
       query = query.eq('utente_id', userId);
+      countQuery = countQuery.eq('utente_id', userId);
     }
 
-    const { data: rapportini, error } = await query;
+    // Applica filtri
+    if (filters.tipoStufa) {
+      query = query.eq('tipo_stufa', filters.tipoStufa);
+      countQuery = countQuery.eq('tipo_stufa', filters.tipoStufa);
+    }
+
+    if (filters.dataInizio) {
+      query = query.gte('data_intervento', filters.dataInizio);
+      countQuery = countQuery.gte('data_intervento', filters.dataInizio);
+    }
+
+    if (filters.dataFine) {
+      query = query.lte('data_intervento', filters.dataFine);
+      countQuery = countQuery.lte('data_intervento', filters.dataFine);
+    }
+
+    if (filters.marca) {
+      query = query.ilike('marca', `%${filters.marca}%`);
+      countQuery = countQuery.ilike('marca', `%${filters.marca}%`);
+    }
+
+    if (filters.modello) {
+      query = query.ilike('modello', `%${filters.modello}%`);
+      countQuery = countQuery.ilike('modello', `%${filters.modello}%`);
+    }
+
+    if (filters.clienteId) {
+      query = query.eq('cliente_id', filters.clienteId);
+      countQuery = countQuery.eq('cliente_id', filters.clienteId);
+    }
+
+    // Paginazione
+    const offset = (filters.page - 1) * filters.limit;
+    query = query.range(offset, offset + filters.limit - 1);
+
+    // Esegui query
+    const [{ data: rapportini, error }, { count }] = await Promise.all([
+      query,
+      countQuery,
+    ]);
 
     if (error) throw error;
 
     // Trasforma i dati dal formato DB al formato dell'app
-    const formattedRapportini: Rapportino[] = rapportini.map((r: any) => ({
+    const formattedRapportini: Rapportino[] = (rapportini || []).map((r: any) => ({
       id: r.id,
       operatore: {
         nome: r.utente?.nome || '',
@@ -71,7 +121,20 @@ export async function GET(request: NextRequest) {
       dataCreazione: r.data_creazione || r.created_at,
     }));
 
-    const response = NextResponse.json(formattedRapportini);
+    const totalPages = Math.ceil((count || 0) / filters.limit);
+
+    const response = NextResponse.json({
+      data: formattedRapportini,
+      pagination: {
+        page: filters.page,
+        limit: filters.limit,
+        total: count || 0,
+        totalPages,
+        hasNext: filters.page < totalPages,
+        hasPrev: filters.page > 1,
+      },
+    });
+    
     // Aggiungi cache headers per ottimizzare le richieste
     response.headers.set('Cache-Control', 'no-store, must-revalidate');
     return response;
@@ -87,8 +150,20 @@ export async function GET(request: NextRequest) {
 // POST - Crea un nuovo rapportino
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitKey = createRateLimitKey('createRapportino', clientIP);
+    const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMIT_CONFIGS.createRapportino);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: `Troppe richieste. Riprova tra ${rateLimitResult.retryAfter} secondi.` },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const rapportino: Rapportino = body.rapportino || body;
+    const rapportinoData = body.rapportino || body;
     const userId = body.userId || getUserIdFromRequest(request);
 
     if (!userId) {
@@ -97,6 +172,17 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Validazione input con Zod
+    const validation = validateRequest(rapportinoSchema, rapportinoData);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.errors.join(', ') },
+        { status: 400 }
+      );
+    }
+
+    const rapportino = validation.data;
 
     // Verifica che l'utente esista
     const { data: utente, error: utenteError } = await supabase
@@ -121,7 +207,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Cerca o crea cliente
-    // Normalizza i dati per evitare duplicati (trim e lowercase per nome/cognome)
     const nomeNormalizzato = rapportino.cliente.nome.trim();
     const cognomeNormalizzato = rapportino.cliente.cognome.trim();
     const telefonoNormalizzato = rapportino.cliente.telefono.trim();
@@ -129,7 +214,7 @@ export async function POST(request: NextRequest) {
     let clienteId: string | null = null;
 
     // Prima cerca per nome + cognome + telefono (match esatto)
-    let { data: clienteData, error: clienteError } = await supabase
+    let { data: clienteData } = await supabase
       .from('clienti')
       .select('id')
       .eq('nome', nomeNormalizzato)
@@ -140,8 +225,8 @@ export async function POST(request: NextRequest) {
     if (clienteData) {
       clienteId = clienteData.id;
     } else {
-      // Se non trovato, cerca solo per nome + cognome (potrebbe essere lo stesso cliente con telefono diverso)
-      const { data: clienteNomeCognome, error: errorNomeCognome } = await supabase
+      // Se non trovato, cerca solo per nome + cognome
+      const { data: clienteNomeCognome } = await supabase
         .from('clienti')
         .select('id')
         .eq('nome', nomeNormalizzato)
@@ -150,7 +235,6 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       if (clienteNomeCognome) {
-        // Trovato cliente con stesso nome e cognome - usa quello esistente
         clienteId = clienteNomeCognome.id;
       }
     }
@@ -175,7 +259,6 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (createClienteError) {
-        // Se l'errore è dovuto a un constraint UNIQUE, prova a cercare di nuovo
         if (createClienteError.code === '23505') {
           const { data: existingCliente } = await supabase
             .from('clienti')
@@ -193,9 +276,9 @@ export async function POST(request: NextRequest) {
         } else {
           throw createClienteError;
         }
-        } else {
-          clienteId = newCliente.id;
-        }
+      } else {
+        clienteId = newCliente.id;
+      }
     }
 
     // Crea rapportino usando l'ID utente
@@ -215,7 +298,7 @@ export async function POST(request: NextRequest) {
         materiali_utilizzati: rapportino.intervento.materialiUtilizzati || null,
         note: rapportino.intervento.note || null,
         firma_cliente: rapportino.intervento.firmaCliente || null,
-        data_creazione: rapportino.dataCreazione || new Date().toISOString(),
+        data_creazione: new Date().toISOString(),
       })
       .select('id')
       .single();

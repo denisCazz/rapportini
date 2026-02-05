@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
@@ -30,11 +30,43 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const hasCheckedAuth = useRef(false);
 
   useEffect(() => {
-    // Se già autenticato, reindirizza alla home
-    if (auth.isAuthenticated()) {
-      router.push('/');
+    // Evita controlli multipli
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
+
+    // Se siamo sulla pagina di registrazione, significa che il middleware ci ha lasciato passare
+    // Quindi NON siamo autenticati lato server (no cookie valido)
+    // Puliamo il localStorage per evitare inconsistenze
+    const user = auth.getUser();
+    const isAuth = auth.isAuthenticated();
+    
+    // Se il localStorage dice che siamo autenticati ma siamo sulla pagina di register,
+    // significa che il cookie è scaduto/invalido - puliamo il localStorage
+    if (user || isAuth) {
+      // Verifichiamo se abbiamo davvero un cookie valido facendo una chiamata API
+      fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
+        .then(res => {
+          if (res.ok) {
+            // Cookie valido, possiamo andare alla home
+            router.replace('/');
+          } else {
+            // Cookie non valido, puliamo localStorage
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+          }
+        })
+        .catch(() => {
+          // Errore, puliamo localStorage per sicurezza
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        });
     }
   }, [router]);
 

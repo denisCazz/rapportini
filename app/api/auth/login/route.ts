@@ -1,32 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
+import { createTokenPair } from '@/lib/jwt';
+import { loginSchema, validateRequest } from '@/lib/validation';
+import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
 
 // POST - Login utente
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json();
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitKey = createRateLimitKey('login', clientIP);
+    const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMIT_CONFIGS.login);
 
-    if (!username || !password) {
+    if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: 'Username e password sono obbligatori' },
+        { 
+          error: `Troppi tentativi di login. Riprova tra ${rateLimitResult.retryAfter} secondi.`,
+          retryAfter: rateLimitResult.retryAfter 
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(rateLimitResult.resetTime),
+          }
+        }
+      );
+    }
+
+    const body = await request.json();
+
+    // Validazione input con Zod
+    const validation = validateRequest(loginSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.errors.join(', ') },
         { status: 400 }
       );
     }
 
-    // Cerca utente nel database
-    const { data: utente, error } = await supabase
-      .from('utenti')
-      .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo')
-      .eq('username', username)
-      .single();
+    const { username, password } = validation.data;
+
+    // Cerca utente nel database - supporta sia username che email
+    const isEmail = username.includes('@');
+    
+    let utente = null;
+    let error = null;
+
+    if (isEmail) {
+      // Cerca per email
+      const result = await supabase
+        .from('utenti')
+        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo')
+        .eq('email', username)
+        .single();
+      utente = result.data;
+      error = result.error;
+    } else {
+      // Cerca per username
+      const result = await supabase
+        .from('utenti')
+        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo')
+        .eq('username', username)
+        .single();
+      utente = result.data;
+      error = result.error;
+    }
+
+    if (error) {
+      console.error('Errore query utente:', error);
+    }
 
     if (error || !utente) {
+      console.log('Utente non trovato:', username);
       return NextResponse.json(
         { error: 'Credenziali non valide' },
         { status: 401 }
       );
     }
+
+    console.log('Utente trovato:', utente.username, 'ruolo:', utente.ruolo, 'attivo:', utente.attivo);
 
     if (!utente.attivo) {
       return NextResponse.json(
@@ -36,7 +91,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica password
-    // Gestisce sia hash bcrypt che password plaintext (per compatibilità con setup iniziale)
     let isValidPassword = false;
     
     if (!utente.password_hash) {
@@ -50,18 +104,15 @@ export async function POST(request: NextRequest) {
     // Prova prima con bcrypt (hash inizia con $2a$, $2b$, $2x$ o $2y$)
     if (utente.password_hash.match(/^\$2[abxy]\$/)) {
       try {
-        // Hash bcrypt
         isValidPassword = await bcrypt.compare(password, utente.password_hash);
       } catch (bcryptError) {
         console.error('Errore nel confronto bcrypt:', bcryptError);
         isValidPassword = false;
       }
     } else {
-      // Password plaintext (solo per setup iniziale - da cambiare in produzione)
-      // ATTENZIONE: Questo è solo per compatibilità con setup iniziale
+      // Password plaintext (solo per setup iniziale)
       isValidPassword = password === utente.password_hash;
       
-      // Se la password è plaintext, suggerisci di hasharla
       if (isValidPassword) {
         console.warn(`ATTENZIONE: Password plaintext per utente ${username}. Dovresti hasharla con bcrypt.`);
       }
@@ -80,7 +131,14 @@ export async function POST(request: NextRequest) {
       .update({ ultimo_accesso: new Date().toISOString() })
       .eq('id', utente.id);
 
-    // Restituisci dati utente (senza password)
+    // Crea token JWT
+    const { accessToken, refreshToken } = await createTokenPair({
+      id: utente.id,
+      username: utente.username,
+      ruolo: utente.ruolo,
+    });
+
+    // Dati utente (senza password)
     const userData = {
       id: utente.id,
       username: utente.username,
@@ -92,7 +150,37 @@ export async function POST(request: NextRequest) {
       qualifica: utente.qualifica || '',
     };
 
-    return NextResponse.json({ user: userData, success: true });
+    // Crea response con cookie HttpOnly
+    const response = NextResponse.json({ 
+      user: userData, 
+      success: true,
+      // Includi anche i token per retrocompatibilità con localStorage
+      accessToken,
+      refreshToken,
+    });
+
+    // Imposta cookie HttpOnly per sicurezza
+    response.cookies.set('access_token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 15 * 60, // 15 minuti
+      path: '/',
+    });
+
+    response.cookies.set('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 giorni
+      path: '/',
+    });
+
+    // Aggiungi header rate limit info
+    response.headers.set('X-RateLimit-Remaining', String(rateLimitResult.remaining));
+    response.headers.set('X-RateLimit-Reset', String(rateLimitResult.resetTime));
+
+    return response;
   } catch (error: any) {
     console.error('Error during login:', error);
     return NextResponse.json(

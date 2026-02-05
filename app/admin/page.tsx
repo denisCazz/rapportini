@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -11,6 +11,10 @@ import { storage } from '@/lib/storage';
 import Header from '@/components/Header';
 import RapportinoDetail from '@/components/RapportinoDetail';
 import { AziendaSettings, Rapportino } from '@/types';
+import { exportStatistiche } from '@/lib/exportData';
+
+// Lazy load dei grafici per migliorare il caricamento iniziale
+const StatisticsCharts = lazy(() => import('@/components/StatisticsCharts'));
 
 interface ClienteStatistiche {
   cliente: {
@@ -52,6 +56,7 @@ export default function AdminPage() {
   const [selectedRapportino, setSelectedRapportino] = useState<Rapportino | null>(null);
   const [loadingRapportino, setLoadingRapportino] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [showCharts, setShowCharts] = useState(true);
   const hasLoadedRef = useRef(false); // Previene doppie chiamate in React Strict Mode
 
   useEffect(() => {
@@ -165,6 +170,51 @@ export default function AdminPage() {
               Visualizza i rapportini raggruppati per cliente con statistiche dettagliate
             </p>
           </div>
+          <div className="flex gap-3">
+            <Link
+              href="/admin/users"
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Gestione Utenti
+            </Link>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  const dropdown = document.getElementById('export-dropdown');
+                  dropdown?.classList.toggle('hidden');
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Esporta
+              </button>
+              <div id="export-dropdown" className="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                <button
+                  onClick={() => {
+                    exportStatistiche(statistiche, { format: 'xlsx' });
+                    document.getElementById('export-dropdown')?.classList.add('hidden');
+                  }}
+                  className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
+                >
+                  Esporta Excel (.xlsx)
+                </button>
+                <button
+                  onClick={() => {
+                    exportStatistiche(statistiche, { format: 'csv' });
+                    document.getElementById('export-dropdown')?.classList.add('hidden');
+                  }}
+                  className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg"
+                >
+                  Esporta CSV
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Statistiche Generali */}
@@ -221,6 +271,31 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+
+        {/* Grafici Statistiche */}
+        {!loading && statistiche.length > 0 && (
+          <div className="mb-8">
+            <button
+              onClick={() => setShowCharts(!showCharts)}
+              className="mb-4 flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+            >
+              <svg className={`w-5 h-5 transition-transform ${showCharts ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              {showCharts ? 'Nascondi Grafici' : 'Mostra Grafici'}
+            </button>
+            {showCharts && (
+              <Suspense fallback={
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                  <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento grafici...</p>
+                </div>
+              }>
+                <StatisticsCharts data={statistiche} />
+              </Suspense>
+            )}
+          </div>
+        )}
 
         {/* Barra di ricerca */}
         <div className="mb-6">
