@@ -12,7 +12,7 @@ const publicPaths = [
   '/api/auth/logout',
   '/_next',
   '/favicon.ico',
-  '/logo.avif',
+  '/logo.png',
   '/manifest.json',
   '/sw.js',
   '/icons',

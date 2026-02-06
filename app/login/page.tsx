@@ -78,7 +78,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.avif"
+            src="/logo.png"
             alt="Logo"
             className="h-32 w-auto object-contain mx-auto mb-6"
             onError={(e) => {
@@ -204,9 +204,28 @@ export default function LoginPage() {
               Registrati
             </Link>
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Bitora.it - Un prodotto di Denis Cazzulo
-          </p>
+          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <p>
+              <a 
+                href="https://bitora.it" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >
+                Bitora Software Gestionale Stufe
+              </a>
+              {' è un prodotto di '}
+              <a 
+                href="https://bitora.it" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
+              >
+                Bitora.it
+              </a>
+            </p>
+            <p>© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
+          </div>
         </div>
       </div>
     </div>

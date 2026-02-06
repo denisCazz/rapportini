@@ -25,13 +25,13 @@ export interface RateLimitConfig {
 
 export const RATE_LIMIT_CONFIGS = {
   // Login: 5 tentativi ogni 15 minuti
-  login: { maxRequests: 5, windowMs: 15 * 60 * 1000 },
+  login: { maxRequests: 20, windowMs: 15 * 60 * 100 },
   // API generiche: 100 richieste al minuto
-  api: { maxRequests: 100, windowMs: 60 * 1000 },
+  api: { maxRequests: 100, windowMs: 60 * 100},
   // Creazione rapportini: 30 al minuto
-  createRapportino: { maxRequests: 30, windowMs: 60 * 1000 },
+  createRapportino: { maxRequests: 30, windowMs: 60 * 100 },
   // Ricerca: 60 richieste al minuto
-  search: { maxRequests: 60, windowMs: 60 * 1000 },
+  search: { maxRequests: 60, windowMs: 60 * 100 },
 } as const;
 
 export interface RateLimitResult {

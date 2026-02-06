@@ -8,7 +8,7 @@ export const openApiSpec = {
     description: 'API per la gestione dei rapportini di intervento su stufe a pellet e legno',
     version: '1.0.0',
     contact: {
-      name: 'Denis Cazzulo',
+      name: 'Bitora.it',
       url: 'https://bitora.it',
     },
   },

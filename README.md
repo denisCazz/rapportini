@@ -149,6 +149,10 @@ Dopo aver eseguito lo schema SQL, sono disponibili due utenti:
 - date-fns
 - jsPDF
 
-## 📄 Licenza
+## 📄 Licenza e Copyright
 
-Proprietario - Denis Cazzulo / Bitora.it
+**Prodotto:** Bitora Software Gestionale Stufe  
+**Produttore:** Bitora.it  
+**Copyright:** © Bitora.it - Tutti i diritti riservati
+
+"Bitora Software Gestionale Stufe" è un prodotto di Bitora.it. Il brand Bitora e il logo sono proprietà di Bitora.it.

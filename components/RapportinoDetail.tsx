@@ -62,7 +62,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose }: Rapp
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/logo.avif"
+                    src="/logo.png"
                     alt={settings.nomeAzienda || 'Logo Azienda'}
                     className="h-12 w-auto sm:h-16 object-contain print:h-20"
                     onError={(e) => {

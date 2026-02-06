@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
   '/login',
   '/manifest.json',
   '/favicon.ico',
-  '/logo.avif',
+  '/logo.png',
 ];
 
 // Installa il service worker

@@ -44,27 +44,28 @@ export async function POST(request: NextRequest) {
     const { username, password } = validation.data;
 
     // Cerca utente nel database - supporta sia username che email
+    // Username e email sono case-insensitive (non distinguono maiuscole/minuscole)
     const isEmail = username.includes('@');
     
     let utente = null;
     let error = null;
 
     if (isEmail) {
-      // Cerca per email
+      // Cerca per email (case-insensitive)
       const result = await supabase
         .from('utenti')
         .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo')
-        .eq('email', username)
-        .single();
+        .ilike('email', username)
+        .maybeSingle();
       utente = result.data;
       error = result.error;
     } else {
-      // Cerca per username
+      // Cerca per username (case-insensitive)
       const result = await supabase
         .from('utenti')
         .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo')
-        .eq('username', username)
-        .single();
+        .ilike('username', username)
+        .maybeSingle();
       utente = result.data;
       error = result.error;
     }

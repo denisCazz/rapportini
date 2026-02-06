@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     description: 'Sistema per la gestione dei rapportini di assistenza stufe a pellet e legno',
     images: [
       {
-        url: '/logo.avif',
+        url: '/logo.png',
         width: 1200,
         height: 630,
         alt: 'Bitora Logo',
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Bitora - Gestione Rapportini',
     description: 'Sistema per la gestione dei rapportini di assistenza stufe a pellet e legno',
-    images: ['/logo.avif'],
+    images: ['/logo.png'],
   },
 }
 

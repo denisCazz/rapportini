@@ -51,7 +51,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   let textX = margin;
   
   // Usa il logo dalle settings o il logo di default
-  const logoToUse = settings.logo || '/logo.avif';
+  const logoToUse = settings.logo || '/logo.png';
   
   if (logoToUse) {
     try {
@@ -404,10 +404,13 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   doc.setFontSize(7);
   doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
   const footerText1 = `Rapportino creato il ${format(new Date(rapportino.dataCreazione), 'dd/MM/yyyy HH:mm')}`;
-  doc.text(footerText1, pageWidth / 2, pageHeight - 13, { align: 'center' });
+  doc.text(footerText1, pageWidth / 2, pageHeight - 15, { align: 'center' });
   doc.setFontSize(6);
-  const footerText2 = 'Bitora.it - Un prodotto di Denis Cazzulo';
-  doc.text(footerText2, pageWidth / 2, pageHeight - 8, { align: 'center' });
+  const footerText2 = 'Bitora Software Gestionale Stufe è un prodotto di Bitora.it';
+  doc.text(footerText2, pageWidth / 2, pageHeight - 11, { align: 'center' });
+  doc.setFontSize(5);
+  const footerText3 = `© ${new Date().getFullYear()} Bitora.it - Tutti i diritti riservati`;
+  doc.text(footerText3, pageWidth / 2, pageHeight - 7, { align: 'center' });
 
   return doc;
 };
