@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
-    apple: '/icons/icon-192x192.png',
+    apple: '/logo.png',
   },
   openGraph: {
     title: 'Bitora - Gestione Rapportini',
@@ -62,7 +62,7 @@ export default function RootLayout({
   return (
     <html lang="it">
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>

@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { Suspense, lazy } from 'react';
 import RapportiniList from '@/components/RapportiniList';
 import Header from '@/components/Header';
+import InstallPWA from '@/components/InstallPWA';
 
 // Dynamic import per componenti pesanti - migliora il bundle splitting
 const RapportinoForm = lazy(() => import('@/components/RapportinoForm'));
@@ -241,6 +242,8 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      
+      <InstallPWA />
     </div>
   );
 }
