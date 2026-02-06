@@ -36,7 +36,7 @@ export const clienteSchema = z.object({
 export const interventoSchema = z.object({
   data: z.string().min(1, 'Data obbligatoria'),
   ora: z.string().min(1, 'Ora obbligatoria'),
-  tipoStufa: z.enum(['pellet', 'legno'], { errorMap: () => ({ message: 'Tipo stufa deve essere pellet o legno' }) }),
+  tipoStufa: z.enum(['pellet', 'legno'], { message: 'Tipo stufa deve essere pellet o legno' }),
   marca: z.string().min(1, 'Marca obbligatoria').max(100, 'Marca troppo lunga'),
   modello: z.string().min(1, 'Modello obbligatorio').max(100, 'Modello troppo lungo'),
   numeroSerie: z.string().max(100, 'Numero serie troppo lungo').optional().or(z.literal('')),
@@ -98,7 +98,7 @@ export function validateRequest<T>(schema: z.ZodSchema<T>, data: unknown): { suc
   if (result.success) {
     return { success: true, data: result.data };
   }
-  const errors = result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+  const errors = result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
   return { success: false, errors };
 }
 
