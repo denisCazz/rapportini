@@ -111,7 +111,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 // Template email per conferma intervento
-export function getInterventoEmailTemplate(rapportino: Rapportino, aziendaNome: string = 'Bitora'): EmailOptions {
+export function getInterventoEmailTemplate(rapportino: Rapportino, aziendaNome: string = 'Bitora - Gestione Rapportini'): EmailOptions {
   const dataIntervento = format(new Date(rapportino.intervento.data), 'dd MMMM yyyy', { locale: it });
   
   const html = `

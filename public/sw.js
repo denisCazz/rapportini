@@ -148,7 +148,7 @@ self.addEventListener('push', (event) => {
       },
     };
     event.waitUntil(
-      self.registration.showNotification(data.title || 'Bitora', options)
+      self.registration.showNotification(data.title || 'Bitora - Gestione Rapportini', options)
     );
   }
 });

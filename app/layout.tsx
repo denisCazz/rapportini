@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Bitora',
+    title: 'Bitora - Gestione Rapportini',
   },
   icons: {
     icon: '/favicon.ico',
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     ],
     type: 'website',
     locale: 'it_IT',
-    siteName: 'Bitora',
+    siteName: 'Bitora - Gestione Rapportini',
   },
   twitter: {
     card: 'summary_large_image',

@@ -1,6 +1,6 @@
 {
   "name": "Bitora - Gestione Rapportini",
-  "short_name": "Bitora",
+  "short_name": "Bitora - GR",
   "description": "Sistema professionale per la gestione degli interventi su stufe a pellet e legno",
   "start_url": "/",
   "display": "standalone",

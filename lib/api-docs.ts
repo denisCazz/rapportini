@@ -4,7 +4,7 @@
 export const openApiSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'Bitora API',
+    title: 'Bitora - Gestione Rapportini API',
     description: 'API per la gestione dei rapportini di intervento su stufe a pellet e legno',
     version: '1.0.0',
     contact: {

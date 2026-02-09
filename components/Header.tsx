@@ -85,13 +85,13 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src="/logo.png"
-                alt="Bitora"
+                alt="Bitora - Gestione Rapportini"
                 className="h-8 w-auto object-contain"
               />
             )}
             <div>
               <h2 className="font-bold text-gray-900 dark:text-white text-sm">
-                {settings.nomeAzienda || 'Bitora'}
+                {settings.nomeAzienda || 'Bitora - Gestione Rapportini'}
               </h2>
             </div>
           </div>
@@ -237,13 +237,13 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src="/logo.png"
-                    alt="Bitora"
+                    alt="Bitora - Gestione Rapportini"
                     className="h-9 w-auto object-contain"
                   />
                 )}
                 <div className="hidden sm:block">
                   <h1 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">
-                    {settings.nomeAzienda || 'Bitora'}
+                    {settings.nomeAzienda || 'Bitora - Gestione Rapportini'}
                   </h1>
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">
                     Software Gestionale Stufe
