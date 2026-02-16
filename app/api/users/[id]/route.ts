@@ -88,9 +88,15 @@ export async function PATCH(
 
     // Normalizza email per coerenza con vincolo unico per org
     if (Object.prototype.hasOwnProperty.call(updateData, 'email')) {
-      updateData.email = updateData.email
+      const normalizedEmail = updateData.email
         ? String(updateData.email).trim().toLowerCase()
-        : null;
+        : undefined;
+
+      if (normalizedEmail) {
+        updateData.email = normalizedEmail;
+      } else {
+        delete updateData.email;
+      }
     }
 
     // Solo admin può cambiare ruolo e stato attivo

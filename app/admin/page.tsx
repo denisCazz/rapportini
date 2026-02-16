@@ -8,7 +8,7 @@ import { it } from 'date-fns/locale';
 import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
-import Header from '@/components/Header';
+import SidebarLayout from '@/components/SidebarLayout';
 import RapportinoDetail from '@/components/RapportinoDetail';
 import { AziendaSettings, Rapportino } from '@/types';
 import { exportStatistiche } from '@/lib/exportData';
@@ -144,79 +144,60 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <Header 
-        settings={settings}
-        onLogout={handleLogout}
-      />
-      
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Link
-                href="/"
-                className="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Pannello Admin - Statistiche
-              </h1>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300">
-              Visualizza i rapportini raggruppati per cliente con statistiche dettagliate
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link
-              href="/admin/users"
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition-colors"
+    <SidebarLayout
+      settings={settings}
+      pageTitle="Pannello Admin"
+      pageSubtitle="Statistiche avanzate clienti e rapportini"
+      onLogout={handleLogout}
+      topActions={
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Link
+            href="/admin/users"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Utenti
+          </Link>
+          <div className="relative">
+            <button
+              onClick={() => {
+                const dropdown = document.getElementById('export-dropdown');
+                dropdown?.classList.toggle('hidden');
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Gestione Utenti
-            </Link>
-            <div className="relative">
+              Esporta
+            </button>
+            <div id="export-dropdown" className="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
               <button
                 onClick={() => {
-                  const dropdown = document.getElementById('export-dropdown');
-                  dropdown?.classList.toggle('hidden');
+                  exportStatistiche(statistiche, { format: 'xlsx' });
+                  document.getElementById('export-dropdown')?.classList.add('hidden');
                 }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
+                className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Esporta
+                Esporta Excel (.xlsx)
               </button>
-              <div id="export-dropdown" className="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                <button
-                  onClick={() => {
-                    exportStatistiche(statistiche, { format: 'xlsx' });
-                    document.getElementById('export-dropdown')?.classList.add('hidden');
-                  }}
-                  className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
-                >
-                  Esporta Excel (.xlsx)
-                </button>
-                <button
-                  onClick={() => {
-                    exportStatistiche(statistiche, { format: 'csv' });
-                    document.getElementById('export-dropdown')?.classList.add('hidden');
-                  }}
-                  className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg"
-                >
-                  Esporta CSV
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  exportStatistiche(statistiche, { format: 'csv' });
+                  document.getElementById('export-dropdown')?.classList.add('hidden');
+                }}
+                className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg"
+              >
+                Esporta CSV
+              </button>
             </div>
           </div>
         </div>
-
+      }
+    >
+      <div className="space-y-8">
         {/* Statistiche Generali */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
@@ -531,7 +512,7 @@ export default function AdminPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Modal dettagli rapportino */}
       {selectedRapportino && (
@@ -617,7 +598,7 @@ export default function AdminPage() {
           </div>
         </div>
       </footer>
-    </div>
+    </SidebarLayout>
   );
 }
 

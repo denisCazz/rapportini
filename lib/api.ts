@@ -178,17 +178,17 @@ export const api = {
   },
 
   // Ottieni statistiche admin
-  getStatistics: async () => {
+  getStatistics: async (): Promise<any[]> => {
     const headers = getAuthHeaders();
     const response = await fetch(`${API_BASE}/admin/statistics`, {
       headers,
       credentials: 'include',
     });
-    const { data } = await parseResponseBody<{ error?: string }>(response);
+    const { data } = await parseResponseBody<any[] | { error?: string }>(response);
     if (!response.ok) {
-      throw new Error(data?.error || 'Errore nel recupero delle statistiche');
+      throw new Error((data as { error?: string } | null)?.error || 'Errore nel recupero delle statistiche');
     }
-    if (!data) {
+    if (!Array.isArray(data)) {
       throw new Error(buildNonJsonErrorMessage(response, 'Errore nel recupero delle statistiche'));
     }
     return data;

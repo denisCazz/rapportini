@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
-import Header from '@/components/Header';
+import SidebarLayout from '@/components/SidebarLayout';
 import { AziendaSettings } from '@/types';
 
 interface User {
@@ -245,33 +244,24 @@ export default function UsersPage() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <Header settings={settings} onLogout={handleLogout} />
-      
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Link href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-primary-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gestione Utenti</h1>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300">Crea, modifica e gestisci gli utenti del sistema</p>
-          </div>
-          <button
-            onClick={() => { resetForm(); setEditingUser(null); setShowModal(true); }}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nuovo Utente
-          </button>
-        </div>
-
+    <SidebarLayout
+      settings={settings}
+      pageTitle="Gestione Utenti"
+      pageSubtitle="Crea, modifica e gestisci gli utenti del sistema"
+      onLogout={handleLogout}
+      topActions={
+        <button
+          onClick={() => { resetForm(); setEditingUser(null); setShowModal(true); }}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Nuovo Utente
+        </button>
+      }
+    >
+      <div>
         {error && (
           <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-red-800 dark:text-red-200">{error}</p>
@@ -375,7 +365,7 @@ export default function UsersPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
 
       {/* Modal Crea/Modifica Utente */}
       {showModal && (
@@ -532,6 +522,6 @@ export default function UsersPage() {
           </div>
         </div>
       )}
-    </div>
+    </SidebarLayout>
   );
 }
