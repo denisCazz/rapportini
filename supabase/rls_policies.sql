@@ -1,5 +1,5 @@
 -- ============================================
--- Row Level Security (RLS) Policies
+-- Row Level Security (RLS) Policies - org_id
 -- Esegui questo script su Supabase SQL Editor
 -- ============================================
 
@@ -12,87 +12,80 @@ ALTER TABLE modelli ENABLE ROW LEVEL SECURITY;
 ALTER TABLE materiali ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
--- UTENTI
+-- Helper functions per claims/header
 -- ============================================
 
--- Elimina policy esistenti
+CREATE OR REPLACE FUNCTION public.current_org_id()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(
+    NULLIF((current_setting('request.jwt.claims', true)::jsonb ->> 'org_id'), ''),
+    NULLIF((current_setting('request.jwt.claims', true)::jsonb ->> 'idsocieta'), ''),
+    NULLIF((current_setting('request.headers', true)::jsonb ->> 'x-org-id'), ''),
+    NULLIF((current_setting('request.headers', true)::jsonb ->> 'x-user-idsocieta'), ''),
+    NULLIF((current_setting('request.headers', true)::jsonb ->> 'x-tenant-id'), ''),
+    'default'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.current_user_id()
+RETURNS UUID
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT NULLIF(
+    COALESCE(
+      current_setting('request.jwt.claims', true)::jsonb ->> 'userId',
+      current_setting('request.headers', true)::jsonb ->> 'x-user-id'
+    ),
+    ''
+  )::uuid;
+$$;
+
+CREATE OR REPLACE FUNCTION public.current_user_role()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(
+    NULLIF((current_setting('request.jwt.claims', true)::jsonb ->> 'ruolo'), ''),
+    NULLIF((current_setting('request.headers', true)::jsonb ->> 'x-user-ruolo'), ''),
+    'operatore'
+  );
+$$;
+
+-- ============================================
+-- Drop policy esistenti
+-- ============================================
+
 DROP POLICY IF EXISTS "utenti_select_policy" ON utenti;
 DROP POLICY IF EXISTS "utenti_insert_policy" ON utenti;
 DROP POLICY IF EXISTS "utenti_update_policy" ON utenti;
 DROP POLICY IF EXISTS "utenti_delete_policy" ON utenti;
-
--- Gli utenti possono vedere solo se stessi (o tutti se admin)
--- NOTA: Questa policy richiede che l'app passi l'ID utente via RLS context
--- Per semplicità, permettiamo lettura a tutti gli utenti autenticati
-CREATE POLICY "utenti_select_policy" ON utenti
-  FOR SELECT USING (true);
-
--- Solo admin può inserire nuovi utenti
-CREATE POLICY "utenti_insert_policy" ON utenti
-  FOR INSERT WITH CHECK (true);
-
--- Utenti possono aggiornare solo se stessi, admin può aggiornare tutti
-CREATE POLICY "utenti_update_policy" ON utenti
-  FOR UPDATE USING (true);
-
--- Solo admin può eliminare utenti
-CREATE POLICY "utenti_delete_policy" ON utenti
-  FOR DELETE USING (true);
-
--- ============================================
--- CLIENTI
--- ============================================
+DROP POLICY IF EXISTS "utenti_tenant_select" ON utenti;
+DROP POLICY IF EXISTS "utenti_tenant_insert" ON utenti;
+DROP POLICY IF EXISTS "utenti_tenant_update" ON utenti;
+DROP POLICY IF EXISTS "utenti_tenant_delete" ON utenti;
 
 DROP POLICY IF EXISTS "clienti_select_policy" ON clienti;
 DROP POLICY IF EXISTS "clienti_insert_policy" ON clienti;
 DROP POLICY IF EXISTS "clienti_update_policy" ON clienti;
 DROP POLICY IF EXISTS "clienti_delete_policy" ON clienti;
-
--- Tutti gli utenti autenticati possono vedere i clienti
-CREATE POLICY "clienti_select_policy" ON clienti
-  FOR SELECT USING (true);
-
--- Tutti gli utenti autenticati possono inserire clienti
-CREATE POLICY "clienti_insert_policy" ON clienti
-  FOR INSERT WITH CHECK (true);
-
--- Tutti gli utenti autenticati possono aggiornare clienti
-CREATE POLICY "clienti_update_policy" ON clienti
-  FOR UPDATE USING (true);
-
--- Solo admin può eliminare clienti
-CREATE POLICY "clienti_delete_policy" ON clienti
-  FOR DELETE USING (true);
-
--- ============================================
--- RAPPORTINI
--- ============================================
+DROP POLICY IF EXISTS "clienti_tenant_select" ON clienti;
+DROP POLICY IF EXISTS "clienti_tenant_insert" ON clienti;
+DROP POLICY IF EXISTS "clienti_tenant_update" ON clienti;
+DROP POLICY IF EXISTS "clienti_tenant_delete" ON clienti;
 
 DROP POLICY IF EXISTS "rapportini_select_policy" ON rapportini;
 DROP POLICY IF EXISTS "rapportini_insert_policy" ON rapportini;
 DROP POLICY IF EXISTS "rapportini_update_policy" ON rapportini;
 DROP POLICY IF EXISTS "rapportini_delete_policy" ON rapportini;
-
--- Operatori vedono solo i propri rapportini, admin vede tutti
--- NOTA: Il controllo effettivo avviene lato API
-CREATE POLICY "rapportini_select_policy" ON rapportini
-  FOR SELECT USING (true);
-
--- Operatori possono inserire rapportini
-CREATE POLICY "rapportini_insert_policy" ON rapportini
-  FOR INSERT WITH CHECK (true);
-
--- Operatori possono aggiornare solo i propri rapportini
-CREATE POLICY "rapportini_update_policy" ON rapportini
-  FOR UPDATE USING (true);
-
--- Operatori possono eliminare solo i propri rapportini, admin può eliminare tutti
-CREATE POLICY "rapportini_delete_policy" ON rapportini
-  FOR DELETE USING (true);
-
--- ============================================
--- MARCHE, MODELLI, MATERIALI (catalogo)
--- ============================================
+DROP POLICY IF EXISTS "rapportini_tenant_select" ON rapportini;
+DROP POLICY IF EXISTS "rapportini_tenant_insert" ON rapportini;
+DROP POLICY IF EXISTS "rapportini_tenant_update" ON rapportini;
+DROP POLICY IF EXISTS "rapportini_tenant_delete" ON rapportini;
 
 DROP POLICY IF EXISTS "marche_select_policy" ON marche;
 DROP POLICY IF EXISTS "marche_insert_policy" ON marche;
@@ -101,52 +94,188 @@ DROP POLICY IF EXISTS "modelli_insert_policy" ON modelli;
 DROP POLICY IF EXISTS "materiali_select_policy" ON materiali;
 DROP POLICY IF EXISTS "materiali_insert_policy" ON materiali;
 
--- Tutti possono leggere il catalogo
-CREATE POLICY "marche_select_policy" ON marche FOR SELECT USING (true);
-CREATE POLICY "modelli_select_policy" ON modelli FOR SELECT USING (true);
-CREATE POLICY "materiali_select_policy" ON materiali FOR SELECT USING (true);
+DROP POLICY IF EXISTS "marche_org_select" ON marche;
+DROP POLICY IF EXISTS "marche_org_insert" ON marche;
+DROP POLICY IF EXISTS "marche_org_update" ON marche;
+DROP POLICY IF EXISTS "marche_org_delete" ON marche;
 
--- Tutti gli utenti autenticati possono aggiungere al catalogo
-CREATE POLICY "marche_insert_policy" ON marche FOR INSERT WITH CHECK (true);
-CREATE POLICY "modelli_insert_policy" ON modelli FOR INSERT WITH CHECK (true);
-CREATE POLICY "materiali_insert_policy" ON materiali FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "modelli_org_select" ON modelli;
+DROP POLICY IF EXISTS "modelli_org_insert" ON modelli;
+DROP POLICY IF EXISTS "modelli_org_update" ON modelli;
+DROP POLICY IF EXISTS "modelli_org_delete" ON modelli;
 
--- ============================================
--- INDICI per performance
--- ============================================
-
--- Indice per ricerca rapportini per utente
-CREATE INDEX IF NOT EXISTS idx_rapportini_utente_id ON rapportini(utente_id);
-
--- Indice per ricerca rapportini per cliente
-CREATE INDEX IF NOT EXISTS idx_rapportini_cliente_id ON rapportini(cliente_id);
-
--- Indice per ricerca rapportini per data
-CREATE INDEX IF NOT EXISTS idx_rapportini_data_intervento ON rapportini(data_intervento DESC);
-
--- Indice per ricerca rapportini per tipo stufa
-CREATE INDEX IF NOT EXISTS idx_rapportini_tipo_stufa ON rapportini(tipo_stufa);
-
--- Indice per ricerca clienti per nome/cognome
-CREATE INDEX IF NOT EXISTS idx_clienti_nome_cognome ON clienti(nome, cognome);
-
--- Indice per ricerca full-text su descrizione rapportini
-CREATE INDEX IF NOT EXISTS idx_rapportini_descrizione_gin ON rapportini USING gin(to_tsvector('italian', descrizione));
+DROP POLICY IF EXISTS "materiali_org_select" ON materiali;
+DROP POLICY IF EXISTS "materiali_org_insert" ON materiali;
+DROP POLICY IF EXISTS "materiali_org_update" ON materiali;
+DROP POLICY IF EXISTS "materiali_org_delete" ON materiali;
 
 -- ============================================
--- NOTA IMPORTANTE
+-- UTENTI
 -- ============================================
--- Le policy sopra sono permissive perché il controllo degli accessi
--- avviene principalmente lato API (Next.js middleware + API routes).
--- 
--- Per un controllo RLS più granulare, dovresti:
--- 1. Usare Supabase Auth invece di autenticazione custom
--- 2. Passare il JWT di Supabase nelle richieste
--- 3. Usare auth.uid() nelle policy per identificare l'utente
---
--- Esempio di policy più restrittiva (richiede Supabase Auth):
--- CREATE POLICY "rapportini_select_own" ON rapportini
---   FOR SELECT USING (
---     utente_id = auth.uid() OR 
---     EXISTS (SELECT 1 FROM utenti WHERE id = auth.uid() AND ruolo = 'admin')
---   );
+
+CREATE POLICY "utenti_org_select" ON utenti
+  FOR SELECT USING (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR id = public.current_user_id()
+    )
+  );
+
+CREATE POLICY "utenti_org_insert" ON utenti
+  FOR INSERT WITH CHECK (
+    org_id = public.current_org_id()
+    AND public.current_user_role() = 'admin'
+  );
+
+CREATE POLICY "utenti_org_update" ON utenti
+  FOR UPDATE USING (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR id = public.current_user_id()
+    )
+  )
+  WITH CHECK (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR id = public.current_user_id()
+    )
+  );
+
+CREATE POLICY "utenti_org_delete" ON utenti
+  FOR DELETE USING (
+    org_id = public.current_org_id()
+    AND public.current_user_role() = 'admin'
+  );
+
+-- ============================================
+-- CLIENTI
+-- ============================================
+
+CREATE POLICY "clienti_org_select" ON clienti
+  FOR SELECT USING (org_id = public.current_org_id());
+
+CREATE POLICY "clienti_org_insert" ON clienti
+  FOR INSERT WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "clienti_org_update" ON clienti
+  FOR UPDATE USING (org_id = public.current_org_id())
+  WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "clienti_org_delete" ON clienti
+  FOR DELETE USING (
+    org_id = public.current_org_id()
+    AND public.current_user_role() = 'admin'
+  );
+
+-- ============================================
+-- RAPPORTINI
+-- ============================================
+
+CREATE POLICY "rapportini_org_select" ON rapportini
+  FOR SELECT USING (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR utente_id = public.current_user_id()
+    )
+  );
+
+CREATE POLICY "rapportini_org_insert" ON rapportini
+  FOR INSERT WITH CHECK (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR utente_id = public.current_user_id()
+    )
+  );
+
+CREATE POLICY "rapportini_org_update" ON rapportini
+  FOR UPDATE USING (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR utente_id = public.current_user_id()
+    )
+  )
+  WITH CHECK (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR utente_id = public.current_user_id()
+    )
+  );
+
+CREATE POLICY "rapportini_org_delete" ON rapportini
+  FOR DELETE USING (
+    org_id = public.current_org_id()
+    AND (
+      public.current_user_role() = 'admin'
+      OR utente_id = public.current_user_id()
+    )
+  );
+
+-- ============================================
+-- MARCHE, MODELLI, MATERIALI
+-- ============================================
+
+CREATE POLICY "marche_org_select" ON marche
+  FOR SELECT USING (org_id = public.current_org_id());
+
+CREATE POLICY "marche_org_insert" ON marche
+  FOR INSERT WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "marche_org_update" ON marche
+  FOR UPDATE USING (org_id = public.current_org_id())
+  WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "marche_org_delete" ON marche
+  FOR DELETE USING (
+    org_id = public.current_org_id()
+    AND public.current_user_role() = 'admin'
+  );
+
+CREATE POLICY "modelli_org_select" ON modelli
+  FOR SELECT USING (org_id = public.current_org_id());
+
+CREATE POLICY "modelli_org_insert" ON modelli
+  FOR INSERT WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "modelli_org_update" ON modelli
+  FOR UPDATE USING (org_id = public.current_org_id())
+  WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "modelli_org_delete" ON modelli
+  FOR DELETE USING (
+    org_id = public.current_org_id()
+    AND public.current_user_role() = 'admin'
+  );
+
+CREATE POLICY "materiali_org_select" ON materiali
+  FOR SELECT USING (org_id = public.current_org_id());
+
+CREATE POLICY "materiali_org_insert" ON materiali
+  FOR INSERT WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "materiali_org_update" ON materiali
+  FOR UPDATE USING (org_id = public.current_org_id())
+  WITH CHECK (org_id = public.current_org_id());
+
+CREATE POLICY "materiali_org_delete" ON materiali
+  FOR DELETE USING (
+    org_id = public.current_org_id()
+    AND public.current_user_role() = 'admin'
+  );
+
+-- ============================================
+-- Indici tenant per performance
+-- ============================================
+
+CREATE INDEX IF NOT EXISTS idx_utenti_org_id ON utenti(org_id);
+CREATE INDEX IF NOT EXISTS idx_clienti_org_id ON clienti(org_id);
+CREATE INDEX IF NOT EXISTS idx_rapportini_org_id ON rapportini(org_id);
+CREATE INDEX IF NOT EXISTS idx_marche_org_id ON marche(org_id);
+CREATE INDEX IF NOT EXISTS idx_modelli_org_id ON modelli(org_id);
+CREATE INDEX IF NOT EXISTS idx_materiali_org_id ON materiali(org_id);

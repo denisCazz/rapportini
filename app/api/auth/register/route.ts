@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
+import { getOrgIdFromRequest } from '@/lib/api-auth';
 
 // POST - Registrazione nuovo utente (solo operatore)
 export async function POST(request: NextRequest) {
   try {
+    const orgId = getOrgIdFromRequest(request);
     const { username, password, nome, cognome, telefono, email, qualifica } = await request.json();
 
     // Validazione
@@ -27,6 +29,7 @@ export async function POST(request: NextRequest) {
       .from('utenti')
       .select('id')
       .eq('username', username)
+      .eq('org_id', orgId)
       .maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') {
@@ -50,6 +53,7 @@ export async function POST(request: NextRequest) {
         username,
         password_hash: passwordHash,
         ruolo: 'operatore', // FORZATO a operatore, non può essere admin
+        org_id: orgId,
         nome,
         cognome,
         telefono,
@@ -57,7 +61,7 @@ export async function POST(request: NextRequest) {
         qualifica,
         attivo: true,
       })
-      .select('id, username, ruolo, nome, cognome, email')
+      .select('id, username, ruolo, nome, cognome, email, org_id')
       .single();
 
     if (createError) {
@@ -71,6 +75,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: newUser.id,
         username: newUser.username,
+        org_id: newUser.org_id,
         ruolo: newUser.ruolo,
       },
     });

@@ -6,6 +6,7 @@ const STORAGE_KEY_REFRESH_TOKEN = 'refresh_token';
 export interface User {
   id: string;
   username: string;
+  org_id?: string;
   ruolo: 'admin' | 'operatore';
   nome: string;
   cognome: string;
@@ -126,7 +127,14 @@ export const auth = {
   getUser: (): User | null => {
     if (typeof window === 'undefined') return null;
     const userData = localStorage.getItem(STORAGE_KEY_USER);
-    return userData ? JSON.parse(userData) : null;
+    if (!userData) return null;
+    const parsed = JSON.parse(userData) as User & { idsocieta?: string };
+    if (!parsed.org_id && parsed.idsocieta) {
+      parsed.org_id = parsed.idsocieta;
+      delete (parsed as User & { idsocieta?: string }).idsocieta;
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(parsed));
+    }
+    return parsed;
   },
 
   // Aggiorna dati utente in localStorage

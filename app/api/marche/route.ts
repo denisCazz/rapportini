@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getOrgIdFromRequest } from '@/lib/api-auth';
 
 // GET - Ottieni tutte le marche
 export async function GET(request: NextRequest) {
   try {
+    const orgId = getOrgIdFromRequest(request);
     const { data: marche, error } = await supabase
       .from('marche')
       .select('id, nome')
+      .eq('org_id', orgId)
       .order('nome', { ascending: true });
 
     if (error) throw error;
@@ -24,6 +27,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea una nuova marca
 export async function POST(request: NextRequest) {
   try {
+    const orgId = getOrgIdFromRequest(request);
     const body = await request.json();
     const { nome } = body;
 
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const { data: marca, error } = await supabase
       .from('marche')
-      .insert({ nome: nome.trim() })
+      .insert({ nome: nome.trim(), org_id: orgId })
       .select('id, nome')
       .single();
 
@@ -46,6 +50,7 @@ export async function POST(request: NextRequest) {
         const { data: existing } = await supabase
           .from('marche')
           .select('id, nome')
+          .eq('org_id', orgId)
           .eq('nome', nome.trim())
           .single();
         

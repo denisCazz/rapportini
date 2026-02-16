@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { getUserIdFromRequest } from '@/lib/api-auth';
+import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { Rapportino } from '@/types';
 
 // Cache configuration per Next.js 16.1
@@ -15,6 +15,7 @@ export async function GET(
   try {
     const { id } = await params;
     const userId = getUserIdFromRequest(request);
+    const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
     if (!userId) {
@@ -32,7 +33,8 @@ export async function GET(
         utente:utenti(id, nome, cognome, telefono, email, qualifica),
         cliente:clienti(*)
       `)
-      .eq('id', id);
+      .eq('id', id)
+      .eq('org_id', orgId);
 
     // Se è un operatore (non admin), verifica che il rapportino appartenga all'utente
     if (userRole !== 'admin') {
@@ -106,6 +108,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     const userId = getUserIdFromRequest(request);
+    const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
     if (!userId) {
@@ -121,6 +124,7 @@ export async function DELETE(
         .from('rapportini')
         .select('utente_id')
         .eq('id', id)
+        .eq('org_id', orgId)
         .single();
 
       if (fetchError || !rapportino) {
@@ -141,7 +145,8 @@ export async function DELETE(
     const { error } = await supabase
       .from('rapportini')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('org_id', orgId);
 
     if (error) throw error;
 

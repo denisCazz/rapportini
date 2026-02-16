@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 import { changePasswordSchema, validateRequest } from '@/lib/validation';
 import { z } from 'zod';
+import { getOrgIdFromRequest } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,7 @@ export async function POST(
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
+    const orgId = getOrgIdFromRequest(request);
 
     const isAdmin = userRole === 'admin';
     const isSelf = currentUserId === id;
@@ -48,7 +50,8 @@ export async function POST(
       const { error } = await supabase
         .from('utenti')
         .update({ password_hash: passwordHash })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('org_id', orgId);
 
       if (error) throw error;
 
@@ -71,6 +74,7 @@ export async function POST(
       .from('utenti')
       .select('password_hash')
       .eq('id', id)
+      .eq('org_id', orgId)
       .single();
 
     if (fetchError || !utente) {
@@ -101,7 +105,8 @@ export async function POST(
     const { error } = await supabase
       .from('utenti')
       .update({ password_hash: passwordHash })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('org_id', orgId);
 
     if (error) throw error;
 

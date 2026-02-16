@@ -47,27 +47,63 @@ export async function POST(request: NextRequest) {
     // Username e email sono case-insensitive (non distinguono maiuscole/minuscole)
     const isEmail = username.includes('@');
     
-    let utente = null;
+    let utente: any = null;
     let error = null;
 
     if (isEmail) {
       // Cerca per email (case-insensitive)
       const result = await supabase
         .from('utenti')
-        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo')
+        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
         .ilike('email', username)
-        .maybeSingle();
-      utente = result.data;
+        .limit(20);
+      const candidati = result.data || [];
       error = result.error;
+
+      for (const candidato of candidati) {
+        if (!candidato.attivo || !candidato.password_hash) {
+          continue;
+        }
+
+        let ok = false;
+        if (candidato.password_hash.match(/^\$2[abxy]\$/)) {
+          ok = await bcrypt.compare(password, candidato.password_hash);
+        } else {
+          ok = password === candidato.password_hash;
+        }
+
+        if (ok) {
+          utente = candidato;
+          break;
+        }
+      }
     } else {
       // Cerca per username (case-insensitive)
       const result = await supabase
         .from('utenti')
-        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo')
+        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
         .ilike('username', username)
-        .maybeSingle();
-      utente = result.data;
+        .limit(20);
+      const candidati = result.data || [];
       error = result.error;
+
+      for (const candidato of candidati) {
+        if (!candidato.attivo || !candidato.password_hash) {
+          continue;
+        }
+
+        let ok = false;
+        if (candidato.password_hash.match(/^\$2[abxy]\$/)) {
+          ok = await bcrypt.compare(password, candidato.password_hash);
+        } else {
+          ok = password === candidato.password_hash;
+        }
+
+        if (ok) {
+          utente = candidato;
+          break;
+        }
+      }
     }
 
     if (error) {
@@ -91,51 +127,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifica password
-    let isValidPassword = false;
-    
-    if (!utente.password_hash) {
-      console.error('Password hash mancante per utente:', username);
-      return NextResponse.json(
-        { error: 'Errore di configurazione account' },
-        { status: 500 }
-      );
-    }
-
-    // Prova prima con bcrypt (hash inizia con $2a$, $2b$, $2x$ o $2y$)
-    if (utente.password_hash.match(/^\$2[abxy]\$/)) {
-      try {
-        isValidPassword = await bcrypt.compare(password, utente.password_hash);
-      } catch (bcryptError) {
-        console.error('Errore nel confronto bcrypt:', bcryptError);
-        isValidPassword = false;
-      }
-    } else {
-      // Password plaintext (solo per setup iniziale)
-      isValidPassword = password === utente.password_hash;
-      
-      if (isValidPassword) {
-        console.warn(`ATTENZIONE: Password plaintext per utente ${username}. Dovresti hasharla con bcrypt.`);
-      }
-    }
-
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: 'Credenziali non valide' },
-        { status: 401 }
-      );
-    }
-
     // Aggiorna ultimo accesso
     await supabase
       .from('utenti')
       .update({ ultimo_accesso: new Date().toISOString() })
-      .eq('id', utente.id);
+      .eq('id', utente.id)
+      .eq('org_id', utente.org_id || 'default');
 
     // Crea token JWT
     const { accessToken, refreshToken } = await createTokenPair({
       id: utente.id,
       username: utente.username,
+      org_id: utente.org_id || 'default',
       ruolo: utente.ruolo,
     });
 
@@ -143,6 +146,7 @@ export async function POST(request: NextRequest) {
     const userData = {
       id: utente.id,
       username: utente.username,
+      org_id: utente.org_id || 'default',
       ruolo: utente.ruolo,
       nome: utente.nome,
       cognome: utente.cognome,

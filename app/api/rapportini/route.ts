@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { Rapportino } from '@/types';
-import { getUserIdFromRequest } from '@/lib/api-auth';
+import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
 
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     // Ottieni ID utente dalla richiesta
     const userId = getUserIdFromRequest(request);
+    const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
     // Valida e ottieni i parametri di filtro
@@ -23,7 +24,8 @@ export async function GET(request: NextRequest) {
     // Costruisci la query base con conteggio
     let countQuery = supabase
       .from('rapportini')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true })
+      .eq('org_id', orgId);
 
     let query = supabase
       .from('rapportini')
@@ -32,6 +34,7 @@ export async function GET(request: NextRequest) {
         utente:utenti(id, nome, cognome, telefono, email, qualifica),
         cliente:clienti(*)
       `)
+      .eq('org_id', orgId)
       .order('data_intervento', { ascending: false });
 
     // Se è un operatore (non admin), mostra solo i suoi rapportini
@@ -164,7 +167,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const rapportinoData = body.rapportino || body;
-    const userId = body.userId || getUserIdFromRequest(request);
+    const userId = getUserIdFromRequest(request);
+    const orgId = getOrgIdFromRequest(request);
 
     if (!userId) {
       return NextResponse.json(
@@ -189,6 +193,7 @@ export async function POST(request: NextRequest) {
       .from('utenti')
       .select('id, ruolo')
       .eq('id', userId)
+      .eq('org_id', orgId)
       .single();
 
     if (utenteError || !utente) {
@@ -217,6 +222,7 @@ export async function POST(request: NextRequest) {
     let { data: clienteData } = await supabase
       .from('clienti')
       .select('id')
+      .eq('org_id', orgId)
       .eq('nome', nomeNormalizzato)
       .eq('cognome', cognomeNormalizzato)
       .eq('telefono', telefonoNormalizzato)
@@ -229,6 +235,7 @@ export async function POST(request: NextRequest) {
       const { data: clienteNomeCognome } = await supabase
         .from('clienti')
         .select('id')
+        .eq('org_id', orgId)
         .eq('nome', nomeNormalizzato)
         .eq('cognome', cognomeNormalizzato)
         .limit(1)
@@ -244,6 +251,7 @@ export async function POST(request: NextRequest) {
       const { data: newCliente, error: createClienteError } = await supabase
         .from('clienti')
         .insert({
+          org_id: orgId,
           nome: nomeNormalizzato,
           cognome: cognomeNormalizzato,
           ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
@@ -263,6 +271,7 @@ export async function POST(request: NextRequest) {
           const { data: existingCliente } = await supabase
             .from('clienti')
             .select('id')
+            .eq('org_id', orgId)
             .eq('nome', nomeNormalizzato)
             .eq('cognome', cognomeNormalizzato)
             .eq('telefono', telefonoNormalizzato)
@@ -285,6 +294,7 @@ export async function POST(request: NextRequest) {
     const { data: newRapportino, error: rapportinoError } = await supabase
       .from('rapportini')
       .insert({
+        org_id: orgId,
         utente_id: userId,
         cliente_id: clienteId,
         data_intervento: rapportino.intervento.data,

@@ -10,6 +10,8 @@ const REFRESH_TOKEN_EXPIRY = '7d'; // 7 giorni
 export interface TokenPayload extends JWTPayload {
   userId: string;
   username: string;
+  org_id: string;
+  idsocieta?: string;
   ruolo: 'admin' | 'operatore';
   type: 'access' | 'refresh';
 }
@@ -39,10 +41,11 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
   }
 }
 
-export async function createTokenPair(user: { id: string; username: string; ruolo: 'admin' | 'operatore' }) {
+export async function createTokenPair(user: { id: string; username: string; ruolo: 'admin' | 'operatore'; org_id?: string; idsocieta?: string }) {
   const payload = {
     userId: user.id,
     username: user.username,
+    org_id: user.org_id || user.idsocieta || 'default',
     ruolo: user.ruolo,
   };
 

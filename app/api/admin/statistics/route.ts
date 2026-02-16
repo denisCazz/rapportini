@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { getUserIdFromRequest } from '@/lib/api-auth';
+import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 
 // GET - Ottieni statistiche raggruppate per cliente (solo admin)
 export async function GET(request: NextRequest) {
   try {
     // Verifica autenticazione e ruolo admin
     const userId = getUserIdFromRequest(request);
+    const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
     if (!userId) {
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
           email
         )
       `)
+      .eq('org_id', orgId)
       .order('data_intervento', { ascending: false });
 
     if (error) {

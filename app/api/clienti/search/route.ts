@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getOrgIdFromRequest } from '@/lib/api-auth';
 
 // GET - Cerca clienti esistenti per nome e cognome
 export async function GET(request: NextRequest) {
   try {
+    const orgId = getOrgIdFromRequest(request);
     const searchParams = request.nextUrl.searchParams;
     const nome = searchParams.get('nome')?.trim();
     const cognome = searchParams.get('cognome')?.trim();
@@ -16,6 +18,7 @@ export async function GET(request: NextRequest) {
     const { data: clienti, error } = await supabase
       .from('clienti')
       .select('id, nome, cognome, ragione_sociale, indirizzo, citta, cap, telefono, email')
+      .eq('org_id', orgId)
       .ilike('nome', `%${nome}%`)
       .ilike('cognome', `%${cognome}%`)
       .limit(10)

@@ -26,13 +26,13 @@ const adminPaths = [
 ];
 
 // Verifica token inline per il middleware (edge runtime)
-async function verifyTokenInMiddleware(token: string): Promise<{ userId: string; username: string; ruolo: string; type: string } | null> {
+async function verifyTokenInMiddleware(token: string): Promise<{ userId: string; username: string; ruolo: string; org_id?: string; idsocieta?: string; type: string } | null> {
   try {
     const secret = new TextEncoder().encode(
       process.env.JWT_SECRET || 'bitora-jwt-secret-key-change-this-in-production-2024'
     );
     const { payload } = await jwtVerify(token, secret);
-    return payload as { userId: string; username: string; ruolo: string; type: string };
+    return payload as { userId: string; username: string; ruolo: string; org_id?: string; idsocieta?: string; type: string };
   } catch {
     return null;
   }
@@ -96,6 +96,9 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set('x-user-id', payload.userId);
   requestHeaders.set('x-user-ruolo', payload.ruolo);
   requestHeaders.set('x-user-username', payload.username);
+  const orgId = payload.org_id || payload.idsocieta || 'default';
+  requestHeaders.set('x-org-id', orgId);
+  requestHeaders.set('x-tenant-id', orgId);
 
   return NextResponse.next({
     request: {

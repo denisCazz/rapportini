@@ -26,10 +26,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica che l'utente esista ancora e sia attivo
+    const orgId = payload.org_id || payload.idsocieta || 'default';
+
     const { data: utente, error } = await supabase
       .from('utenti')
-      .select('id, username, ruolo, attivo')
+      .select('id, username, ruolo, attivo, org_id')
       .eq('id', payload.userId)
+      .eq('org_id', orgId)
       .single();
 
     if (error || !utente || !utente.attivo) {
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
       id: utente.id,
       username: utente.username,
       ruolo: utente.ruolo,
+      org_id: utente.org_id || orgId,
     });
 
     const response = NextResponse.json({ 

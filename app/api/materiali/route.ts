@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getOrgIdFromRequest } from '@/lib/api-auth';
 
 // GET - Ottieni materiali filtrati per modello
 export async function GET(request: NextRequest) {
   try {
+    const orgId = getOrgIdFromRequest(request);
     const { searchParams } = new URL(request.url);
     const modelloId = searchParams.get('modello_id');
 
@@ -14,9 +16,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const { data: modelloOwner, error: modelloOwnerError } = await supabase
+      .from('modelli')
+      .select('id')
+      .eq('id', modelloId)
+      .eq('org_id', orgId)
+      .maybeSingle();
+
+    if (modelloOwnerError) throw modelloOwnerError;
+
+    if (!modelloOwner) {
+      return NextResponse.json(
+        { error: 'Modello non trovato per la società corrente' },
+        { status: 404 }
+      );
+    }
+
     const { data: materiali, error } = await supabase
       .from('materiali')
       .select('id, nome, descrizione, modello_id')
+      .eq('org_id', orgId)
       .eq('modello_id', modelloId)
       .order('nome', { ascending: true });
 
@@ -35,6 +54,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea un nuovo materiale
 export async function POST(request: NextRequest) {
   try {
+    const orgId = getOrgIdFromRequest(request);
     const body = await request.json();
     const { nome, descrizione, modello_id } = body;
 
@@ -52,12 +72,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { data: modelloOwner, error: modelloOwnerError } = await supabase
+      .from('modelli')
+      .select('id')
+      .eq('id', modello_id)
+      .eq('org_id', orgId)
+      .maybeSingle();
+
+    if (modelloOwnerError) throw modelloOwnerError;
+
+    if (!modelloOwner) {
+      return NextResponse.json(
+        { error: 'Modello non trovato per la società corrente' },
+        { status: 404 }
+      );
+    }
+
     const { data: materiale, error } = await supabase
       .from('materiali')
       .insert({ 
         nome: nome.trim(), 
         descrizione: descrizione?.trim() || null,
-        modello_id 
+        modello_id,
+        org_id: orgId,
       })
       .select('id, nome, descrizione, modello_id')
       .single();
@@ -68,6 +105,7 @@ export async function POST(request: NextRequest) {
         const { data: existing } = await supabase
           .from('materiali')
           .select('id, nome, descrizione, modello_id')
+          .eq('org_id', orgId)
           .eq('nome', nome.trim())
           .eq('modello_id', modello_id)
           .single();

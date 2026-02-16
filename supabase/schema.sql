@@ -4,7 +4,8 @@
 -- Tabella utenti (per autenticazione)
 CREATE TABLE IF NOT EXISTS utenti (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  username VARCHAR(255) NOT NULL UNIQUE,
+  org_id VARCHAR(100) NOT NULL DEFAULT 'default',
+  username VARCHAR(255) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   ruolo VARCHAR(20) NOT NULL CHECK (ruolo IN ('admin', 'operatore')),
   nome VARCHAR(255) NOT NULL,
@@ -15,25 +16,28 @@ CREATE TABLE IF NOT EXISTS utenti (
   attivo BOOLEAN DEFAULT true,
   ultimo_accesso TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT uq_utenti_org_id_username UNIQUE (org_id, username)
 );
 
 -- Indice per ricerca rapida username
 CREATE INDEX IF NOT EXISTS idx_utenti_username ON utenti(username);
 CREATE INDEX IF NOT EXISTS idx_utenti_ruolo ON utenti(ruolo);
+CREATE INDEX IF NOT EXISTS idx_utenti_org_id ON utenti(org_id);
 
 -- Inserisci utenti di default
 -- Password iniziali: "admin123" per admin, "operatore123" per operatore
 -- IMPORTANTE: Dopo il primo setup, esegui lo script per hashare le password con bcrypt
 -- Vedi: supabase/setup_users.sql per generare gli hash corretti
-INSERT INTO utenti (username, password_hash, ruolo, nome, cognome, email) VALUES
-  ('admin', 'admin123', 'admin', 'Admin', 'Sistema', 'admin@bitora.it'),
-  ('operatore', 'operatore123', 'operatore', 'Gianfranco', 'Tropini', 'gianfranco.tropini@bitora.it')
-ON CONFLICT (username) DO NOTHING;
+INSERT INTO utenti (org_id, username, password_hash, ruolo, nome, cognome, email) VALUES
+  ('default', 'admin', 'admin123', 'admin', 'Admin', 'Sistema', 'admin@bitora.it'),
+  ('default', 'operatore', 'operatore123', 'operatore', 'Gianfranco', 'Tropini', 'gianfranco.tropini@bitora.it')
+ON CONFLICT (org_id, username) DO NOTHING;
 
 -- Tabella clienti
 CREATE TABLE IF NOT EXISTS clienti (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  org_id VARCHAR(100) NOT NULL DEFAULT 'default',
   nome VARCHAR(255) NOT NULL,
   cognome VARCHAR(255) NOT NULL,
   ragione_sociale VARCHAR(255),
@@ -47,13 +51,14 @@ CREATE TABLE IF NOT EXISTS clienti (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   -- Indice per ricerca rapida
-  CONSTRAINT unique_cliente UNIQUE (nome, cognome, telefono)
+  CONSTRAINT unique_cliente UNIQUE (org_id, nome, cognome, telefono)
 );
 
 -- Tabella rapportini
 -- Ogni rapportino è associato direttamente a un utente (operatore)
 CREATE TABLE IF NOT EXISTS rapportini (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  org_id VARCHAR(100) NOT NULL DEFAULT 'default',
   utente_id UUID NOT NULL REFERENCES utenti(id) ON DELETE RESTRICT,
   cliente_id UUID NOT NULL REFERENCES clienti(id) ON DELETE RESTRICT,
   data_intervento DATE NOT NULL,
@@ -78,6 +83,8 @@ CREATE INDEX IF NOT EXISTS idx_rapportini_utente ON rapportini(utente_id);
 CREATE INDEX IF NOT EXISTS idx_rapportini_data ON rapportini(data_intervento);
 CREATE INDEX IF NOT EXISTS idx_rapportini_tipo_stufa ON rapportini(tipo_stufa);
 CREATE INDEX IF NOT EXISTS idx_clienti_nome_cognome ON clienti(nome, cognome);
+CREATE INDEX IF NOT EXISTS idx_clienti_org_id ON clienti(org_id);
+CREATE INDEX IF NOT EXISTS idx_rapportini_org_id ON rapportini(org_id);
 
 -- Funzione per aggiornare updated_at automaticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -103,14 +110,5 @@ ALTER TABLE utenti ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clienti ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rapportini ENABLE ROW LEVEL SECURITY;
 
--- Policy per permettere tutte le operazioni (puoi restringere in base alle tue esigenze)
--- In produzione, dovresti creare policy più specifiche basate sugli utenti autenticati
-CREATE POLICY "Enable all operations for utenti" ON utenti
-  FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Enable all operations for clienti" ON clienti
-  FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Enable all operations for rapportini" ON rapportini
-  FOR ALL USING (true) WITH CHECK (true);
+-- Le policy RLS vengono definite in supabase/rls_policies.sql
 
