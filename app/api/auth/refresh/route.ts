@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createTokenPair } from '@/lib/jwt';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 // POST - Refresh token
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     // Ottieni refresh token dal cookie
     const refreshToken = request.cookies.get('refresh_token')?.value;
 
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Verifica che l'utente esista ancora e sia attivo
     const orgId = payload.org_id || payload.idsocieta || 'default';
 
-    const { data: utente, error } = await supabase
+    const { data: utente, error } = await supabaseAdmin
       .from('utenti')
       .select('id, username, ruolo, attivo, org_id')
       .eq('id', payload.userId)

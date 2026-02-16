@@ -23,11 +23,27 @@ export default function RapportiniFilters({ onFilterChange, initialFilters = {} 
   const [modelli, setModelli] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Carica marche disponibili
     fetch('/api/marche', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
+      .then(async (res) => {
+        const data = await parseResponseBody<any[]>(res);
+        if (!res.ok) {
+          console.error('Errore caricamento marche:', data);
+          return;
+        }
         if (Array.isArray(data)) {
           setMarche(data.map((m: any) => m.nome));
         }
@@ -39,8 +55,12 @@ export default function RapportiniFilters({ onFilterChange, initialFilters = {} 
     // Carica modelli quando cambia la marca
     if (filters.marca) {
       fetch(`/api/modelli?marca=${encodeURIComponent(filters.marca)}`, { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => {
+        .then(async (res) => {
+          const data = await parseResponseBody<any[]>(res);
+          if (!res.ok) {
+            console.error('Errore caricamento modelli:', data);
+            return;
+          }
           if (Array.isArray(data)) {
             setModelli(data.map((m: any) => m.nome));
           }

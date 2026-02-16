@@ -19,6 +19,17 @@ export interface User {
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
+async function parseResponseBody<T = any>(response: Response): Promise<T | null> {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 async function refreshTokens(): Promise<boolean> {
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
@@ -33,7 +44,10 @@ async function refreshTokens(): Promise<boolean> {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await parseResponseBody<{ accessToken?: string; refreshToken?: string }>(response);
+        if (!data) {
+          return false;
+        }
         if (data.accessToken) {
           localStorage.setItem(STORAGE_KEY_ACCESS_TOKEN, data.accessToken);
         }
@@ -67,7 +81,23 @@ export const auth = {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
+      const data = await parseResponseBody<{
+        success?: boolean;
+        user?: User;
+        error?: string;
+        retryAfter?: number;
+        accessToken?: string;
+        refreshToken?: string;
+      }>(response);
+
+      if (!data) {
+        return {
+          success: false,
+          error: response.status === 401
+            ? 'Sessione non valida. Riprova ad accedere.'
+            : `Risposta non valida dal server (status ${response.status})`,
+        };
+      }
 
       if (!response.ok) {
         return { 

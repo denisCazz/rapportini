@@ -73,6 +73,28 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   const [showMaterialeInput, setShowMaterialeInput] = useState(false);
   const [newMaterialeNome, setNewMaterialeNome] = useState('');
 
+  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
+      return null;
+    }
+  };
+
+  const getApiErrorMessage = (data: unknown, fallback: string): string => {
+    if (data && typeof data === 'object' && 'error' in data) {
+      const maybeError = (data as { error?: unknown }).error;
+      if (typeof maybeError === 'string' && maybeError.trim()) {
+        return maybeError;
+      }
+    }
+    return fallback;
+  };
+
   // Cerca clienti esistenti quando nome e cognome sono inseriti
   useEffect(() => {
     const searchClienti = async () => {
@@ -83,9 +105,11 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             `/api/clienti/search?nome=${encodeURIComponent(cliente.nome.trim())}&cognome=${encodeURIComponent(cliente.cognome.trim())}`
           );
           if (response.ok) {
-            const data = await response.json();
-            setClientiEsistenti(data);
-            setShowClientiList(data.length > 0);
+            const data = await parseResponseBody<Cliente[]>(response);
+            if (Array.isArray(data)) {
+              setClientiEsistenti(data);
+              setShowClientiList(data.length > 0);
+            }
           }
         } catch (error) {
           console.error('Errore nella ricerca clienti:', error);
@@ -123,8 +147,10 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       try {
         const response = await fetch('/api/marche');
         if (response.ok) {
-          const data = await response.json();
-          setMarche(data);
+          const data = await parseResponseBody<Array<{ id: string; nome: string }>>(response);
+          if (Array.isArray(data)) {
+            setMarche(data);
+          }
         }
       } catch (error) {
         console.error('Errore nel caricamento marche:', error);
@@ -140,8 +166,10 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
         try {
           const response = await fetch(`/api/modelli?marca_id=${marcaId}`);
           if (response.ok) {
-            const data = await response.json();
-            setModelli(data);
+            const data = await parseResponseBody<Array<{ id: string; nome: string; marca_id: string }>>(response);
+            if (Array.isArray(data)) {
+              setModelli(data);
+            }
           }
         } catch (error) {
           console.error('Errore nel caricamento modelli:', error);
@@ -165,8 +193,10 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
         try {
           const response = await fetch(`/api/materiali?modello_id=${modelloId}`);
           if (response.ok) {
-            const data = await response.json();
-            setMateriali(data);
+            const data = await parseResponseBody<Array<{ id: string; nome: string; descrizione?: string; modello_id: string }>>(response);
+            if (Array.isArray(data)) {
+              setMateriali(data);
+            }
           }
         } catch (error) {
           console.error('Errore nel caricamento materiali:', error);
@@ -694,16 +724,27 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ nome: intervento.marca.trim() }),
                             });
+                            const data = await parseResponseBody<{ id?: string; nome?: string; error?: string }>(response);
+
+                            if (!response.ok) {
+                              alert(getApiErrorMessage(data, 'Errore nella creazione della marca'));
+                              return;
+                            }
+
                             if (response.ok) {
-                              const newMarca = await response.json();
-                              setMarche([...marche, newMarca]);
-                              setMarcaId(newMarca.id);
+                              const newMarca = data as { id: string; nome: string } | null;
+                              if (newMarca) {
+                                setMarche([...marche, newMarca]);
+                                setMarcaId(newMarca.id);
+                                setIntervento({ ...intervento, marca: newMarca.nome });
+                                setShowMarcaInput(false);
+                              }
                             }
                           } catch (error) {
                             console.error('Errore creazione marca:', error);
+                            alert('Errore nella creazione della marca');
                           }
                         }
-                        setShowMarcaInput(false);
                       }}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                     >
@@ -780,16 +821,27 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
                             });
+                            const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
+
+                            if (!response.ok) {
+                              alert(getApiErrorMessage(data, 'Errore nella creazione del modello'));
+                              return;
+                            }
+
                             if (response.ok) {
-                              const newModello = await response.json();
-                              setModelli([...modelli, newModello]);
-                              setModelloId(newModello.id);
+                              const newModello = data as { id: string; nome: string; marca_id: string } | null;
+                              if (newModello) {
+                                setModelli([...modelli, newModello]);
+                                setModelloId(newModello.id);
+                                setIntervento({ ...intervento, modello: newModello.nome });
+                                setShowModelloInput(false);
+                              }
                             }
                           } catch (error) {
                             console.error('Errore creazione modello:', error);
+                            alert('Errore nella creazione del modello');
                           }
                         }
-                        setShowModelloInput(false);
                       }}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                     >
@@ -923,15 +975,25 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                                       modello_id: modelloId 
                                     }),
                                   });
+                                  const data = await parseResponseBody<{ id?: string; nome?: string; descrizione?: string; modello_id?: string; error?: string }>(response);
+
+                                  if (!response.ok) {
+                                    alert(getApiErrorMessage(data, 'Errore nella creazione del materiale'));
+                                    return;
+                                  }
+
                                   if (response.ok) {
-                                    const newMateriale = await response.json();
-                                    setMateriali([...materiali, newMateriale]);
-                                    setSelectedMateriali([...selectedMateriali, newMateriale.id]);
-                                    setNewMaterialeNome('');
-                                    setShowMaterialeInput(false);
+                                    const newMateriale = data as { id: string; nome: string; descrizione?: string; modello_id: string } | null;
+                                    if (newMateriale) {
+                                      setMateriali([...materiali, newMateriale]);
+                                      setSelectedMateriali([...selectedMateriali, newMateriale.id]);
+                                      setNewMaterialeNome('');
+                                      setShowMaterialeInput(false);
+                                    }
                                   }
                                 } catch (error) {
                                   console.error('Errore creazione materiale:', error);
+                                  alert('Errore nella creazione del materiale');
                                 }
                               }
                             }}

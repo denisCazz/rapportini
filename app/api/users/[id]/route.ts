@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import bcrypt from 'bcryptjs';
 import { updateUserSchema, changePasswordSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
@@ -12,6 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
@@ -25,7 +26,7 @@ export async function GET(
       );
     }
 
-    const { data: utente, error } = await supabase
+    const { data: utente, error } = await supabaseAdmin
       .from('utenti')
       .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo, ultimo_accesso, created_at')
       .eq('id', id)
@@ -55,6 +56,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
@@ -84,6 +86,13 @@ export async function PATCH(
 
     const updateData = validation.data;
 
+    // Normalizza email per coerenza con vincolo unico per org
+    if (Object.prototype.hasOwnProperty.call(updateData, 'email')) {
+      updateData.email = updateData.email
+        ? String(updateData.email).trim().toLowerCase()
+        : null;
+    }
+
     // Solo admin può cambiare ruolo e stato attivo
     if (!isAdmin) {
       delete updateData.ruolo;
@@ -98,7 +107,29 @@ export async function PATCH(
       );
     }
 
-    const { data: updatedUser, error } = await supabase
+    // Verifica email unica per organizzazione (se aggiornata e non null)
+    if (updateData.email) {
+      const { data: existingEmailUser, error: existingEmailError } = await supabaseAdmin
+        .from('utenti')
+        .select('id')
+        .eq('org_id', orgId)
+        .eq('email', updateData.email)
+        .neq('id', id)
+        .maybeSingle();
+
+      if (existingEmailError && existingEmailError.code !== 'PGRST116') {
+        throw existingEmailError;
+      }
+
+      if (existingEmailUser) {
+        return NextResponse.json(
+          { error: 'Email già in uso in questa organizzazione' },
+          { status: 409 }
+        );
+      }
+    }
+
+    const { data: updatedUser, error } = await supabaseAdmin
       .from('utenti')
       .update(updateData)
       .eq('id', id)
@@ -106,7 +137,16 @@ export async function PATCH(
       .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505' && error.message?.includes('uq_utenti_org_email')) {
+        return NextResponse.json(
+          { error: 'Email già in uso in questa organizzazione' },
+          { status: 409 }
+        );
+      }
+
+      throw error;
+    }
 
     return NextResponse.json({ data: updatedUser, success: true });
   } catch (error: any) {
@@ -124,6 +164,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
@@ -145,14 +186,14 @@ export async function DELETE(
     }
 
     // Verifica che non sia l'ultimo admin
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from('utenti')
       .select('*', { count: 'exact', head: true })
       .eq('org_id', orgId)
       .eq('ruolo', 'admin')
       .eq('attivo', true);
 
-    const { data: userToDelete } = await supabase
+    const { data: userToDelete } = await supabaseAdmin
       .from('utenti')
       .select('ruolo')
       .eq('id', id)
@@ -166,7 +207,7 @@ export async function DELETE(
       );
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('utenti')
       .delete()
       .eq('id', id)

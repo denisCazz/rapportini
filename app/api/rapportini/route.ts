@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { Rapportino } from '@/types';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
@@ -12,6 +12,7 @@ export const revalidate = 0; // Non cacheare
 // GET - Ottieni tutti i rapportini (filtrati per utente se operatore)
 export async function GET(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     // Ottieni ID utente dalla richiesta
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
@@ -22,12 +23,12 @@ export async function GET(request: NextRequest) {
     const filters = validation.success ? validation.data : { page: 1, limit: 20 };
 
     // Costruisci la query base con conteggio
-    let countQuery = supabase
+    let countQuery = supabaseAdmin
       .from('rapportini')
       .select('*', { count: 'exact', head: true })
       .eq('org_id', orgId);
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('rapportini')
       .select(`
         *,
@@ -153,6 +154,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea un nuovo rapportino
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     // Rate limiting
     const clientIP = getClientIP(request);
     const rateLimitKey = createRateLimitKey('createRapportino', clientIP);
@@ -189,7 +191,7 @@ export async function POST(request: NextRequest) {
     const rapportino = validation.data;
 
     // Verifica che l'utente esista
-    const { data: utente, error: utenteError } = await supabase
+    const { data: utente, error: utenteError } = await supabaseAdmin
       .from('utenti')
       .select('id, ruolo')
       .eq('id', userId)
@@ -219,7 +221,7 @@ export async function POST(request: NextRequest) {
     let clienteId: string | null = null;
 
     // Prima cerca per nome + cognome + telefono (match esatto)
-    let { data: clienteData } = await supabase
+    let { data: clienteData } = await supabaseAdmin
       .from('clienti')
       .select('id')
       .eq('org_id', orgId)
@@ -232,7 +234,7 @@ export async function POST(request: NextRequest) {
       clienteId = clienteData.id;
     } else {
       // Se non trovato, cerca solo per nome + cognome
-      const { data: clienteNomeCognome } = await supabase
+      const { data: clienteNomeCognome } = await supabaseAdmin
         .from('clienti')
         .select('id')
         .eq('org_id', orgId)
@@ -248,7 +250,7 @@ export async function POST(request: NextRequest) {
 
     // Se non trovato, crea nuovo cliente
     if (!clienteId) {
-      const { data: newCliente, error: createClienteError } = await supabase
+      const { data: newCliente, error: createClienteError } = await supabaseAdmin
         .from('clienti')
         .insert({
           org_id: orgId,
@@ -268,7 +270,7 @@ export async function POST(request: NextRequest) {
 
       if (createClienteError) {
         if (createClienteError.code === '23505') {
-          const { data: existingCliente } = await supabase
+          const { data: existingCliente } = await supabaseAdmin
             .from('clienti')
             .select('id')
             .eq('org_id', orgId)
@@ -291,7 +293,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crea rapportino usando l'ID utente
-    const { data: newRapportino, error: rapportinoError } = await supabase
+    const { data: newRapportino, error: rapportinoError } = await supabaseAdmin
       .from('rapportini')
       .insert({
         org_id: orgId,

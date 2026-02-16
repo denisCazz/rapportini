@@ -32,6 +32,18 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const hasCheckedAuth = useRef(false);
 
+  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Evita controlli multipli
     if (hasCheckedAuth.current) return;
@@ -109,10 +121,10 @@ export default function RegisterPage() {
         }),
       });
 
-      const data = await response.json();
+      const data = await parseResponseBody<{ error?: string }>(response);
 
       if (!response.ok) {
-        setError(data.error || 'Errore durante la registrazione');
+        setError(data?.error || `Errore durante la registrazione (status ${response.status})`);
         setIsLoading(false);
         return;
       }

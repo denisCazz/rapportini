@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import bcrypt from 'bcryptjs';
 import { registerSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET - Ottieni tutti gli utenti (solo admin)
 export async function GET(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: utenti, error } = await supabase
+    const { data: utenti, error } = await supabaseAdmin
       .from('utenti')
       .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo, ultimo_accesso, created_at')
       .eq('org_id', orgId)
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea nuovo utente (solo admin)
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 
@@ -62,14 +64,19 @@ export async function POST(request: NextRequest) {
     }
 
     const { username, password, nome, cognome, email, telefono, qualifica, ruolo } = validation.data;
+    const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
 
     // Verifica username unico
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: existingUserError } = await supabaseAdmin
       .from('utenti')
       .select('id')
       .eq('username', username)
       .eq('org_id', orgId)
-      .single();
+      .maybeSingle();
+
+    if (existingUserError && existingUserError.code !== 'PGRST116') {
+      throw existingUserError;
+    }
 
     if (existingUser) {
       return NextResponse.json(
@@ -78,18 +85,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verifica email unica per organizzazione (se fornita)
+    if (normalizedEmail) {
+      const { data: existingEmailUser, error: existingEmailError } = await supabaseAdmin
+        .from('utenti')
+        .select('id')
+        .eq('org_id', orgId)
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (existingEmailError && existingEmailError.code !== 'PGRST116') {
+        throw existingEmailError;
+      }
+
+      if (existingEmailUser) {
+        return NextResponse.json(
+          { error: 'Email già in uso in questa organizzazione' },
+          { status: 409 }
+        );
+      }
+    }
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
     // Crea utente
-    const { data: newUser, error } = await supabase
+    const { data: newUser, error } = await supabaseAdmin
       .from('utenti')
       .insert({
         username,
         password_hash: passwordHash,
         nome,
         cognome,
-        email: email || null,
+        email: normalizedEmail,
         telefono: telefono || null,
         qualifica: qualifica || null,
         ruolo,
@@ -99,7 +127,16 @@ export async function POST(request: NextRequest) {
       .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505' && error.message?.includes('uq_utenti_org_email')) {
+        return NextResponse.json(
+          { error: 'Email già in uso in questa organizzazione' },
+          { status: 409 }
+        );
+      }
+
+      throw error;
+    }
 
     return NextResponse.json({ data: newUser, success: true }, { status: 201 });
   } catch (error: any) {

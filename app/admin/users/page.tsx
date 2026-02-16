@@ -49,6 +49,18 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const hasLoadedRef = useRef(false);
 
+  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (hasLoadedRef.current) return;
     
@@ -76,13 +88,14 @@ export default function UsersPage() {
       const response = await fetch('/api/users', {
         credentials: 'include',
       });
+
+      const data = await parseResponseBody<{ data?: User[]; error?: string }>(response);
       
       if (!response.ok) {
-        throw new Error('Errore nel caricamento degli utenti');
+        throw new Error(data?.error || 'Errore nel caricamento degli utenti');
       }
       
-      const data = await response.json();
-      setUsers(data.data || []);
+      setUsers(data?.data || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -109,9 +122,10 @@ export default function UsersPage() {
         body: JSON.stringify(body),
       });
 
+      const data = await parseResponseBody<{ error?: string }>(response);
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Errore nel salvataggio');
+        throw new Error(data?.error || 'Errore nel salvataggio');
       }
 
       setShowModal(false);
@@ -136,9 +150,10 @@ export default function UsersPage() {
         credentials: 'include',
       });
 
+      const data = await parseResponseBody<{ error?: string }>(response);
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Errore nell\'eliminazione');
+        throw new Error(data?.error || 'Errore nell\'eliminazione');
       }
 
       loadUsers();
@@ -156,9 +171,10 @@ export default function UsersPage() {
         body: JSON.stringify({ attivo: !user.attivo }),
       });
 
+      const data = await parseResponseBody<{ error?: string }>(response);
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Errore nell\'aggiornamento');
+        throw new Error(data?.error || 'Errore nell\'aggiornamento');
       }
 
       loadUsers();
@@ -178,9 +194,10 @@ export default function UsersPage() {
         body: JSON.stringify({ newPassword }),
       });
 
+      const data = await parseResponseBody<{ error?: string }>(response);
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Errore nel reset password');
+        throw new Error(data?.error || 'Errore nel reset password');
       }
 
       setShowPasswordModal(false);

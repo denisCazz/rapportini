@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
 
 // GET - Ottieni modelli filtrati per marca
 export async function GET(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
     const { searchParams } = new URL(request.url);
     const marcaId = searchParams.get('marca_id');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('modelli')
       .select('id, nome, marca_id')
       .eq('org_id', orgId)
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea un nuovo modello
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
     const body = await request.json();
     const { nome, marca_id } = body;
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: marcaOwner, error: marcaOwnerError } = await supabase
+    const { data: marcaOwner, error: marcaOwnerError } = await supabaseAdmin
       .from('marche')
       .select('id')
       .eq('id', marca_id)
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: modello, error } = await supabase
+    const { data: modello, error } = await supabaseAdmin
       .from('modelli')
       .insert({ nome: nome.trim(), marca_id, org_id: orgId })
       .select('id, nome, marca_id')
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       if (error.code === '23505') {
         // Duplicato - cerca quello esistente
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseAdmin
           .from('modelli')
           .select('id, nome, marca_id')
           .eq('org_id', orgId)

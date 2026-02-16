@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import bcrypt from 'bcryptjs';
 import { createTokenPair } from '@/lib/jwt';
 import { loginSchema, validateRequest } from '@/lib/validation';
@@ -8,6 +8,7 @@ import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } f
 // POST - Login utente
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     // Rate limiting
     const clientIP = getClientIP(request);
     const rateLimitKey = createRateLimitKey('login', clientIP);
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     if (isEmail) {
       // Cerca per email (case-insensitive)
-      const result = await supabase
+      const result = await supabaseAdmin
         .from('utenti')
         .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
         .ilike('email', username)
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Cerca per username (case-insensitive)
-      const result = await supabase
+      const result = await supabaseAdmin
         .from('utenti')
         .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
         .ilike('username', username)
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Aggiorna ultimo accesso
-    await supabase
+    await supabaseAdmin
       .from('utenti')
       .update({ ultimo_accesso: new Date().toISOString() })
       .eq('id', utente.id)
