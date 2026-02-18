@@ -14,7 +14,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isLandscape, setIsLandscape] = useState(true);
-  const [showRotateHint, setShowRotateHint] = useState(false);
+  const [allowVerticalSigning, setAllowVerticalSigning] = useState(false);
 
   const checkOrientation = () => {
     if (typeof window === 'undefined') return;
@@ -70,10 +70,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) {
-      setShowRotateHint(false);
-      return;
-    }
+    if (!isOpen) return;
 
     checkOrientation();
     const handleResize = () => {
@@ -91,22 +88,26 @@ export default function SignaturePad({ label, value, required = false, onChange 
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    if (isLandscape) {
-      setShowRotateHint(false);
+    if (!isOpen) {
+      setAllowVerticalSigning(false);
       return;
     }
 
+    if (isLandscape) {
+      setAllowVerticalSigning(true);
+      return;
+    }
+
+    setAllowVerticalSigning(false);
     const timer = window.setTimeout(() => {
-      if (!isLandscape) {
-        setShowRotateHint(true);
-      }
+      setAllowVerticalSigning(true);
     }, 5000);
 
-    return () => {
-      window.clearTimeout(timer);
-    };
+    return () => window.clearTimeout(timer);
   }, [isOpen, isLandscape]);
+
+  const canSign = isLandscape || allowVerticalSigning;
+  const showRotateHint = !isLandscape && !allowVerticalSigning;
 
   const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -121,7 +122,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
 
   const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
-    if (!isLandscape) return;
+    if (!canSign) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -139,7 +140,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
   const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     if (!isDrawing) return;
-    if (!isLandscape) return;
+    if (!canSign) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -217,9 +218,9 @@ export default function SignaturePad({ label, value, required = false, onChange 
       {isOpen && (
         <div className="fixed inset-0 z-[80]">
           <div className="absolute inset-0 bg-black/70" onClick={() => setIsOpen(false)} />
-          <div className="absolute inset-0 p-3 sm:p-6">
-            <div className="h-full w-full rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-2xl flex flex-col">
-              <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+          <div className="absolute inset-0 p-2 sm:p-6">
+            <div className="h-full w-full rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
                 <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">{label}</h4>
                 <button
                   type="button"
@@ -230,9 +231,9 @@ export default function SignaturePad({ label, value, required = false, onChange 
                 </button>
               </div>
 
-              <div className="flex-1 p-3 sm:p-4">
+              <div className="flex-1 min-h-0 p-3 sm:p-4 flex flex-col gap-3">
                 {showRotateHint && (
-                  <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-amber-800">
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-amber-800 shrink-0">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-full bg-amber-100 grid place-items-center animate-bounce">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,14 +242,14 @@ export default function SignaturePad({ label, value, required = false, onChange 
                       </div>
                       <div>
                         <p className="text-sm font-semibold animate-pulse">Ruota il telefono</p>
-                        <p className="text-sm font-medium">Firma con telefono orizzontale.</p>
+                        <p className="text-sm font-medium">Firma con telefono orizzontale. Tra 5 secondi puoi continuare anche in verticale.</p>
                       </div>
                     </div>
                   </div>
                 )}
                 <canvas
                   ref={canvasRef}
-                  className="w-full h-full rounded-xl bg-white touch-none"
+                  className="w-full flex-1 min-h-0 rounded-xl bg-white touch-none"
                   onPointerDown={startDrawing}
                   onPointerMove={draw}
                   onPointerUp={stopDrawing}
@@ -257,7 +258,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
                 />
               </div>
 
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:justify-end shrink-0 bg-white dark:bg-slate-900">
                 <button
                   type="button"
                   onClick={clearSignature}
@@ -268,7 +269,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
                 <button
                   type="button"
                   onClick={saveSignature}
-                  disabled={!isLandscape}
+                  disabled={!canSign}
                   className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Salva firma
