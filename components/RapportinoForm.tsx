@@ -11,6 +11,14 @@ interface RapportinoFormProps {
   onCancel: () => void;
 }
 
+const DEFAULT_TIPI_INTERVENTO = [
+  'Manutenzione',
+  'Riparazione',
+  'Installazione',
+  'Pulizia',
+  'Controllo',
+];
+
 export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps) {
   const [step, setStep] = useState(1);
   const [operatore, setOperatore] = useState<Operatore>({
@@ -53,7 +61,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     marca: '',
     modello: '',
     numeroSerie: '',
-    tipoIntervento: '',
+    tipoIntervento: 'Manutenzione',
     descrizione: '',
     materialiUtilizzati: '',
     note: '',
@@ -75,6 +83,9 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   const [showModelloInput, setShowModelloInput] = useState(false);
   const [showMaterialeInput, setShowMaterialeInput] = useState(false);
   const [newMaterialeNome, setNewMaterialeNome] = useState('');
+  const [tipiIntervento, setTipiIntervento] = useState<string[]>(DEFAULT_TIPI_INTERVENTO);
+  const [showTipoInterventoInput, setShowTipoInterventoInput] = useState(false);
+  const [newTipoIntervento, setNewTipoIntervento] = useState('');
 
   const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
     const text = await response.text();
@@ -142,11 +153,16 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   // Cerca clienti esistenti quando nome e cognome sono inseriti
   useEffect(() => {
     const searchClienti = async () => {
-      if (step === 2 && cliente.nome.trim().length >= 2 && cliente.cognome.trim().length >= 2) {
+      const nome = cliente.nome.trim();
+      const cognome = cliente.cognome.trim();
+      const queryComposta = `${nome} ${cognome}`.trim();
+      const hasSearchText = nome.length >= 2 || cognome.length >= 2 || queryComposta.length >= 3;
+
+      if (step === 2 && hasSearchText) {
         setIsSearchingClienti(true);
         try {
           const response = await fetchWithAuth(
-            `/api/clienti/search?nome=${encodeURIComponent(cliente.nome.trim())}&cognome=${encodeURIComponent(cliente.cognome.trim())}`
+            `/api/clienti/search?nome=${encodeURIComponent(nome)}&cognome=${encodeURIComponent(cognome)}&q=${encodeURIComponent(queryComposta)}`
           );
           if (response.ok) {
             const data = await parseResponseBody<Cliente[]>(response);
@@ -154,6 +170,9 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
               setClientiEsistenti(data);
               setShowClientiList(data.length > 0);
             }
+          } else {
+            setClientiEsistenti([]);
+            setShowClientiList(false);
           }
         } catch (error) {
           console.error('Errore nella ricerca clienti:', error);
@@ -927,14 +946,72 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
                 Tipo Intervento <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={intervento.tipoIntervento}
-                onChange={(e) => setIntervento({ ...intervento, tipoIntervento: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="Es. Manutenzione, Riparazione, Installazione"
-                required
-              />
+              <div className="space-y-2">
+                <select
+                  value={intervento.tipoIntervento}
+                  onChange={(e) => setIntervento({ ...intervento, tipoIntervento: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  required
+                >
+                  {tipiIntervento.map((tipo) => (
+                    <option key={tipo} value={tipo} className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                      {tipo}
+                    </option>
+                  ))}
+                </select>
+
+                {!showTipoInterventoInput ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowTipoInterventoInput(true)}
+                    className="w-full px-4 py-2 text-sm border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    + Aggiungi tipologia di intervento
+                  </button>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={newTipoIntervento}
+                      onChange={(e) => setNewTipoIntervento(e.target.value)}
+                      placeholder="Nuova tipologia (es. Collaudo)"
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nuovaTipologia = newTipoIntervento.trim();
+                        if (!nuovaTipologia) return;
+
+                        const esisteGia = tipiIntervento.some(
+                          (tipo) => tipo.toLowerCase() === nuovaTipologia.toLowerCase()
+                        );
+
+                        if (!esisteGia) {
+                          setTipiIntervento((prev) => [...prev, nuovaTipologia]);
+                        }
+
+                        setIntervento({ ...intervento, tipoIntervento: nuovaTipologia });
+                        setNewTipoIntervento('');
+                        setShowTipoInterventoInput(false);
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      Salva
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTipoInterventoInput(false);
+                        setNewTipoIntervento('');
+                      }}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                    >
+                      Annulla
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
@@ -1122,11 +1199,11 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
         </div>
       )}
 
-      <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => step > 1 && setStep(step - 1)}
             disabled={step === 1}
-            className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2"
+        className="w-full sm:w-auto justify-center px-6 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -1137,7 +1214,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             <button
               onClick={() => validateStep() && setStep(step + 1)}
               disabled={!validateStep()}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
             >
               Avanti
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1148,7 +1225,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             <button
               onClick={handleSubmit}
               disabled={!validateStep()}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

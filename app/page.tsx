@@ -20,7 +20,6 @@ export default function Home() {
   const [rapportini, setRapportini] = useState<Rapportino[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [settings, setSettings] = useState<AziendaSettings>({});
-  const [darkMode, setDarkMode] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,15 +40,6 @@ export default function Home() {
     loadRapportini();
     const loadedSettings = storage.getSettings();
     setSettings(loadedSettings);
-    
-    // Carica dark mode
-    const isDark = loadedSettings.darkMode || false;
-    setDarkMode(isDark);
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Rimuoviamo router dalle dipendenze - non è necessario
 
@@ -86,20 +76,6 @@ export default function Home() {
     }
   };
 
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    const updatedSettings = { ...settings, darkMode: newDarkMode };
-    storage.saveSettings(updatedSettings);
-    setSettings(updatedSettings);
-    
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
-
   const handleExportPDFs = async () => {
     if (rapportini.length === 0) {
       alert('Nessun rapportino da esportare');
@@ -133,15 +109,6 @@ export default function Home() {
         onLogout={handleLogout}
         onNewRapportino={() => setShowForm(true)}
         onExportPDF={handleExportPDFs}
-        topActions={
-          <button
-            onClick={toggleDarkMode}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            aria-label="Toggle Dark Mode"
-          >
-            {darkMode ? '🌙 Scura' : '☀️ Chiara'}
-          </button>
-        }
       >
         {error && (
           <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">

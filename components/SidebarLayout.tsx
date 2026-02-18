@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AziendaSettings } from '@/types';
 import { auth } from '@/lib/auth';
+import { storage } from '@/lib/storage';
 
 interface SidebarLayoutProps {
   settings: AziendaSettings;
@@ -30,8 +31,49 @@ export default function SidebarLayout({
   const pathname = usePathname();
   const user = auth.getUser();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   const isActive = (path: string) => pathname === path;
+
+  useEffect(() => {
+    const isDark = storage.getSettings().darkMode || false;
+    setDarkMode(isDark);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileOpen]);
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    const currentSettings = storage.getSettings();
+    storage.saveSettings({ ...currentSettings, darkMode: newDarkMode });
+  };
 
   const NavContent = () => (
     <>
@@ -126,7 +168,19 @@ export default function SidebarLayout({
       )}
 
       <div className="mt-auto px-4 pb-5">
-        <div className="rounded-xl bg-white/5 p-3 mb-3 border border-white/10">
+        <button
+          onClick={toggleDarkMode}
+          className="w-full rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-slate-700/70 transition-all mb-3"
+          aria-label="Cambia modalità tema"
+        >
+          {darkMode ? '🌙 Modalità Scura' : '☀️ Modalità Chiara'}
+        </button>
+
+        <Link
+          href="/utente"
+          onClick={() => setMobileOpen(false)}
+          className="block rounded-xl bg-white/5 p-3 mb-3 border border-white/10 hover:bg-white/10 transition"
+        >
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white grid place-items-center text-xs font-bold shadow-lg shadow-indigo-900/30">
               {user?.nome?.charAt(0)}{user?.cognome?.charAt(0)}
@@ -136,7 +190,7 @@ export default function SidebarLayout({
               <p className="text-xs text-slate-400 capitalize">{user?.ruolo}</p>
             </div>
           </div>
-        </div>
+        </Link>
 
         {onLogout && (
           <button
@@ -159,7 +213,7 @@ export default function SidebarLayout({
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-white/10 flex flex-col shadow-2xl">
+          <aside className="absolute left-0 top-0 h-full w-[85vw] max-w-80 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-white/10 flex flex-col shadow-2xl">
             <NavContent />
           </aside>
         </div>
@@ -167,25 +221,29 @@ export default function SidebarLayout({
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/70 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="px-4 md:px-8 py-4 flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
+          <div className="px-4 md:px-8 py-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden mt-0.5 rounded-xl border border-slate-300 dark:border-slate-700 px-2.5 py-1.5 text-slate-700 dark:text-slate-200 bg-white/70 dark:bg-slate-800/80"
+                className="lg:hidden mt-0.5 h-10 w-10 shrink-0 grid place-items-center rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white/70 dark:bg-slate-800/80"
                 aria-label="Apri menu"
               >
                 ☰
               </button>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{pageTitle}</h1>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white break-words">{pageTitle}</h1>
                 {pageSubtitle && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{pageSubtitle}</p>}
               </div>
             </div>
-            {topActions && <div className="flex items-center gap-2">{topActions}</div>}
           </div>
         </header>
 
-        <main className="px-4 md:px-8 py-8 max-w-7xl">
+        <main className="px-4 sm:px-6 md:px-8 py-6 md:py-8 max-w-7xl mx-auto">
+          {topActions && (
+            <div className="mb-4 flex flex-wrap items-center gap-2 justify-start sm:justify-end">
+              {topActions}
+            </div>
+          )}
           {children}
         </main>
       </div>
