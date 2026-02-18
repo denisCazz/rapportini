@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 
 // GET - Ottieni statistiche raggruppate per cliente (solo admin)
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin();
     // Verifica autenticazione e ruolo admin
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);

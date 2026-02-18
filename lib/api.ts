@@ -31,7 +31,7 @@ export interface PaginatedResponse<T> {
 // Helper per ottenere headers con autenticazione
 function getAuthHeaders(): HeadersInit {
   const user = auth.getUser();
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   const accessToken = auth.getAccessToken();
@@ -62,9 +62,11 @@ async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}): 
   if (response.status === 401) {
     const refreshed = await auth.refreshTokens();
     if (refreshed) {
-      const retryHeaders: HeadersInit = {
-        ...(init.headers || {}),
-        ...getAuthHeaders(),
+      const retryHeaders: Record<string, string> = {
+        ...(init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)
+          ? (init.headers as Record<string, string>)
+          : {}),
+        ...(getAuthHeaders() as Record<string, string>),
       };
       response = await fetch(input, {
         ...baseInit,

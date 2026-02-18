@@ -82,15 +82,15 @@ export default function SidebarLayout({
               Statistiche
             </Link>
             <Link
-              href="/admin/users"
+              href="/admin/gestione-utenti"
               onClick={() => setMobileOpen(false)}
               className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                isActive('/admin/users')
+                isActive('/admin/users') || isActive('/admin/gestione-utenti')
                   ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-700/30'
                   : 'text-slate-200 hover:bg-white/10 hover:text-white'
               }`}
             >
-              <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${isActive('/admin/users') ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>👥</span>
+              <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${(isActive('/admin/users') || isActive('/admin/gestione-utenti')) ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>👥</span>
               Utenti
             </Link>
           </>

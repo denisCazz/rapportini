@@ -11,12 +11,72 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
+    compress: true,
+    precision: 2,
   });
+
+  const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78));
+
+  const optimizeImageDataUrl = async (
+    source: string,
+    targetWidthPx: number,
+    targetHeightPx: number,
+    quality = 0.72
+  ): Promise<string | null> => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = source;
+
+      await new Promise<void>((resolve, reject) => {
+        if (img.complete) {
+          resolve();
+        } else {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Immagine non caricabile'));
+          setTimeout(() => reject(new Error('Timeout caricamento immagine')), 3000);
+        }
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidthPx;
+      canvas.height = targetHeightPx;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetWidthPx, targetHeightPx);
+
+      const sourceRatio = img.width / img.height;
+      const targetRatio = targetWidthPx / targetHeightPx;
+
+      let drawWidth = targetWidthPx;
+      let drawHeight = targetHeightPx;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (sourceRatio > targetRatio) {
+        drawHeight = targetHeightPx;
+        drawWidth = Math.round(drawHeight * sourceRatio);
+        offsetX = Math.round((targetWidthPx - drawWidth) / 2);
+      } else {
+        drawWidth = targetWidthPx;
+        drawHeight = Math.round(drawWidth / sourceRatio);
+        offsetY = Math.round((targetHeightPx - drawHeight) / 2);
+      }
+
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      return canvas.toDataURL('image/jpeg', quality);
+    } catch {
+      return null;
+    }
+  };
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
   const contentWidth = pageWidth - (margin * 2);
+  const footerTop = pageHeight - 22;
   let yPos = margin;
 
   // Colori
@@ -38,6 +98,30 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     doc.setLineWidth(thickness);
     doc.line(margin, y, pageWidth - margin, y);
     doc.setLineWidth(0.5);
+  };
+
+  const ensureSpace = (requiredHeight: number) => {
+    if (yPos + requiredHeight > footerTop) {
+      doc.addPage();
+      yPos = margin;
+    }
+  };
+
+  const drawFooter = () => {
+    drawLine(footerTop, lightGray, 0.5);
+    doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
+
+    doc.setFontSize(7);
+    const footerText1 = `Rapportino creato il ${format(new Date(rapportino.dataCreazione), 'dd/MM/yyyy HH:mm')}`;
+    doc.text(footerText1, pageWidth / 2, footerTop + 5, { align: 'center' });
+
+    doc.setFontSize(6);
+    const footerText2 = 'Bitora Software di Gestione Specializzato è un prodotto di Bitora.it';
+    doc.text(footerText2, pageWidth / 2, footerTop + 9, { align: 'center' });
+
+    doc.setFontSize(5);
+    const footerText3 = `© ${new Date().getFullYear()} Bitora.it - Tutti i diritti riservati`;
+    doc.text(footerText3, pageWidth / 2, footerTop + 13, { align: 'center' });
   };
 
   // Header professionale
@@ -87,33 +171,16 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
         logoHeightMm = logoWidthMm / aspectRatio;
       }
       
-      // Se il logo è un URL (non base64), convertilo in base64
-      let logoData = logoToUse;
-      let format = 'PNG';
-      
-      if (logoToUse.startsWith('data:image/')) {
-        // È già un data URL
-        logoData = logoToUse;
-        if (logoToUse.startsWith('data:image/jpeg') || logoToUse.startsWith('data:image/jpg')) {
-          format = 'JPEG';
-        } else if (logoToUse.startsWith('data:image/png')) {
-          format = 'PNG';
-        }
-      } else if (logoToUse.startsWith('/') || logoToUse.startsWith('http')) {
-        // È un URL, convertilo in base64 usando canvas
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          logoData = canvas.toDataURL('image/png');
-          format = 'PNG';
-        }
+      const optimizedLogo = await optimizeImageDataUrl(
+        logoToUse,
+        mmToPx(logoWidthMm),
+        mmToPx(logoHeightMm),
+        0.7
+      );
+
+      if (optimizedLogo) {
+        doc.addImage(optimizedLogo, 'JPEG', logoX, logoY, logoWidthMm, logoHeightMm);
       }
-      
-      // Aggiungi il logo al PDF (jsPDF usa già mm come unità)
-      doc.addImage(logoData, format, logoX, logoY, logoWidthMm, logoHeightMm);
       
       // Sposta il testo a destra del logo
       textX = logoX + logoWidthMm + 5;
@@ -326,6 +393,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   yPos += 8;
 
   // Descrizione con box
+  ensureSpace(28);
   drawBox(margin, yPos - 3, contentWidth, 6, bgLight);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -334,11 +402,13 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
   const descLines = doc.splitTextToSize(rapportino.intervento.descrizione, contentWidth - 4);
+  ensureSpace((descLines.length * 5) + 12);
   doc.text(descLines, margin + 2, yPos);
   yPos += descLines.length * 5 + 8;
 
   // Materiali Utilizzati
   if (rapportino.intervento.materialiUtilizzati) {
+    ensureSpace(24);
     drawBox(margin, yPos - 3, contentWidth, 6, bgLight);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -347,12 +417,14 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
     const matLines = doc.splitTextToSize(rapportino.intervento.materialiUtilizzati, contentWidth - 4);
+    ensureSpace((matLines.length * 5) + 12);
     doc.text(matLines, margin + 2, yPos);
     yPos += matLines.length * 5 + 8;
   }
 
   // Note
   if (rapportino.intervento.note) {
+    ensureSpace(24);
     drawBox(margin, yPos - 3, contentWidth, 6, bgLight);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -361,15 +433,13 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
     const noteLines = doc.splitTextToSize(rapportino.intervento.note, contentWidth - 4);
+    ensureSpace((noteLines.length * 5) + 12);
     doc.text(noteLines, margin + 2, yPos);
     yPos += noteLines.length * 5 + 10;
   }
 
-  // Controlla se serve una nuova pagina per le firme
-  if (yPos > pageHeight - 60) {
-    doc.addPage();
-    yPos = margin;
-  }
+  // Garantisce spazio per blocco firme + nomi + footer
+  ensureSpace(52);
 
   // Sezione firme
   yPos += 5;
@@ -397,7 +467,15 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
 
   if (rapportino.intervento.firmaOperatore) {
     try {
-      doc.addImage(rapportino.intervento.firmaOperatore, 'PNG', margin + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+      const optimizedOperatore = await optimizeImageDataUrl(
+        rapportino.intervento.firmaOperatore,
+        mmToPx(signatureWidth - 4),
+        mmToPx(signatureBoxHeight - 11),
+        0.6
+      );
+      if (optimizedOperatore) {
+        doc.addImage(optimizedOperatore, 'JPEG', margin + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+      }
     } catch (error) {
       console.error('Errore rendering firma operatore nel PDF:', error);
     }
@@ -405,7 +483,15 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
 
   if (rapportino.intervento.firmaCliente) {
     try {
-      doc.addImage(rapportino.intervento.firmaCliente, 'PNG', margin + signatureWidth + signatureGap + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+      const optimizedCliente = await optimizeImageDataUrl(
+        rapportino.intervento.firmaCliente,
+        mmToPx(signatureWidth - 4),
+        mmToPx(signatureBoxHeight - 11),
+        0.6
+      );
+      if (optimizedCliente) {
+        doc.addImage(optimizedCliente, 'JPEG', margin + signatureWidth + signatureGap + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+      }
     } catch (error) {
       console.error('Errore rendering firma cliente nel PDF:', error);
     }
@@ -420,19 +506,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   doc.text(`${rapportino.operatore.nome} ${rapportino.operatore.cognome}`, margin + 2, yPos);
   doc.text(`${rapportino.cliente.nome} ${rapportino.cliente.cognome}`, margin + signatureWidth + signatureGap + 2, yPos);
 
-  // Footer
-  yPos = pageHeight - 20;
-  drawLine(yPos, lightGray, 0.5);
-  doc.setFontSize(7);
-  doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
-  const footerText1 = `Rapportino creato il ${format(new Date(rapportino.dataCreazione), 'dd/MM/yyyy HH:mm')}`;
-  doc.text(footerText1, pageWidth / 2, pageHeight - 15, { align: 'center' });
-  doc.setFontSize(6);
-  const footerText2 = 'Bitora Software di Gestione Specializzato è un prodotto di Bitora.it';
-  doc.text(footerText2, pageWidth / 2, pageHeight - 11, { align: 'center' });
-  doc.setFontSize(5);
-  const footerText3 = `© ${new Date().getFullYear()} Bitora.it - Tutti i diritti riservati`;
-  doc.text(footerText3, pageWidth / 2, pageHeight - 7, { align: 'center' });
+  drawFooter();
 
   return doc;
 };

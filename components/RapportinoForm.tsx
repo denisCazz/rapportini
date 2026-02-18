@@ -99,8 +99,10 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   };
 
   const fetchWithAuth = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
-    const headers: HeadersInit = {
-      ...(init.headers || {}),
+    const headers: Record<string, string> = {
+      ...(init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)
+        ? (init.headers as Record<string, string>)
+        : {}),
     };
 
     const token = auth.getAccessToken();
@@ -118,8 +120,10 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       const refreshed = await auth.refreshTokens();
       if (refreshed) {
         const retryToken = auth.getAccessToken();
-        const retryHeaders: HeadersInit = {
-          ...(init.headers || {}),
+        const retryHeaders: Record<string, string> = {
+          ...(init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)
+            ? (init.headers as Record<string, string>)
+            : {}),
         };
         if (retryToken) {
           retryHeaders['Authorization'] = `Bearer ${retryToken}`;

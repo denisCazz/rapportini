@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import bcrypt from 'bcryptjs';
 import { registerSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET - Ottieni tutti gli utenti (solo admin)
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin();
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea nuovo utente (solo admin)
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin();
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 

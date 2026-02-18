@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import bcrypt from 'bcryptjs';
 import { updateUserSchema, changePasswordSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
@@ -12,6 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
@@ -55,6 +56,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
@@ -124,6 +126,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
