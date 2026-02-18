@@ -19,10 +19,39 @@ export function getUserIdFromRequest(request: NextRequest): string | null {
  * Preferisce x-org-id, con fallback legacy transitorio.
  */
 export function getOrgIdFromRequest(request: NextRequest, fallback = DEFAULT_TENANT_ID): string {
-  return request.headers.get('x-org-id')
+  return (request.headers.get('x-org-id')
     || request.headers.get('x-user-idsocieta')
     || request.headers.get('x-tenant-id')
-    || fallback;
+    || fallback).trim();
+}
+
+/**
+ * Risolve org_id per endpoint auth pre-login (senza contesto JWT affidabile)
+ * Priorità: header -> env -> primo org_id esistente in utenti
+ */
+export async function resolveAuthOrgId(request: NextRequest, supabase: any): Promise<string | null> {
+  const headerOrgId = getOrgIdFromRequest(request, '');
+  if (headerOrgId) {
+    return headerOrgId;
+  }
+
+  const envOrgId = (process.env.DEFAULT_ORG_ID || process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || '').trim();
+  if (envOrgId) {
+    return envOrgId;
+  }
+
+  const { data, error } = await supabase
+    .from('utenti')
+    .select('org_id')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return data?.org_id?.trim() || null;
 }
 
 /**

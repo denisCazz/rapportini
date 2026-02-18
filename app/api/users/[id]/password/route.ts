@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 import { changePasswordSchema, validateRequest } from '@/lib/validation';
 import { z } from 'zod';
@@ -13,7 +13,6 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
@@ -48,7 +47,7 @@ export async function POST(
 
       const passwordHash = await bcrypt.hash(validation.data.newPassword, 12);
 
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from('utenti')
         .update({ password_hash: passwordHash })
         .eq('id', id)
@@ -71,7 +70,7 @@ export async function POST(
     const { currentPassword, newPassword } = validation.data;
 
     // Verifica password attuale
-    const { data: utente, error: fetchError } = await supabaseAdmin
+    const { data: utente, error: fetchError } = await supabase
       .from('utenti')
       .select('password_hash')
       .eq('id', id)
@@ -103,7 +102,7 @@ export async function POST(
     // Hash nuova password
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('utenti')
       .update({ password_hash: passwordHash })
       .eq('id', id)

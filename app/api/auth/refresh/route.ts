@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createTokenPair } from '@/lib/jwt';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { resolveAuthOrgId } from '@/lib/api-auth';
 
 // POST - Refresh token
 export async function POST(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     // Ottieni refresh token dal cookie
     const refreshToken = request.cookies.get('refresh_token')?.value;
 
@@ -27,9 +28,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica che l'utente esista ancora e sia attivo
-    const orgId = payload.org_id || payload.idsocieta || 'default';
+    const orgId = payload.org_id || payload.idsocieta || await resolveAuthOrgId(request, supabase);
 
-    const { data: utente, error } = await supabaseAdmin
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organizzazione non configurata per il refresh token' },
+        { status: 401 }
+      );
+    }
+
+    const { data: utente, error } = await supabase
       .from('utenti')
       .select('id, username, ruolo, attivo, org_id')
       .eq('id', payload.userId)

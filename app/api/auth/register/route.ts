@@ -1,39 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import bcrypt from 'bcryptjs';
-import { getOrgIdFromRequest } from '@/lib/api-auth';
-
-async function resolveRegistrationOrgId(preferredOrgId: string): Promise<string> {
-  const supabaseAdmin = getSupabaseAdmin();
-
-  // Se arriva un org_id esplicito (es. da header middleware), usalo.
-  if (preferredOrgId && preferredOrgId !== 'default') {
-    return preferredOrgId;
-  }
-
-  // Fallback: usa l'org_id di un utente esistente (tipico setup single-tenant).
-  const { data: existingUser } = await supabaseAdmin
-    .from('utenti')
-    .select('org_id')
-    .limit(1)
-    .maybeSingle();
-
-  if (existingUser?.org_id) {
-    return existingUser.org_id;
-  }
-
-  // Ultimo fallback: mantiene comportamento precedente.
-  return preferredOrgId || 'default';
-}
+import { resolveAuthOrgId } from '@/lib/api-auth';
 
 // POST - Registrazione nuovo utente (solo operatore)
 export async function POST(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
-    const requestedOrgId = getOrgIdFromRequest(request);
-    const { username, password, nome, cognome, telefono, email, qualifica, org_id } = await request.json();
-    const orgId = await resolveRegistrationOrgId((org_id as string) || requestedOrgId);
-    const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
+    const supabase = getSupabaseAdmin();
+    const payload = await request.json();
+    const orgId = (
+      payload?.org_id
+      || payload?.idsocieta
+      || await resolveAuthOrgId(request, supabase)
+      || ''
+    ).toString().trim();
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organizzazione non configurata. Imposta DEFAULT_ORG_ID oppure invia header X-Org-Id.' },
+        { status: 400 }
+      );
+    }
+    const { username, password, nome, cognome, telefono, email, qualifica } = payload;
 
     // Validazione
     if (!username || !password || !nome || !cognome || !telefono || !qualifica) {
@@ -51,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica se l'username esiste già
-    const { data: existingUser, error: checkError } = await supabaseAdmin
+    const { data: existingUser, error: checkError } = await supabase
       .from('utenti')
       .select('id')
       .eq('username', username)
@@ -69,32 +57,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifica email unica per organizzazione (se fornita)
-    if (normalizedEmail) {
-      const { data: existingEmailUser, error: emailCheckError } = await supabaseAdmin
-        .from('utenti')
-        .select('id')
-        .eq('org_id', orgId)
-        .eq('email', normalizedEmail)
-        .maybeSingle();
-
-      if (emailCheckError && emailCheckError.code !== 'PGRST116') {
-        throw emailCheckError;
-      }
-
-      if (existingEmailUser) {
-        return NextResponse.json(
-          { error: 'Email già in uso in questa organizzazione' },
-          { status: 409 }
-        );
-      }
-    }
-
     // Hash della password
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Crea nuovo utente (SOLO operatore, non admin)
-    const { data: newUser, error: createError } = await supabaseAdmin
+    const { data: newUser, error: createError } = await supabase
       .from('utenti')
       .insert({
         username,
@@ -104,7 +71,7 @@ export async function POST(request: NextRequest) {
         nome,
         cognome,
         telefono,
-        email: normalizedEmail,
+        email: email || null,
         qualifica,
         attivo: true,
       })
@@ -113,23 +80,12 @@ export async function POST(request: NextRequest) {
 
     if (createError) {
       console.error('Error creating user:', createError);
-
-      if (createError.code === '23503') {
+      if (createError.code === '23503' || String(createError.message || '').includes('utenti_org_id_fkey')) {
         return NextResponse.json(
-          {
-            error: 'Organizzazione non valida (org_id). Configura un org_id esistente oppure imposta il tenant corretto in fase di registrazione.',
-          },
+          { error: `Organizzazione non valida (org_id: ${orgId}). Verifica che esista nel database.` },
           { status: 400 }
         );
       }
-
-      if (createError.code === '23505' && createError.message?.includes('uq_utenti_org_email')) {
-        return NextResponse.json(
-          { error: 'Email già in uso in questa organizzazione' },
-          { status: 409 }
-        );
-      }
-
       throw createError;
     }
 

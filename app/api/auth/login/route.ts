@@ -4,11 +4,12 @@ import bcrypt from 'bcryptjs';
 import { createTokenPair } from '@/lib/jwt';
 import { loginSchema, validateRequest } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
+import { resolveAuthOrgId } from '@/lib/api-auth';
 
 // POST - Login utente
 export async function POST(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     // Rate limiting
     const clientIP = getClientIP(request);
     const rateLimitKey = createRateLimitKey('login', clientIP);
@@ -43,6 +44,19 @@ export async function POST(request: NextRequest) {
     }
 
     const { username, password } = validation.data;
+    const requestedOrgId = (
+      body?.org_id
+      || body?.idsocieta
+      || await resolveAuthOrgId(request, supabase)
+      || ''
+    ).toString().trim();
+
+    if (!requestedOrgId) {
+      return NextResponse.json(
+        { error: 'Organizzazione non configurata. Imposta DEFAULT_ORG_ID o invia org_id.' },
+        { status: 400 }
+      );
+    }
 
     // Cerca utente nel database - supporta sia username che email
     // Username e email sono case-insensitive (non distinguono maiuscole/minuscole)
@@ -53,9 +67,10 @@ export async function POST(request: NextRequest) {
 
     if (isEmail) {
       // Cerca per email (case-insensitive)
-      const result = await supabaseAdmin
+      const result = await supabase
         .from('utenti')
         .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
+        .eq('org_id', requestedOrgId)
         .ilike('email', username)
         .limit(20);
       const candidati = result.data || [];
@@ -80,9 +95,10 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Cerca per username (case-insensitive)
-      const result = await supabaseAdmin
+      const result = await supabase
         .from('utenti')
         .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
+        .eq('org_id', requestedOrgId)
         .ilike('username', username)
         .limit(20);
       const candidati = result.data || [];
@@ -128,18 +144,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const resolvedOrgId = utente.org_id || requestedOrgId;
+    if (!resolvedOrgId) {
+      return NextResponse.json(
+        { error: 'Organizzazione utente non valida o non configurata' },
+        { status: 400 }
+      );
+    }
+
     // Aggiorna ultimo accesso
-    await supabaseAdmin
+    await supabase
       .from('utenti')
       .update({ ultimo_accesso: new Date().toISOString() })
       .eq('id', utente.id)
-      .eq('org_id', utente.org_id || 'default');
+      .eq('org_id', resolvedOrgId);
 
     // Crea token JWT
     const { accessToken, refreshToken } = await createTokenPair({
       id: utente.id,
       username: utente.username,
-      org_id: utente.org_id || 'default',
+      org_id: resolvedOrgId,
       ruolo: utente.ruolo,
     });
 
@@ -147,7 +171,7 @@ export async function POST(request: NextRequest) {
     const userData = {
       id: utente.id,
       username: utente.username,
-      org_id: utente.org_id || 'default',
+      org_id: resolvedOrgId,
       ruolo: utente.ruolo,
       nome: utente.nome,
       cognome: utente.cognome,

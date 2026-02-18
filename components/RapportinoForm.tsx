@@ -95,13 +95,50 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     return fallback;
   };
 
+  const fetchWithAuth = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
+    const headers: HeadersInit = {
+      ...(init.headers || {}),
+    };
+
+    const token = auth.getAccessToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    let response = await fetch(input, {
+      ...init,
+      headers,
+      credentials: 'include',
+    });
+
+    if (response.status === 401) {
+      const refreshed = await auth.refreshTokens();
+      if (refreshed) {
+        const retryToken = auth.getAccessToken();
+        const retryHeaders: HeadersInit = {
+          ...(init.headers || {}),
+        };
+        if (retryToken) {
+          retryHeaders['Authorization'] = `Bearer ${retryToken}`;
+        }
+        response = await fetch(input, {
+          ...init,
+          headers: retryHeaders,
+          credentials: 'include',
+        });
+      }
+    }
+
+    return response;
+  };
+
   // Cerca clienti esistenti quando nome e cognome sono inseriti
   useEffect(() => {
     const searchClienti = async () => {
       if (step === 2 && cliente.nome.trim().length >= 2 && cliente.cognome.trim().length >= 2) {
         setIsSearchingClienti(true);
         try {
-          const response = await fetch(
+          const response = await fetchWithAuth(
             `/api/clienti/search?nome=${encodeURIComponent(cliente.nome.trim())}&cognome=${encodeURIComponent(cliente.cognome.trim())}`
           );
           if (response.ok) {
@@ -145,7 +182,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   useEffect(() => {
     const loadMarche = async () => {
       try {
-        const response = await fetch('/api/marche');
+        const response = await fetchWithAuth('/api/marche');
         if (response.ok) {
           const data = await parseResponseBody<Array<{ id: string; nome: string }>>(response);
           if (Array.isArray(data)) {
@@ -164,7 +201,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     const loadModelli = async () => {
       if (marcaId) {
         try {
-          const response = await fetch(`/api/modelli?marca_id=${marcaId}`);
+          const response = await fetchWithAuth(`/api/modelli?marca_id=${marcaId}`);
           if (response.ok) {
             const data = await parseResponseBody<Array<{ id: string; nome: string; marca_id: string }>>(response);
             if (Array.isArray(data)) {
@@ -191,7 +228,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     const loadMateriali = async () => {
       if (modelloId) {
         try {
-          const response = await fetch(`/api/materiali?modello_id=${modelloId}`);
+          const response = await fetchWithAuth(`/api/materiali?modello_id=${modelloId}`);
           if (response.ok) {
             const data = await parseResponseBody<Array<{ id: string; nome: string; descrizione?: string; modello_id: string }>>(response);
             if (Array.isArray(data)) {
@@ -719,7 +756,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                       onClick={async () => {
                         if (intervento.marca.trim()) {
                           try {
-                            const response = await fetch('/api/marche', {
+                            const response = await fetchWithAuth('/api/marche', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ nome: intervento.marca.trim() }),
@@ -816,7 +853,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                       onClick={async () => {
                         if (intervento.modello.trim() && marcaId) {
                           try {
-                            const response = await fetch('/api/modelli', {
+                            const response = await fetchWithAuth('/api/modelli', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
@@ -967,7 +1004,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                             onClick={async () => {
                               if (newMaterialeNome.trim() && modelloId) {
                                 try {
-                                  const response = await fetch('/api/materiali', {
+                                  const response = await fetchWithAuth('/api/materiali', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ 
@@ -1034,11 +1071,12 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-1">
-                Note Aggiuntive
+                Note Aggiuntive (opzionale)
               </label>
               <textarea
                 value={intervento.note}
                 onChange={(e) => setIntervento({ ...intervento, note: e.target.value })}
+                placeholder="Inserisci eventuali note aggiuntive..."
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
               />

@@ -12,7 +12,7 @@ export const revalidate = 0; // Non cacheare
 // GET - Ottieni tutti i rapportini (filtrati per utente se operatore)
 export async function GET(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     // Ottieni ID utente dalla richiesta
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
@@ -23,12 +23,12 @@ export async function GET(request: NextRequest) {
     const filters = validation.success ? validation.data : { page: 1, limit: 20 };
 
     // Costruisci la query base con conteggio
-    let countQuery = supabaseAdmin
+    let countQuery = supabase
       .from('rapportini')
       .select('*', { count: 'exact', head: true })
       .eq('org_id', orgId);
 
-    let query = supabaseAdmin
+    let query = supabase
       .from('rapportini')
       .select(`
         *,
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea un nuovo rapportino
 export async function POST(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     // Rate limiting
     const clientIP = getClientIP(request);
     const rateLimitKey = createRateLimitKey('createRapportino', clientIP);
@@ -171,6 +171,7 @@ export async function POST(request: NextRequest) {
     const rapportinoData = body.rapportino || body;
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
+    let effectiveOrgId = orgId;
 
     if (!userId) {
       return NextResponse.json(
@@ -191,12 +192,25 @@ export async function POST(request: NextRequest) {
     const rapportino = validation.data;
 
     // Verifica che l'utente esista
-    const { data: utente, error: utenteError } = await supabaseAdmin
+    let { data: utente, error: utenteError } = await supabase
       .from('utenti')
       .select('id, ruolo')
       .eq('id', userId)
-      .eq('org_id', orgId)
+      .eq('org_id', effectiveOrgId)
       .single();
+
+    if (utenteError || !utente) {
+      const fallback = await supabase
+        .from('utenti')
+        .select('id, ruolo, org_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!fallback.error && fallback.data) {
+        utente = { id: fallback.data.id, ruolo: fallback.data.ruolo };
+        effectiveOrgId = fallback.data.org_id;
+      }
+    }
 
     if (utenteError || !utente) {
       return NextResponse.json(
@@ -221,10 +235,10 @@ export async function POST(request: NextRequest) {
     let clienteId: string | null = null;
 
     // Prima cerca per nome + cognome + telefono (match esatto)
-    let { data: clienteData } = await supabaseAdmin
+    let { data: clienteData } = await supabase
       .from('clienti')
       .select('id')
-      .eq('org_id', orgId)
+      .eq('org_id', effectiveOrgId)
       .eq('nome', nomeNormalizzato)
       .eq('cognome', cognomeNormalizzato)
       .eq('telefono', telefonoNormalizzato)
@@ -234,10 +248,10 @@ export async function POST(request: NextRequest) {
       clienteId = clienteData.id;
     } else {
       // Se non trovato, cerca solo per nome + cognome
-      const { data: clienteNomeCognome } = await supabaseAdmin
+      const { data: clienteNomeCognome } = await supabase
         .from('clienti')
         .select('id')
-        .eq('org_id', orgId)
+        .eq('org_id', effectiveOrgId)
         .eq('nome', nomeNormalizzato)
         .eq('cognome', cognomeNormalizzato)
         .limit(1)
@@ -250,10 +264,10 @@ export async function POST(request: NextRequest) {
 
     // Se non trovato, crea nuovo cliente
     if (!clienteId) {
-      const { data: newCliente, error: createClienteError } = await supabaseAdmin
+      const { data: newCliente, error: createClienteError } = await supabase
         .from('clienti')
         .insert({
-          org_id: orgId,
+          org_id: effectiveOrgId,
           nome: nomeNormalizzato,
           cognome: cognomeNormalizzato,
           ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
@@ -270,10 +284,10 @@ export async function POST(request: NextRequest) {
 
       if (createClienteError) {
         if (createClienteError.code === '23505') {
-          const { data: existingCliente } = await supabaseAdmin
+          const { data: existingCliente } = await supabase
             .from('clienti')
             .select('id')
-            .eq('org_id', orgId)
+            .eq('org_id', effectiveOrgId)
             .eq('nome', nomeNormalizzato)
             .eq('cognome', cognomeNormalizzato)
             .eq('telefono', telefonoNormalizzato)
@@ -293,10 +307,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Crea rapportino usando l'ID utente
-    const { data: newRapportino, error: rapportinoError } = await supabaseAdmin
+    const { data: newRapportino, error: rapportinoError } = await supabase
       .from('rapportini')
       .insert({
-        org_id: orgId,
+        org_id: effectiveOrgId,
         utente_id: userId,
         cliente_id: clienteId,
         data_intervento: rapportino.intervento.data,

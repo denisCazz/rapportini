@@ -105,11 +105,18 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      const orgId = (process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || '').trim();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (orgId) {
+        headers['X-Org-Id'] = orgId;
+      }
+
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           username: formData.username,
           password: formData.password,
@@ -118,6 +125,7 @@ export default function RegisterPage() {
           telefono: formData.telefono,
           email: formData.email,
           qualifica: formData.qualifica,
+          org_id: orgId || undefined,
         }),
       });
 
@@ -139,8 +147,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200 dark:border-gray-700">
+    <div className="relative min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 overflow-hidden">
+      <div className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-primary-200/40 blur-3xl dark:bg-primary-900/20" />
+      <div className="pointer-events-none absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-violet-200/30 blur-3xl dark:bg-violet-900/20" />
+      <div className="relative bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gray-200/80 dark:border-gray-700/80">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -158,6 +168,11 @@ export default function RegisterPage() {
           <div className="h-32 w-32 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ display: 'none' }}>
             <span className="text-white font-bold text-5xl">B</span>
           </div>
+          <div className="inline-flex items-center rounded-full border border-primary-200 dark:border-primary-800 bg-primary-50/80 dark:bg-primary-900/30 px-3 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300 mb-3">
+            Software di Gestione Specializzato
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Crea il tuo accesso</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Onboarding rapido per operatori della piattaforma verticale</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -367,7 +382,7 @@ export default function RegisterPage() {
                 rel="noopener noreferrer"
                 className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
               >
-                Bitora Software Gestionale Stufe
+                Bitora Software di Gestione Specializzato
               </a>
               {' è un prodotto di '}
               <a 

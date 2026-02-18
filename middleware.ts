@@ -47,7 +47,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Ottieni il token dal cookie
-  const accessToken = request.cookies.get('access_token')?.value;
+  const cookieToken = request.cookies.get('access_token')?.value;
+  const authHeader = request.headers.get('authorization') || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const accessToken = cookieToken || bearerToken;
 
   // Se non c'è token, reindirizza al login per le pagine o ritorna 401 per le API
   if (!accessToken) {

@@ -129,7 +129,7 @@ export default function Home() {
       <SidebarLayout
         settings={settings}
         pageTitle="Dashboard"
-        pageSubtitle="Gestione rapportini di intervento su stufe a pellet e legno"
+        pageSubtitle="Software di gestione specializzato per rapportini e attività operative"
         onLogout={handleLogout}
         onNewRapportino={() => setShowForm(true)}
         onExportPDF={handleExportPDFs}
@@ -197,7 +197,7 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
                 >
-                  Bitora Software Gestionale Stufe
+                  Bitora Software di Gestione Specializzato
                 </a>
                 {' è un prodotto di '}
                 <a 

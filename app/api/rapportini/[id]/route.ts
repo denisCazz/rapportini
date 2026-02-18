@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
@@ -27,7 +27,7 @@ export async function GET(
     }
 
     // Costruisci la query base
-    let query = supabaseAdmin
+    let query = supabase
       .from('rapportini')
       .select(`
         *,
@@ -107,7 +107,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
@@ -122,7 +122,7 @@ export async function DELETE(
 
     // Se è un operatore (non admin), verifica che il rapportino appartenga all'utente
     if (userRole !== 'admin') {
-      const { data: rapportino, error: fetchError } = await supabaseAdmin
+      const { data: rapportino, error: fetchError } = await supabase
         .from('rapportini')
         .select('utente_id')
         .eq('id', id)
@@ -144,7 +144,7 @@ export async function DELETE(
       }
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('rapportini')
       .delete()
       .eq('id', id)

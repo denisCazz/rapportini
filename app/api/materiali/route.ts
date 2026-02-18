@@ -5,7 +5,7 @@ import { getOrgIdFromRequest } from '@/lib/api-auth';
 // GET - Ottieni materiali filtrati per modello
 export async function GET(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
     const { searchParams } = new URL(request.url);
     const modelloId = searchParams.get('modello_id');
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: modelloOwner, error: modelloOwnerError } = await supabaseAdmin
+    const { data: modelloOwner, error: modelloOwnerError } = await supabase
       .from('modelli')
       .select('id')
       .eq('id', modelloId)
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: materiali, error } = await supabaseAdmin
+    const { data: materiali, error } = await supabase
       .from('materiali')
       .select('id, nome, descrizione, modello_id')
       .eq('org_id', orgId)
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 // POST - Crea un nuovo materiale
 export async function POST(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
     const body = await request.json();
     const { nome, descrizione, modello_id } = body;
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: modelloOwner, error: modelloOwnerError } = await supabaseAdmin
+    const { data: modelloOwner, error: modelloOwnerError } = await supabase
       .from('modelli')
       .select('id')
       .eq('id', modello_id)
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: materiale, error } = await supabaseAdmin
+    const { data: materiale, error } = await supabase
       .from('materiali')
       .insert({ 
         nome: nome.trim(), 
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       if (error.code === '23505') {
         // Duplicato - cerca quello esistente
-        const { data: existing } = await supabaseAdmin
+        const { data: existing } = await supabase
           .from('materiali')
           .select('id, nome, descrizione, modello_id')
           .eq('org_id', orgId)

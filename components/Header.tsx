@@ -246,7 +246,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
                     {settings.nomeAzienda || 'Bitora - Gestione Rapportini'}
                   </h1>
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">
-                    Software Gestionale Stufe
+                    Software di Gestione Specializzato
                   </p>
                 </div>
               </Link>

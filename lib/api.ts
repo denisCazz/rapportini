@@ -3,32 +3,6 @@ import { auth } from './auth';
 
 const API_BASE = '/api';
 
-type ParsedResponse<T = any> = {
-  data: T | null;
-  text: string;
-};
-
-async function parseResponseBody<T = any>(response: Response): Promise<ParsedResponse<T>> {
-  const text = await response.text();
-
-  if (!text) {
-    return { data: null, text: '' };
-  }
-
-  try {
-    return { data: JSON.parse(text) as T, text };
-  } catch {
-    return { data: null, text };
-  }
-}
-
-function buildNonJsonErrorMessage(response: Response, fallback: string): string {
-  if (response.status === 401) {
-    return 'Sessione scaduta o non valida. Effettua nuovamente il login.';
-  }
-  return `${fallback} (risposta non JSON, status ${response.status})`;
-}
-
 // Interfaccia per i filtri rapportini
 export interface RapportiniFilters {
   tipoStufa?: 'pellet' | 'legno';
@@ -60,6 +34,7 @@ function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
+  const accessToken = auth.getAccessToken();
   
   if (user) {
     headers['X-User-Id'] = user.id;
@@ -68,8 +43,37 @@ function getAuthHeaders(): HeadersInit {
       headers['X-Org-Id'] = user.org_id;
     }
   }
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
   
   return headers;
+}
+
+async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const baseInit: RequestInit = {
+    ...init,
+    credentials: 'include',
+  };
+
+  let response = await fetch(input, baseInit);
+
+  if (response.status === 401) {
+    const refreshed = await auth.refreshTokens();
+    if (refreshed) {
+      const retryHeaders: HeadersInit = {
+        ...(init.headers || {}),
+        ...getAuthHeaders(),
+      };
+      response = await fetch(input, {
+        ...baseInit,
+        headers: retryHeaders,
+      });
+    }
+  }
+
+  return response;
 }
 
 // Helper per costruire query string
@@ -89,17 +93,13 @@ export const api = {
   getRapportini: async (filters?: RapportiniFilters): Promise<Rapportino[]> => {
     const headers = getAuthHeaders();
     const queryString = filters ? buildQueryString(filters) : '';
-    const response = await fetch(`${API_BASE}/rapportini${queryString}`, {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini${queryString}`, {
       headers,
-      credentials: 'include',
     });
-    const { data: result } = await parseResponseBody(response);
     if (!response.ok) {
-      throw new Error((result as any)?.error || 'Errore nel recupero dei rapportini');
+      throw new Error('Errore nel recupero dei rapportini');
     }
-    if (!result) {
-      throw new Error(buildNonJsonErrorMessage(response, 'Errore nel recupero dei rapportini'));
-    }
+    const result = await response.json();
     // Supporta sia la vecchia risposta (array) che la nuova (paginata)
     return Array.isArray(result) ? result : result.data;
   },
@@ -108,18 +108,13 @@ export const api = {
   getRapportiniPaginated: async (filters?: RapportiniFilters): Promise<PaginatedResponse<Rapportino>> => {
     const headers = getAuthHeaders();
     const queryString = filters ? buildQueryString(filters) : '';
-    const response = await fetch(`${API_BASE}/rapportini${queryString}`, {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini${queryString}`, {
       headers,
-      credentials: 'include',
     });
-    const { data } = await parseResponseBody<PaginatedResponse<Rapportino>>(response);
     if (!response.ok) {
-      throw new Error((data as any)?.error || 'Errore nel recupero dei rapportini');
+      throw new Error('Errore nel recupero dei rapportini');
     }
-    if (!data) {
-      throw new Error(buildNonJsonErrorMessage(response, 'Errore nel recupero dei rapportini'));
-    }
-    return data;
+    return response.json();
   },
 
   // Crea un nuovo rapportino
@@ -129,7 +124,7 @@ export const api = {
       throw new Error('Utente non autenticato');
     }
 
-    const response = await fetch(`${API_BASE}/rapportini`, {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -137,78 +132,63 @@ export const api = {
         userId: user.id,
       }),
     });
-    const { data } = await parseResponseBody<{ id: string; success: boolean; error?: string }>(response);
     if (!response.ok) {
-      throw new Error(data?.error || 'Errore nella creazione del rapportino');
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nella creazione del rapportino');
     }
-    if (!data) {
-      throw new Error(buildNonJsonErrorMessage(response, 'Errore nella creazione del rapportino'));
-    }
-    return data;
+    return response.json();
   },
 
   // Ottieni un singolo rapportino per ID
   getRapportino: async (id: string): Promise<Rapportino> => {
     const headers = getAuthHeaders();
-    const response = await fetch(`${API_BASE}/rapportini/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini/${id}`, {
       headers,
     });
-    const { data } = await parseResponseBody<Rapportino & { error?: string }>(response);
     if (!response.ok) {
-      throw new Error(data?.error || 'Errore nel recupero del rapportino');
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nel recupero del rapportino');
     }
-    if (!data) {
-      throw new Error(buildNonJsonErrorMessage(response, 'Errore nel recupero del rapportino'));
-    }
-    return data;
+    return response.json();
   },
 
   // Elimina un rapportino
   deleteRapportino: async (id: string): Promise<void> => {
     const headers = getAuthHeaders();
-    const response = await fetch(`${API_BASE}/rapportini/${id}`, {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini/${id}`, {
       method: 'DELETE',
       headers,
-      credentials: 'include',
     });
-    const { data } = await parseResponseBody<{ error?: string }>(response);
     if (!response.ok) {
-      throw new Error(data?.error || 'Errore nell\'eliminazione del rapportino');
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nell\'eliminazione del rapportino');
     }
   },
 
   // Ottieni statistiche admin
-  getStatistics: async (): Promise<any[]> => {
+  getStatistics: async () => {
     const headers = getAuthHeaders();
-    const response = await fetch(`${API_BASE}/admin/statistics`, {
+    const response = await fetchWithAuth(`${API_BASE}/admin/statistics`, {
       headers,
-      credentials: 'include',
     });
-    const { data } = await parseResponseBody<any[] | { error?: string }>(response);
     if (!response.ok) {
-      throw new Error((data as { error?: string } | null)?.error || 'Errore nel recupero delle statistiche');
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nel recupero delle statistiche');
     }
-    if (!Array.isArray(data)) {
-      throw new Error(buildNonJsonErrorMessage(response, 'Errore nel recupero delle statistiche'));
-    }
-    return data;
+    return response.json();
   },
 
   // Invia email di conferma intervento
   sendInterventoEmail: async (rapportino: Rapportino, aziendaNome?: string): Promise<{ success: boolean; message: string }> => {
     const headers = getAuthHeaders();
-    const response = await fetch(`${API_BASE}/email/send`, {
+    const response = await fetchWithAuth(`${API_BASE}/email/send`, {
       method: 'POST',
       headers,
-      credentials: 'include',
       body: JSON.stringify({ rapportino, aziendaNome }),
     });
-    const { data: result } = await parseResponseBody<{ success: boolean; message: string; error?: string }>(response);
+    const result = await response.json();
     if (!response.ok) {
-      throw new Error(result?.error || 'Errore nell\'invio dell\'email');
-    }
-    if (!result) {
-      throw new Error(buildNonJsonErrorMessage(response, 'Errore nell\'invio dell\'email'));
+      throw new Error(result.error || 'Errore nell\'invio dell\'email');
     }
     return result;
   },
@@ -216,14 +196,10 @@ export const api = {
   // Ottieni documentazione API
   getApiDocs: async () => {
     const response = await fetch(`${API_BASE}/docs`);
-    const { data } = await parseResponseBody(response);
     if (!response.ok) {
       throw new Error('Errore nel recupero della documentazione API');
     }
-    if (!data) {
-      throw new Error(buildNonJsonErrorMessage(response, 'Errore nel recupero della documentazione API'));
-    }
-    return data;
+    return response.json();
   },
 };
 

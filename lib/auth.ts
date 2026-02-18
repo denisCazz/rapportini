@@ -19,17 +19,6 @@ export interface User {
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
-async function parseResponseBody<T = any>(response: Response): Promise<T | null> {
-  const text = await response.text();
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return null;
-  }
-}
-
 async function refreshTokens(): Promise<boolean> {
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
@@ -44,10 +33,7 @@ async function refreshTokens(): Promise<boolean> {
       });
 
       if (response.ok) {
-        const data = await parseResponseBody<{ accessToken?: string; refreshToken?: string }>(response);
-        if (!data) {
-          return false;
-        }
+        const data = await response.json();
         if (data.accessToken) {
           localStorage.setItem(STORAGE_KEY_ACCESS_TOKEN, data.accessToken);
         }
@@ -70,34 +56,25 @@ async function refreshTokens(): Promise<boolean> {
 
 export const auth = {
   // Login tramite API
-  login: async (username: string, password: string): Promise<{ success: boolean; user?: User; error?: string; retryAfter?: number }> => {
+  login: async (username: string, password: string, orgId?: string): Promise<{ success: boolean; user?: User; error?: string; retryAfter?: number }> => {
     try {
+      const effectiveOrgId = (orgId || process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || '').trim();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (effectiveOrgId) {
+        headers['X-Org-Id'] = effectiveOrgId;
+      }
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include', // Importante per i cookie
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, org_id: effectiveOrgId || undefined }),
       });
 
-      const data = await parseResponseBody<{
-        success?: boolean;
-        user?: User;
-        error?: string;
-        retryAfter?: number;
-        accessToken?: string;
-        refreshToken?: string;
-      }>(response);
-
-      if (!data) {
-        return {
-          success: false,
-          error: response.status === 401
-            ? 'Sessione non valida. Riprova ad accedere.'
-            : `Risposta non valida dal server (status ${response.status})`,
-        };
-      }
+      const data = await response.json();
 
       if (!response.ok) {
         return { 

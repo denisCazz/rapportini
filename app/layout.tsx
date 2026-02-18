@@ -18,13 +18,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Bitora - Gestione Rapportini',
-  description: 'Sistema per la gestione dei rapportini di assistenza stufe a pellet e legno',
+  title: 'Bitora - Software di Gestione Specializzato',
+  description: 'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Bitora - Gestione Rapportini',
+    title: 'Bitora - Software di Gestione Specializzato',
   },
   icons: {
     icon: '/favicon.ico',
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
     apple: '/logo.png',
   },
   openGraph: {
-    title: 'Bitora - Gestione Rapportini',
-    description: 'Sistema per la gestione dei rapportini di assistenza stufe a pellet e legno',
+    title: 'Bitora - Software di Gestione Specializzato',
+    description: 'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
     images: [
       {
         url: '/logo.png',
@@ -44,12 +44,12 @@ export const metadata: Metadata = {
     ],
     type: 'website',
     locale: 'it_IT',
-    siteName: 'Bitora - Gestione Rapportini',
+    siteName: 'Bitora - Software di Gestione Specializzato',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Bitora - Gestione Rapportini',
-    description: 'Sistema per la gestione dei rapportini di assistenza stufe a pellet e legno',
+    title: 'Bitora - Software di Gestione Specializzato',
+    description: 'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
     images: ['/logo.png'],
   },
 }
