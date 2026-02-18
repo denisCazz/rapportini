@@ -39,6 +39,7 @@ La variabile `JWT_SECRET` è usata per firmare i token JWT. In produzione:
 - Usa una stringa casuale di almeno 32 caratteri
 - Puoi generarla con: `openssl rand -base64 32`
 - Non condividere mai questa chiave
+- L'applicazione ora rifiuta l'avvio se `JWT_SECRET` è assente o troppo corta
 
 ## Configurazione Email (opzionale)
 
@@ -65,3 +66,4 @@ Dopo aver configurato le variabili d'ambiente:
 - Il file `.env.local` è già incluso nel `.gitignore`
 - Usa sempre variabili d'ambiente per le credenziali sensibili
 - Cambia sempre le password e le chiavi di default in produzione
+- Verifica che `SUPABASE_SERVICE_ROLE_KEY` sia impostata in produzione per le route server protette da RLS

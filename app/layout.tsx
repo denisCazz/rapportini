@@ -18,6 +18,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://app.bitora.it'),
   title: 'Bitora - Software di Gestione Specializzato',
   description: 'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
   manifest: '/manifest.json',

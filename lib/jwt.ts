@@ -1,7 +1,8 @@
 import { SignJWT, jwtVerify, JWTPayload } from 'jose';
+import { getJwtSecretValue } from '@/lib/env';
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'bitora-jwt-secret-key-change-this-in-production-2024'
+  getJwtSecretValue()
 );
 
 const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minuti
