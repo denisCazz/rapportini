@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Rapportino, Operatore, Cliente, Intervento } from '@/types';
 import { format } from 'date-fns';
 import { auth } from '@/lib/auth';
+import SignaturePad from '@/components/SignaturePad';
 
 interface RapportinoFormProps {
   onSave: (rapportino: Rapportino) => void;
@@ -56,6 +57,8 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     descrizione: '',
     materialiUtilizzati: '',
     note: '',
+    firmaOperatore: '',
+    firmaCliente: '',
   });
   const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
   const [showClientiList, setShowClientiList] = useState(false);
@@ -267,7 +270,14 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       return !!(cliente.nome && cliente.cognome && cliente.indirizzo && cliente.citta && cliente.cap && cliente.telefono);
     }
     if (step === 3) {
-      return !!(intervento.marca && intervento.modello && intervento.tipoIntervento && intervento.descrizione);
+      return !!(
+        intervento.marca
+        && intervento.modello
+        && intervento.tipoIntervento
+        && intervento.descrizione
+        && intervento.firmaOperatore
+        && intervento.firmaCliente
+      );
     }
     return false;
   };
@@ -1080,6 +1090,29 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
               />
+            </div>
+
+            <div className="md:col-span-2 mt-2">
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/20 p-4">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Processo firme digitali</h4>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <SignaturePad
+                    label="Firma Operatore"
+                    value={intervento.firmaOperatore}
+                    required
+                    onChange={(firmaOperatore) => setIntervento({ ...intervento, firmaOperatore })}
+                  />
+                  <SignaturePad
+                    label="Firma Cliente"
+                    value={intervento.firmaCliente}
+                    required
+                    onChange={(firmaCliente) => setIntervento({ ...intervento, firmaCliente })}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                  Entrambe le firme sono obbligatorie per concludere e salvare il rapportino.
+                </p>
+              </div>
             </div>
           </div>
         </div>

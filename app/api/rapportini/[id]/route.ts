@@ -84,6 +84,7 @@ export async function GET(
         descrizione: rapportino.descrizione,
         materialiUtilizzati: rapportino.materiali_utilizzati || '',
         note: rapportino.note || '',
+        firmaOperatore: rapportino.firma_operatore || '',
         firmaCliente: rapportino.firma_cliente || '',
       },
       dataCreazione: rapportino.data_creazione || rapportino.created_at,

@@ -120,6 +120,7 @@ export async function GET(request: NextRequest) {
         descrizione: r.descrizione,
         materialiUtilizzati: r.materiali_utilizzati || '',
         note: r.note || '',
+        firmaOperatore: r.firma_operatore || '',
         firmaCliente: r.firma_cliente || '',
       },
       dataCreazione: r.data_creazione || r.created_at,
@@ -323,6 +324,7 @@ export async function POST(request: NextRequest) {
         descrizione: rapportino.intervento.descrizione,
         materiali_utilizzati: rapportino.intervento.materialiUtilizzati || null,
         note: rapportino.intervento.note || null,
+        firma_operatore: rapportino.intervento.firmaOperatore || null,
         firma_cliente: rapportino.intervento.firmaCliente || null,
         data_creazione: new Date().toISOString(),
       })

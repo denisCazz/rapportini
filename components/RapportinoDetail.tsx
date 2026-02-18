@@ -235,14 +235,32 @@ export default function RapportinoDetail({ rapportino, settings, onClose }: Rapp
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300 print:text-base mb-4">Firma Operatore</p>
-                <div className="h-16 border-b-2 border-gray-400 dark:border-gray-500 print:border-gray-800"></div>
+                <div className="h-20 border-b-2 border-gray-400 dark:border-gray-500 print:border-gray-800 flex items-end justify-start">
+                  {rapportino.intervento.firmaOperatore ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={rapportino.intervento.firmaOperatore}
+                      alt="Firma operatore"
+                      className="max-h-16 w-auto object-contain"
+                    />
+                  ) : null}
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 print:text-sm">
                   {rapportino.operatore.nome} {rapportino.operatore.cognome}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300 print:text-base mb-4">Firma Cliente</p>
-                <div className="h-16 border-b-2 border-gray-400 dark:border-gray-500 print:border-gray-800"></div>
+                <div className="h-20 border-b-2 border-gray-400 dark:border-gray-500 print:border-gray-800 flex items-end justify-start">
+                  {rapportino.intervento.firmaCliente ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={rapportino.intervento.firmaCliente}
+                      alt="Firma cliente"
+                      className="max-h-16 w-auto object-contain"
+                    />
+                  ) : null}
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 print:text-sm">
                   {rapportino.cliente.nome} {rapportino.cliente.cognome}
                 </p>

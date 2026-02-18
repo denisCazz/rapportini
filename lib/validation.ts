@@ -44,6 +44,7 @@ export const interventoSchema = z.object({
   descrizione: z.string().min(1, 'Descrizione obbligatoria').max(2000, 'Descrizione troppo lunga'),
   materialiUtilizzati: z.string().max(1000, 'Materiali troppo lunghi').optional().or(z.literal('')),
   note: z.string().max(1000, 'Note troppo lunghe').optional().or(z.literal('')),
+  firmaOperatore: z.string().optional().or(z.literal('')),
   firmaCliente: z.string().optional().or(z.literal('')),
 });
 

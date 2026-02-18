@@ -40,7 +40,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     doc.setLineWidth(0.5);
   };
 
-  // Header con sfondo colorato
+  // Header professionale
   drawBox(0, 0, pageWidth, 35, primaryColor);
   
   // Logo se presente
@@ -127,12 +127,16 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  const nomeAzienda = settings.nomeAzienda || 'Bitora - Gestione Rapportini';
+  const nomeAzienda = settings.nomeAzienda || 'Bitora - Software di Gestione Specializzato';
   doc.text(nomeAzienda, textX, 20);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistema Gestione Interventi Stufe', textX, 27);
+  doc.text('Rapporto di Intervento Tecnico', textX, 27);
+
+  doc.setFontSize(8);
+  doc.setTextColor(230, 245, 255);
+  doc.text(`ID Rapporto: ${rapportino.id}`, pageWidth - margin, 27, { align: 'right' });
   
   yPos = 45;
 
@@ -367,7 +371,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     yPos = margin;
   }
 
-  // Firma
+  // Sezione firme
   yPos += 5;
   drawLine(yPos, darkGray, 1);
   yPos += 12;
@@ -376,27 +380,45 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
   
-  // Firma Operatore
-  doc.text('Firma Operatore', margin, yPos);
-  yPos += 12;
+  const signatureTop = yPos;
+  const signatureBoxHeight = 24;
+  const signatureGap = 8;
+  const signatureWidth = (contentWidth - signatureGap) / 2;
+
+  doc.setFillColor(249, 250, 251);
+  doc.rect(margin, signatureTop, signatureWidth, signatureBoxHeight, 'F');
+  doc.rect(margin + signatureWidth + signatureGap, signatureTop, signatureWidth, signatureBoxHeight, 'F');
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
+  doc.text('Firma Operatore', margin + 2, signatureTop + 5);
+  doc.text('Firma Cliente', margin + signatureWidth + signatureGap + 2, signatureTop + 5);
+
+  if (rapportino.intervento.firmaOperatore) {
+    try {
+      doc.addImage(rapportino.intervento.firmaOperatore, 'PNG', margin + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+    } catch (error) {
+      console.error('Errore rendering firma operatore nel PDF:', error);
+    }
+  }
+
+  if (rapportino.intervento.firmaCliente) {
+    try {
+      doc.addImage(rapportino.intervento.firmaCliente, 'PNG', margin + signatureWidth + signatureGap + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+    } catch (error) {
+      console.error('Errore rendering firma cliente nel PDF:', error);
+    }
+  }
+
+  yPos = signatureTop + signatureBoxHeight + 5;
   drawLine(yPos, darkGray, 0.8);
-  yPos += 6;
+  yPos += 5;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
-  doc.text(`${rapportino.operatore.nome} ${rapportino.operatore.cognome}`, margin, yPos);
-  yPos += 18;
-
-  // Firma Cliente
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Firma Cliente', margin, yPos);
-  yPos += 12;
-  drawLine(yPos, darkGray, 0.8);
-  yPos += 6;
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${rapportino.cliente.nome} ${rapportino.cliente.cognome}`, margin, yPos);
+  doc.text(`${rapportino.operatore.nome} ${rapportino.operatore.cognome}`, margin + 2, yPos);
+  doc.text(`${rapportino.cliente.nome} ${rapportino.cliente.cognome}`, margin + signatureWidth + signatureGap + 2, yPos);
 
   // Footer
   yPos = pageHeight - 20;
@@ -406,7 +428,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   const footerText1 = `Rapportino creato il ${format(new Date(rapportino.dataCreazione), 'dd/MM/yyyy HH:mm')}`;
   doc.text(footerText1, pageWidth / 2, pageHeight - 15, { align: 'center' });
   doc.setFontSize(6);
-  const footerText2 = 'Bitora Software Gestionale Stufe è un prodotto di Bitora.it';
+  const footerText2 = 'Bitora Software di Gestione Specializzato è un prodotto di Bitora.it';
   doc.text(footerText2, pageWidth / 2, pageHeight - 11, { align: 'center' });
   doc.setFontSize(5);
   const footerText3 = `© ${new Date().getFullYear()} Bitora.it - Tutti i diritti riservati`;

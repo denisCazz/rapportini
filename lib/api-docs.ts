@@ -364,6 +364,8 @@ export const openApiSpec = {
           descrizione: { type: 'string' },
           materialiUtilizzati: { type: 'string' },
           note: { type: 'string' },
+          firmaOperatore: { type: 'string', description: 'Firma operatore in formato base64 (data URL)' },
+          firmaCliente: { type: 'string', description: 'Firma cliente in formato base64 (data URL)' },
         },
       },
       Rapportino: {

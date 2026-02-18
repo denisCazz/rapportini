@@ -30,6 +30,7 @@ export interface Intervento {
   descrizione: string;
   materialiUtilizzati?: string;
   note?: string;
+  firmaOperatore?: string;
   firmaCliente?: string;
 }
 

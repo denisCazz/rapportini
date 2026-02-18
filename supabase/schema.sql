@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS rapportini (
   descrizione TEXT NOT NULL,
   materiali_utilizzati TEXT,
   note TEXT,
+  firma_operatore TEXT,
   firma_cliente TEXT,
   data_creazione TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
