@@ -18,14 +18,14 @@ export default function SignaturePad({ label, value, required = false, onChange 
 
   const checkOrientation = () => {
     if (typeof window === 'undefined') return;
-    const isSmallScreen = window.innerWidth <= 1024;
-    const landscape = window.innerWidth >= window.innerHeight;
+    const isSmallScreen = window.matchMedia('(max-width: 1024px)').matches;
+    const orientationMedia = window.matchMedia('(orientation: landscape)').matches;
+    const viewportLandscape = window.innerWidth >= window.innerHeight;
+    const landscape = orientationMedia || viewportLandscape;
     setIsLandscape(!isSmallScreen || landscape);
   };
 
-  useEffect(() => {
-    if (!isOpen) return;
-
+  const setupCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -34,8 +34,10 @@ export default function SignaturePad({ label, value, required = false, onChange 
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+
     canvas.width = Math.floor(rect.width * dpr);
     canvas.height = Math.floor(rect.height * dpr);
+    context.setTransform(1, 0, 0, 1, 0, 0);
     context.scale(dpr, dpr);
 
     context.lineWidth = 2;
@@ -52,6 +54,11 @@ export default function SignaturePad({ label, value, required = false, onChange 
       };
       img.src = value;
     }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setupCanvas();
   }, [isOpen, value]);
 
   useEffect(() => {
@@ -69,7 +76,10 @@ export default function SignaturePad({ label, value, required = false, onChange 
     }
 
     checkOrientation();
-    const handleResize = () => checkOrientation();
+    const handleResize = () => {
+      checkOrientation();
+      setupCanvas();
+    };
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
@@ -111,10 +121,14 @@ export default function SignaturePad({ label, value, required = false, onChange 
 
   const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
+    if (!isLandscape) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const context = canvas.getContext('2d');
     if (!context) return;
+
+    canvas.setPointerCapture(event.pointerId);
 
     const { x, y } = getPoint(event);
     context.beginPath();
@@ -125,6 +139,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
   const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     if (!isDrawing) return;
+    if (!isLandscape) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -139,6 +154,11 @@ export default function SignaturePad({ label, value, required = false, onChange 
   const stopDrawing = (event?: React.PointerEvent<HTMLCanvasElement>) => {
     if (event) event.preventDefault();
     if (!isDrawing) return;
+
+    if (event && canvasRef.current?.hasPointerCapture(event.pointerId)) {
+      canvasRef.current.releasePointerCapture(event.pointerId);
+    }
+
     setIsDrawing(false);
   };
 
@@ -212,9 +232,19 @@ export default function SignaturePad({ label, value, required = false, onChange 
 
               <div className="flex-1 p-3 sm:p-4">
                 {showRotateHint && (
-                  <p className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
-                    Firma con telefono in verticale.
-                  </p>
+                  <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-amber-800">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-amber-100 grid place-items-center animate-bounce">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5h8a1 1 0 011 1v12a1 1 0 01-1 1H8a1 1 0 01-1-1V6a1 1 0 011-1zm1 2v10h6V7H9z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold animate-pulse">Ruota il telefono</p>
+                        <p className="text-sm font-medium">Firma con telefono orizzontale.</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <canvas
                   ref={canvasRef}
@@ -223,6 +253,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
                   onPointerMove={draw}
                   onPointerUp={stopDrawing}
                   onPointerLeave={stopDrawing}
+                  onPointerCancel={stopDrawing}
                 />
               </div>
 
@@ -237,7 +268,8 @@ export default function SignaturePad({ label, value, required = false, onChange 
                 <button
                   type="button"
                   onClick={saveSignature}
-                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                  disabled={!isLandscape}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Salva firma
                 </button>
