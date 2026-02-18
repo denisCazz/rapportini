@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SidebarLayout from '@/components/SidebarLayout';
+import SignaturePad from '@/components/SignaturePad';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import { AziendaSettings } from '@/types';
@@ -11,6 +12,8 @@ export default function UtentePage() {
   const router = useRouter();
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [firma, setFirma] = useState('');
+  const [savingFirma, setSavingFirma] = useState(false);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -23,6 +26,52 @@ export default function UtentePage() {
   }, [router]);
 
   const user = auth.getUser();
+
+  useEffect(() => {
+    if (user?.firma) {
+      setFirma(user.firma);
+    }
+  }, [user?.firma]);
+
+  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleSaveFirma = async () => {
+    if (!user) return;
+
+    try {
+      setSavingFirma(true);
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ firma }),
+      });
+
+      const data = await parseResponseBody<{ error?: string }>(response);
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Errore nel salvataggio firma');
+      }
+
+      auth.updateUser({ ...user, firma });
+      alert('Firma salvata con successo');
+    } catch (error: any) {
+      alert(error.message || 'Errore nel salvataggio firma');
+    } finally {
+      setSavingFirma(false);
+    }
+  };
 
   const handleLogout = async () => {
     await auth.logout();
@@ -68,6 +117,25 @@ export default function UtentePage() {
             <div>
               <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Qualifica</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">{user.qualifica || '-'}</p>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Firma operatore</h3>
+            <SignaturePad
+              label="Firma personale"
+              value={firma}
+              onChange={setFirma}
+            />
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={handleSaveFirma}
+                disabled={savingFirma}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              >
+                {savingFirma ? 'Salvataggio...' : 'Salva firma'}
+              </button>
             </div>
           </div>
         </div>

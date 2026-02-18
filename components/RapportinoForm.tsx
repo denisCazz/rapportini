@@ -40,6 +40,10 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
         email: user.email || '',
         qualifica: user.qualifica || '',
       });
+
+      if (user.firma) {
+        setIntervento((prev) => ({ ...prev, firmaOperatore: user.firma || '' }));
+      }
     }
   }, []);
   const [cliente, setCliente] = useState<Cliente>({

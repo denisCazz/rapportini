@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const { data: utenti, error } = await supabase
       .from('utenti')
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo, ultimo_accesso, created_at')
+      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, ultimo_accesso, created_at')
       .eq('org_id', orgId)
       .order('created_at', { ascending: false });
 
@@ -63,7 +63,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { username, password, nome, cognome, email, telefono, qualifica, ruolo } = validation.data;
+    const { username, password, nome, cognome, email, telefono, qualifica, ruolo, firma } = validation.data as {
+      username: string;
+      password: string;
+      nome: string;
+      cognome: string;
+      email?: string | null;
+      telefono?: string;
+      qualifica?: string;
+      ruolo: 'admin' | 'operatore';
+      firma?: string;
+    };
 
     // Verifica username unico
     const { data: existingUser } = await supabase
@@ -94,11 +104,12 @@ export async function POST(request: NextRequest) {
         email: email || null,
         telefono: telefono || null,
         qualifica: qualifica || null,
+        firma: firma || null,
         ruolo,
         org_id: orgId,
         attivo: true,
       })
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo')
+      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo')
       .single();
 
     if (error) throw error;

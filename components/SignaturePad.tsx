@@ -11,6 +11,8 @@ interface SignaturePadProps {
 
 export default function SignaturePad({ label, value, required = false, onChange }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef(false);
+  const draftSignatureRef = useRef<string>('');
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isLandscape, setIsLandscape] = useState(true);
@@ -25,7 +27,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
     setIsLandscape(!isSmallScreen || landscape);
   };
 
-  const setupCanvas = () => {
+  const setupCanvas = (sourceImage?: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -47,17 +49,19 @@ export default function SignaturePad({ label, value, required = false, onChange 
 
     context.clearRect(0, 0, rect.width, rect.height);
 
-    if (value) {
+    const imageToDraw = sourceImage ?? draftSignatureRef.current ?? value;
+    if (imageToDraw) {
       const img = new Image();
       img.onload = () => {
         context.drawImage(img, 0, 0, rect.width, rect.height);
       };
-      img.src = value;
+      img.src = imageToDraw;
     }
   };
 
   useEffect(() => {
     if (!isOpen) return;
+    draftSignatureRef.current = value || '';
     setupCanvas();
   }, [isOpen, value]);
 
@@ -75,7 +79,20 @@ export default function SignaturePad({ label, value, required = false, onChange 
     checkOrientation();
     const handleResize = () => {
       checkOrientation();
-      setupCanvas();
+
+      if (isDrawingRef.current) return;
+
+      const canvas = canvasRef.current;
+      if (canvas && canvas.width > 0 && canvas.height > 0) {
+        try {
+          draftSignatureRef.current = canvas.toDataURL('image/png');
+        } catch {
+        }
+      }
+
+      window.requestAnimationFrame(() => {
+        setupCanvas(draftSignatureRef.current);
+      });
     };
 
     window.addEventListener('resize', handleResize);
@@ -134,6 +151,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
     const { x, y } = getPoint(event);
     context.beginPath();
     context.moveTo(x, y);
+    isDrawingRef.current = true;
     setIsDrawing(true);
   };
 
@@ -160,6 +178,15 @@ export default function SignaturePad({ label, value, required = false, onChange 
       canvasRef.current.releasePointerCapture(event.pointerId);
     }
 
+    const canvas = canvasRef.current;
+    if (canvas && canvas.width > 0 && canvas.height > 0) {
+      try {
+        draftSignatureRef.current = canvas.toDataURL('image/png');
+      } catch {
+      }
+    }
+
+    isDrawingRef.current = false;
     setIsDrawing(false);
   };
 
@@ -167,7 +194,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const dataUrl = canvas.toDataURL('image/png');
+    const dataUrl = draftSignatureRef.current || canvas.toDataURL('image/png');
     onChange(dataUrl);
     setIsOpen(false);
   };
@@ -181,6 +208,8 @@ export default function SignaturePad({ label, value, required = false, onChange 
         context.clearRect(0, 0, rect.width, rect.height);
       }
     }
+
+    draftSignatureRef.current = '';
     onChange('');
   };
 
@@ -249,7 +278,7 @@ export default function SignaturePad({ label, value, required = false, onChange 
                 )}
                 <canvas
                   ref={canvasRef}
-                  className="w-full flex-1 min-h-0 rounded-xl bg-white touch-none"
+                  className="w-full flex-1 min-h-0 rounded-xl bg-slate-100 touch-none"
                   onPointerDown={startDrawing}
                   onPointerMove={draw}
                   onPointerUp={stopDrawing}

@@ -21,9 +21,20 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     source: string,
     targetWidthPx: number,
     targetHeightPx: number,
-    quality = 0.72
+    quality = 0.72,
+    options?: {
+      fitMode?: 'cover' | 'contain';
+      outputFormat?: 'jpeg' | 'png';
+      backgroundColor?: string;
+      paddingPx?: number;
+    }
   ): Promise<string | null> => {
     try {
+      const fitMode = options?.fitMode || 'cover';
+      const outputFormat = options?.outputFormat || 'jpeg';
+      const backgroundColor = options?.backgroundColor || '#ffffff';
+      const paddingPx = Math.max(0, options?.paddingPx || 0);
+
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = source;
@@ -44,28 +55,45 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
 
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = backgroundColor;
       ctx.fillRect(0, 0, targetWidthPx, targetHeightPx);
 
       const sourceRatio = img.width / img.height;
-      const targetRatio = targetWidthPx / targetHeightPx;
+      const safeWidth = Math.max(1, targetWidthPx - (paddingPx * 2));
+      const safeHeight = Math.max(1, targetHeightPx - (paddingPx * 2));
+      const targetRatio = safeWidth / safeHeight;
 
-      let drawWidth = targetWidthPx;
-      let drawHeight = targetHeightPx;
-      let offsetX = 0;
-      let offsetY = 0;
+      let drawWidth = safeWidth;
+      let drawHeight = safeHeight;
+      let offsetX = paddingPx;
+      let offsetY = paddingPx;
 
-      if (sourceRatio > targetRatio) {
-        drawHeight = targetHeightPx;
-        drawWidth = Math.round(drawHeight * sourceRatio);
-        offsetX = Math.round((targetWidthPx - drawWidth) / 2);
+      if (fitMode === 'cover') {
+        if (sourceRatio > targetRatio) {
+          drawHeight = safeHeight;
+          drawWidth = Math.round(drawHeight * sourceRatio);
+          offsetX = Math.round((targetWidthPx - drawWidth) / 2);
+        } else {
+          drawWidth = safeWidth;
+          drawHeight = Math.round(drawWidth / sourceRatio);
+          offsetY = Math.round((targetHeightPx - drawHeight) / 2);
+        }
       } else {
-        drawWidth = targetWidthPx;
-        drawHeight = Math.round(drawWidth / sourceRatio);
-        offsetY = Math.round((targetHeightPx - drawHeight) / 2);
+        if (sourceRatio > targetRatio) {
+          drawWidth = safeWidth;
+          drawHeight = Math.round(drawWidth / sourceRatio);
+          offsetY = Math.round((targetHeightPx - drawHeight) / 2);
+        } else {
+          drawHeight = safeHeight;
+          drawWidth = Math.round(drawHeight * sourceRatio);
+          offsetX = Math.round((targetWidthPx - drawWidth) / 2);
+        }
       }
 
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      if (outputFormat === 'png') {
+        return canvas.toDataURL('image/png');
+      }
       return canvas.toDataURL('image/jpeg', quality);
     } catch {
       return null;
@@ -451,7 +479,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
   
   const signatureTop = yPos;
-  const signatureBoxHeight = 24;
+  const signatureBoxHeight = 30;
   const signatureGap = 8;
   const signatureWidth = (contentWidth - signatureGap) / 2;
 
@@ -471,10 +499,16 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
         rapportino.intervento.firmaOperatore,
         mmToPx(signatureWidth - 4),
         mmToPx(signatureBoxHeight - 11),
-        0.6
+        0.9,
+        {
+          fitMode: 'contain',
+          outputFormat: 'png',
+          backgroundColor: '#ffffff',
+          paddingPx: 6,
+        }
       );
       if (optimizedOperatore) {
-        doc.addImage(optimizedOperatore, 'JPEG', margin + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+        doc.addImage(optimizedOperatore, 'PNG', margin + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
       }
     } catch (error) {
       console.error('Errore rendering firma operatore nel PDF:', error);
@@ -487,10 +521,16 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
         rapportino.intervento.firmaCliente,
         mmToPx(signatureWidth - 4),
         mmToPx(signatureBoxHeight - 11),
-        0.6
+        0.9,
+        {
+          fitMode: 'contain',
+          outputFormat: 'png',
+          backgroundColor: '#ffffff',
+          paddingPx: 6,
+        }
       );
       if (optimizedCliente) {
-        doc.addImage(optimizedCliente, 'JPEG', margin + signatureWidth + signatureGap + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+        doc.addImage(optimizedCliente, 'PNG', margin + signatureWidth + signatureGap + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
       }
     } catch (error) {
       console.error('Errore rendering firma cliente nel PDF:', error);

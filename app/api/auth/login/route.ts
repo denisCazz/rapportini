@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       // Cerca per email (case-insensitive)
       const result = await supabase
         .from('utenti')
-        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
+        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, org_id')
         .eq('org_id', requestedOrgId)
         .ilike('email', username)
         .limit(20);
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       // Cerca per username (case-insensitive)
       const result = await supabase
         .from('utenti')
-        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, attivo, org_id')
+        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, org_id')
         .eq('org_id', requestedOrgId)
         .ilike('username', username)
         .limit(20);
@@ -178,6 +178,7 @@ export async function POST(request: NextRequest) {
       telefono: utente.telefono || '',
       email: utente.email || '',
       qualifica: utente.qualifica || '',
+      firma: utente.firma || '',
     };
 
     // Crea response con cookie HttpOnly

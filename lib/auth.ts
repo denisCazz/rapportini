@@ -13,6 +13,7 @@ export interface User {
   telefono?: string;
   email?: string;
   qualifica?: string;
+  firma?: string;
 }
 
 // Helper per refresh automatico del token

@@ -28,7 +28,7 @@ export async function GET(
 
     const { data: utente, error } = await supabase
       .from('utenti')
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo, ultimo_accesso, created_at')
+      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, ultimo_accesso, created_at')
       .eq('id', id)
       .eq('org_id', orgId)
       .single();
@@ -105,7 +105,7 @@ export async function PATCH(
       .update(updateData)
       .eq('id', id)
       .eq('org_id', orgId)
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, attivo')
+      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo')
       .single();
 
     if (error) throw error;

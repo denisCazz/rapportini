@@ -7,6 +7,7 @@ import { it } from 'date-fns/locale';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import SidebarLayout from '@/components/SidebarLayout';
+import SignaturePad from '@/components/SignaturePad';
 import { AziendaSettings } from '@/types';
 
 interface User {
@@ -18,6 +19,7 @@ interface User {
   telefono: string | null;
   email: string | null;
   qualifica: string | null;
+  firma: string | null;
   attivo: boolean;
   ultimo_accesso: string | null;
   created_at: string;
@@ -40,6 +42,7 @@ export default function UsersPage() {
     email: '',
     telefono: '',
     qualifica: '',
+    firma: '',
     ruolo: 'operatore' as 'admin' | 'operatore',
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -104,6 +107,12 @@ export default function UsersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.ruolo === 'operatore' && !formData.qualifica.trim()) {
+      alert('La qualifica è obbligatoria per gli operatori');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -111,7 +120,7 @@ export default function UsersPage() {
       const method = editingUser ? 'PATCH' : 'POST';
 
       const body = editingUser
-        ? { nome: formData.nome, cognome: formData.cognome, email: formData.email, telefono: formData.telefono, qualifica: formData.qualifica, ruolo: formData.ruolo }
+        ? { nome: formData.nome, cognome: formData.cognome, email: formData.email, telefono: formData.telefono, qualifica: formData.qualifica, firma: formData.firma, ruolo: formData.ruolo }
         : formData;
 
       const response = await fetch(url, {
@@ -217,6 +226,7 @@ export default function UsersPage() {
       email: '',
       telefono: '',
       qualifica: '',
+      firma: '',
       ruolo: 'operatore',
     });
   };
@@ -231,6 +241,7 @@ export default function UsersPage() {
       email: user.email || '',
       telefono: user.telefono || '',
       qualifica: user.qualifica || '',
+      firma: user.firma || '',
       ruolo: user.ruolo,
     });
     setShowModal(true);
@@ -442,12 +453,15 @@ export default function UsersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Qualifica</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Qualifica {formData.ruolo === 'operatore' && <span className="text-red-500">*</span>}
+                  </label>
                   <input
                     type="text"
                     value={formData.qualifica}
                     onChange={(e) => setFormData({ ...formData, qualifica: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    required={formData.ruolo === 'operatore'}
                   />
                 </div>
                 <div>
@@ -461,6 +475,16 @@ export default function UsersPage() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
+                {formData.ruolo === 'operatore' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Firma operatore</label>
+                    <SignaturePad
+                      label="Firma"
+                      value={formData.firma}
+                      onChange={(firma) => setFormData({ ...formData, firma })}
+                    />
+                  </div>
+                )}
                 <div className="flex justify-end gap-3 pt-4">
                   <button
                     type="button"

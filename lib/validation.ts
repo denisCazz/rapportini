@@ -16,6 +16,14 @@ export const registerSchema = z.object({
   telefono: z.string().max(20, 'Telefono troppo lungo').optional().or(z.literal('')),
   qualifica: z.string().max(100, 'Qualifica troppo lunga').optional().or(z.literal('')),
   ruolo: z.enum(['admin', 'operatore']).default('operatore'),
+}).superRefine((data, ctx) => {
+  if (data.ruolo === 'operatore' && !data.qualifica?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['qualifica'],
+      message: 'Qualifica obbligatoria per ruolo operatore',
+    });
+  }
 });
 
 // Schema per cliente
@@ -79,6 +87,7 @@ export const updateUserSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   telefono: z.string().max(20).optional().or(z.literal('')),
   qualifica: z.string().max(100).optional().or(z.literal('')),
+  firma: z.string().max(3000000).optional().or(z.literal('')),
   attivo: z.boolean().optional(),
   ruolo: z.enum(['admin', 'operatore']).optional(),
 });
