@@ -1,2 +1,0 @@
--- DEPRECATO: usa organizzazioni_fix_completo.sql per risolvere tutti gli errori
--- (org_id, nome_azienda, logo, indirizzo, partita_iva)

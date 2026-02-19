@@ -1,27 +1,38 @@
 # Configurazione Variabili d'Ambiente
 
-Crea un file `.env.local` nella root del progetto con le seguenti variabili:
+Crea un file `.env.local` nella root del progetto. Vedi `.env.example` per il template completo.
+
+## Ambienti TEST e PROD
+
+L'app supporta due ambienti con database distinti. Imposta `APP_ENV` e `NEXT_PUBLIC_APP_ENV`:
+
+- **`APP_ENV=PROD`** (default) → usa le variabili `*_PROD` o le variabili senza suffisso
+- **`APP_ENV=TEST`** → usa le variabili `*_TEST`
 
 ```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+# Seleziona ambiente (TEST o PROD)
+APP_ENV=PROD
+NEXT_PUBLIC_APP_ENV=PROD
+
+# Supabase PROD
+NEXT_PUBLIC_SUPABASE_URL_PROD=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD=eyJ...
+SUPABASE_SERVICE_ROLE_KEY_PROD=eyJ...
+
+# Supabase TEST (solo se usi APP_ENV=TEST)
+NEXT_PUBLIC_SUPABASE_URL_TEST=https://yyy.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY_TEST=eyJ...
+SUPABASE_SERVICE_ROLE_KEY_TEST=eyJ...
 
 # JWT Configuration (cambia in produzione!)
 JWT_SECRET=your-super-secret-jwt-key-min-32-characters-long
 
-# Email Configuration (opzionale - scegli uno dei due)
-# Opzione 1: Resend (consigliato)
+# Email Configuration (opzionale)
 RESEND_API_KEY=re_xxxxxxxxxxxx
-
-# Opzione 2: SMTP generico
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=your-email@example.com
-SMTP_PASS=your-password
-EMAIL_FROM=noreply@bitora.it
+# oppure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM
 ```
+
+**Compatibilità**: Se non usi i suffissi `_PROD`/`_TEST`, puoi continuare con le variabili senza suffisso (`NEXT_PUBLIC_SUPABASE_URL`, ecc.) — verranno usate per PROD.
 
 ## Come ottenere le credenziali Supabase:
 
@@ -56,7 +67,7 @@ Dopo aver configurato le variabili d'ambiente:
 
 1. Vai su **SQL Editor** nel dashboard Supabase
 2. Esegui lo script contenuto in `supabase/schema.sql`
-3. Esegui lo script `supabase/rls_policies.sql` per le policy di sicurezza
+3. Lo script `supabase/schema.sql` include già le policy RLS
 4. Questo creerà tutte le tabelle necessarie con le relazioni corrette
 
 ## Note di Sicurezza:

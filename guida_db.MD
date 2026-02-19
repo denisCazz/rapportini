@@ -18,7 +18,7 @@ Nel repo convivono due “famiglie” di schema:
 ### A. Schema legacy/evolutivo
 Script principali:
 - `supabase/schema.sql`
-- `supabase/materiali_schema.sql`
+- `supabase/schema.sql` (include marche, modelli, materiali)
 - `supabase/MODULI_INTERVENTI_SCADENZE.sql`
 - `supabase/ALTER_IDSOCIETA.sql`
 - `supabase/ALTER_TABELLE.sql`

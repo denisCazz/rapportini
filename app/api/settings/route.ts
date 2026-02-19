@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       console.warn('Settings GET error:', error);
       // Colonna mancante (es. indirizzo) o tabella: restituisce vuoto
       if (msg.includes('does not exist') || msg.includes('column') || msg.includes('org_id') || msg.includes('42P01') || msg.includes('42703')) {
-        console.warn('Esegui supabase/organizzazioni_fix_completo.sql nel SQL Editor di Supabase.');
+        console.warn('Esegui supabase/schema.sql nel SQL Editor di Supabase.');
       }
       return NextResponse.json(EMPTY_SETTINGS, { status: 200 });
     }
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest) {
       if (isTableMissing) {
         return NextResponse.json(
           {
-            error: 'Tabella organizzazioni errata o mancante. Esegui supabase/organizzazioni_fix_completo.sql nel SQL Editor di Supabase.',
+            error: 'Tabella organizzazioni errata o mancante. Esegui supabase/schema.sql nel SQL Editor di Supabase.',
             code: 'TABLE_MISSING',
           },
           { status: 503 }
@@ -113,7 +113,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       {
         error: errMsg.includes('organizzazioni') || errMsg.includes('SUPABASE') || errMsg.includes('Configurazione')
-          ? 'Tabella organizzazioni errata o configurazione Supabase mancante. Esegui supabase/organizzazioni_fix_completo.sql nel SQL Editor di Supabase.'
+          ? 'Tabella organizzazioni errata o configurazione Supabase mancante. Esegui supabase/schema.sql nel SQL Editor di Supabase.'
           : errMsg,
         code: 'SETTINGS_UPDATE_FAILED',
       },

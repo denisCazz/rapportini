@@ -18,14 +18,20 @@ try {
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const appEnv = (process.env.APP_ENV || 'PROD').toUpperCase() === 'TEST' ? 'TEST' : 'PROD';
+const supabaseUrl = appEnv === 'TEST'
+  ? (process.env.NEXT_PUBLIC_SUPABASE_URL_TEST || process.env.NEXT_PUBLIC_SUPABASE_URL)
+  : (process.env.NEXT_PUBLIC_SUPABASE_URL_PROD || process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseKey = appEnv === 'TEST'
+  ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_TEST || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Errore: Configura NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY nel file .env.local');
+  console.error(`Errore: Configura le variabili Supabase per ambiente ${appEnv} nel file .env.local`);
   process.exit(1);
 }
 
+console.log(`Ambiente: ${appEnv} (${supabaseUrl})`);
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function hashPasswords() {

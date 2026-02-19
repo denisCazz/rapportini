@@ -87,7 +87,7 @@ export default function ImpostazioniPage() {
       if (msg.includes('organizzazioni non esiste') || msg.includes('TABLE_MISSING')) {
         storage.saveSettings({ ...storage.getSettings(), ...formData });
         setSettings((prev) => ({ ...prev, ...formData }));
-        toast.warning('Impostazioni salvate localmente. Per salvarle nel database, esegui supabase/organizzazioni_fix_completo.sql nel SQL Editor di Supabase.');
+        toast.warning('Impostazioni salvate localmente. Per salvarle nel database, esegui supabase/schema.sql nel SQL Editor di Supabase.');
       } else {
         toast.error(msg);
       }

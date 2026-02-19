@@ -7,6 +7,7 @@ import { AziendaSettings } from '@/types';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import InstallPWAButton from '@/components/InstallPWA';
+import { isTestEnv } from '@/lib/env';
 
 interface SidebarLayoutProps {
   settings: AziendaSettings;
@@ -279,7 +280,14 @@ export default function SidebarLayout({
                 </svg>
               </button>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white break-words">{pageTitle}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white break-words">{pageTitle}</h1>
+                  {isTestEnv() && (
+                    <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
+                      TEST
+                    </span>
+                  )}
+                </div>
                 {pageSubtitle && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{pageSubtitle}</p>}
               </div>
             </div>

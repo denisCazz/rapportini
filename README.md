@@ -34,21 +34,25 @@ npm install
 
 3. **Crea il file `.env.local`:**
 
+   - Vedi `.env.example` per il template completo
+   - **Ambienti TEST/PROD**: usa `APP_ENV=TEST` o `APP_ENV=PROD` per commutare tra due database distinti
+   - Variabili per PROD: `*_PROD` (o le variabili senza suffisso per compatibilità)
+   - Variabili per TEST: `*_TEST`
+
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+APP_ENV=PROD
+NEXT_PUBLIC_APP_ENV=PROD
+NEXT_PUBLIC_SUPABASE_URL_PROD=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY_PROD=your_supabase_service_role_key
 ```
 
 4. **Configura il database:**
 
-   - Vai su SQL Editor in Supabase
-   - Esegui lo script contenuto in `supabase/schema.sql`
-   - Questo creerà le tabelle necessarie (utenti, clienti, rapportini)
-   - Se hai già un database esistente, esegui prima `supabase/migrate_operatori_to_utenti.sql` per migrare i dati
-   - Per impostazioni azienda in DB: esegui `supabase/organizzazioni_schema.sql`
-   - Per recupero password: esegui `supabase/password_reset_schema.sql`
-   - 📖 **Guida dettagliata**: Vedi `GUIDA_SUPABASE.md` per istruzioni passo-passo
+   - Vai su **SQL Editor** in Supabase
+   - Esegui **un solo file**: `supabase/schema.sql`
+   - Crea tutte le tabelle, indici e RLS
+   - 📖 **Guida dettagliata**: Vedi `GUIDA_SUPABASE.md`
 
 5. **Avvia l'applicazione:**
 
@@ -79,13 +83,14 @@ rapportini/
 
 ## 🗄️ Database Schema
 
-Il database include tre tabelle principali:
+Un solo file `supabase/schema.sql` crea tutto:
 
-- **operatori**: Dati degli operatori tecnici
-- **clienti**: Dati dei clienti
-- **rapportini**: Rapportini di intervento con relazioni a operatori e clienti
-
-Vedi `supabase/schema.sql` per i dettagli completi.
+- **utenti** – Autenticazione (admin/operatore)
+- **clienti** – Anagrafica clienti
+- **rapportini** – Interventi con firme
+- **organizzazioni** – Impostazioni azienda
+- **marche, modelli, materiali** – Catalogo stufe
+- **password_reset_tokens** – Recupero password
 
 ## 🎨 Funzionalità UI/UX
 

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { supabaseConfig } from '@/lib/env';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const { url: supabaseUrl, serviceRoleKey: supabaseServiceRoleKey } = supabaseConfig;
 let warnedMissingEnv = false;
 
 export function getSupabaseAdmin() {
@@ -13,7 +13,7 @@ export function getSupabaseAdmin() {
       warnedMissingEnv = true;
     }
 
-    throw new Error('Configurazione server mancante: imposta SUPABASE_SERVICE_ROLE_KEY nel file .env.local');
+    throw new Error('Configurazione server mancante: imposta SUPABASE_SERVICE_ROLE_KEY o SUPABASE_SERVICE_ROLE_KEY_TEST/PROD nel file .env.local');
   }
 
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
