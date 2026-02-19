@@ -1,0 +1,16 @@
+---
+description: Convenzioni per migrazioni Supabase/PostgreSQL
+globs: supabase/**/*.sql
+alwaysApply: false
+---
+
+# Migrazioni Supabase
+
+Quando scrivi o modifichi migrazioni SQL:
+
+- Usa `ALTER TABLE IF EXISTS` per modifiche a tabelle esistenti
+- Usa `ADD COLUMN IF NOT EXISTS` per nuove colonne (Postgres 9.6+)
+- Usa `CREATE INDEX IF NOT EXISTS` per indici
+- Usa `DROP ... IF EXISTS` prima di `CREATE` per trigger e policy RLS
+- Usa `CREATE OR REPLACE` per funzioni
+- Mantieni le migrazioni idempotenti (eseguibili più volte senza errori)

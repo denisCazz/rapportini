@@ -8,11 +8,12 @@
  * ATTENZIONE: Questo script aggiorna le password nel database!
  */
 
-// Prova a caricare dotenv se disponibile, altrimenti usa le variabili d'ambiente
+// Carica .env e .env.local (dotenv richiesto: npm install dotenv)
 try {
-  require('dotenv').config({ path: '.env.local' });
+  require('dotenv').config({ path: '.env' });
+  require('dotenv').config({ path: '.env.local' }); // override con .env.local
 } catch (e) {
-  // dotenv non disponibile, usa le variabili d'ambiente direttamente
+  console.warn('dotenv non installato: npm install dotenv');
 }
 
 const { createClient } = require('@supabase/supabase-js');
@@ -22,12 +23,13 @@ const appEnv = (process.env.APP_ENV || 'PROD').toUpperCase() === 'TEST' ? 'TEST'
 const supabaseUrl = appEnv === 'TEST'
   ? (process.env.NEXT_PUBLIC_SUPABASE_URL_TEST || process.env.NEXT_PUBLIC_SUPABASE_URL)
   : (process.env.NEXT_PUBLIC_SUPABASE_URL_PROD || process.env.NEXT_PUBLIC_SUPABASE_URL);
+// Usa SERVICE_ROLE_KEY per bypassare RLS (anon key non può leggere utenti senza JWT)
 const supabaseKey = appEnv === 'TEST'
-  ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_TEST || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-  : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  ? (process.env.SUPABASE_SERVICE_ROLE_KEY_TEST || process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : (process.env.SUPABASE_SERVICE_ROLE_KEY_PROD || process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error(`Errore: Configura le variabili Supabase per ambiente ${appEnv} nel file .env.local`);
+  console.error(`Errore: Configura SUPABASE_SERVICE_ROLE_KEY e URL per ambiente ${appEnv} in .env o .env.local`);
   process.exit(1);
 }
 

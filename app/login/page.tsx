@@ -145,6 +145,11 @@ export default function LoginPage() {
         ))}
       </div>
       <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] text-gray-900">
+        {process.env.NEXT_PUBLIC_APP_ENV === 'TEST' && (
+          <div className="absolute -top-2 -right-2 inline-flex items-center rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white shadow-md ring-2 ring-white">
+            TEST
+          </div>
+        )}
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
