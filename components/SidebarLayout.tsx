@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AziendaSettings } from '@/types';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
+import InstallPWAButton from '@/components/InstallPWA';
 
 interface SidebarLayoutProps {
   settings: AziendaSettings;
@@ -75,12 +76,13 @@ export default function SidebarLayout({
     storage.saveSettings({ ...currentSettings, darkMode: newDarkMode });
   };
 
-  const NavContent = () => (
+  const NavContent = ({ showCloseButton = false }: { showCloseButton?: boolean }) => (
     <>
       <div className="relative px-5 pt-6 pb-5 border-b border-white/10">
         <div className="pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full bg-indigo-500/20 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-violet-500/20 blur-2xl" />
-        <Link href="/" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
+        <div className="flex items-center justify-between gap-2">
+        <Link href="/" className="flex items-center gap-3 min-w-0 flex-1" onClick={() => setMobileOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={settings.logo || '/logo.png'}
@@ -92,6 +94,18 @@ export default function SidebarLayout({
             <p className="text-xs text-indigo-200/80">Software di Gestione Specializzato</p>
           </div>
         </Link>
+        {showCloseButton && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="lg:hidden h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+            aria-label="Chiudi menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+        </div>
       </div>
 
       <div className="p-4 space-y-2">
@@ -189,6 +203,7 @@ export default function SidebarLayout({
       )}
 
       <div className="mt-auto px-4 pb-5">
+        <InstallPWAButton />
         <button
           onClick={toggleDarkMode}
           className="w-full rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-slate-700/70 transition-all mb-3"
@@ -232,10 +247,20 @@ export default function SidebarLayout({
       </aside>
 
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-[85vw] max-w-80 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-white/10 flex flex-col shadow-2xl">
-            <NavContent />
+        <div className="lg:hidden fixed inset-0 z-50 animate-fadeIn">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          <aside
+            className="absolute left-0 top-0 h-full w-[min(85vw,320px)] max-w-[320px] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-white/10 flex flex-col shadow-2xl animate-slideInLeft"
+            role="dialog"
+            aria-label="Menu di navigazione"
+          >
+            <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
+              <NavContent showCloseButton />
+            </div>
           </aside>
         </div>
       )}
@@ -246,10 +271,12 @@ export default function SidebarLayout({
             <div className="flex items-start gap-3 min-w-0">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden mt-0.5 h-10 w-10 shrink-0 grid place-items-center rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white/70 dark:bg-slate-800/80"
+                className="lg:hidden mt-0.5 h-11 w-11 shrink-0 grid place-items-center rounded-xl bg-slate-800 dark:bg-slate-800 text-white hover:bg-slate-700 dark:hover:bg-slate-700 border border-slate-700 shadow-md active:scale-95 transition-transform"
                 aria-label="Apri menu"
               >
-                ☰
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
               </button>
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white break-words">{pageTitle}</h1>

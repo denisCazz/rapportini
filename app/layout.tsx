@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
+import CookieConsent from '@/components/CookieConsent'
+import { PWAProvider } from '@/lib/pwa-context'
 import './globals.css'
 import Script from 'next/script'
 
@@ -68,8 +70,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className={inter.className}>
-        {children}
-        <Toaster richColors position="top-center" closeButton />
+        <PWAProvider>
+          {children}
+          <Toaster richColors position="top-center" closeButton />
+          <CookieConsent />
+        </PWAProvider>
         <Script
           id="register-sw"
           strategy="afterInteractive"

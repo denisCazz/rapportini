@@ -69,6 +69,21 @@ input::placeholder, textarea::placeholder {
   animation: slideUp 0.3s ease-out;
 }
 
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.25s ease-out;
+}
+
 /* Nascondi scrollbar ma mantieni lo scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */

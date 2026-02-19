@@ -201,6 +201,30 @@ export const api = {
     return data;
   },
 
+  // GDPR - Esporta dati personali (diritto di accesso)
+  exportMyData: async (): Promise<unknown> => {
+    const response = await fetchWithAuth(`${API_BASE}/gdpr/export`);
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Errore nell\'esportazione');
+    }
+    return response.json();
+  },
+
+  // GDPR - Richiedi cancellazione account (diritto all'oblio)
+  deleteMyAccount: async (password: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetchWithAuth(`${API_BASE}/gdpr/delete-account`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ password, confirm: 'ELIMINA' }),
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Errore nella cancellazione');
+    }
+    return response.json();
+  },
+
   // Ottieni documentazione API
   getApiDocs: async () => {
     const response = await fetch(`${API_BASE}/docs`);

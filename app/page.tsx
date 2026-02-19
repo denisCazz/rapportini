@@ -10,7 +10,6 @@ import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import RapportiniList from '@/components/RapportiniList';
 import SidebarLayout from '@/components/SidebarLayout';
-import InstallPWA from '@/components/InstallPWA';
 
 const RECENT_LIMIT = 10;
 
@@ -158,12 +157,11 @@ export default function Home() {
                 </a>
               </p>
               <p className="text-xs mt-1">© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
+              <Link href="/privacy" className="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-1 inline-block">Privacy Policy</Link>
             </div>
           </div>
         </footer>
       </SidebarLayout>
-
-      <InstallPWA />
     </>
   );
 }

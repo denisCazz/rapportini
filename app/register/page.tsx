@@ -384,6 +384,11 @@ export default function RegisterPage() {
               </a>
             </p>
             <p>© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
+            <p>
+              <Link href="/privacy" className="hover:text-primary-600 transition-colors underline">
+                Privacy Policy
+              </Link>
+            </p>
           </div>
         </div>
       </div>

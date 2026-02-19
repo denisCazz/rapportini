@@ -308,6 +308,11 @@ export default function LoginPage() {
               </a>
             </p>
             <p>© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
+            <p>
+              <Link href="/privacy" className="hover:text-primary-600 transition-colors underline">
+                Privacy Policy e Cookie
+              </Link>
+            </p>
           </div>
         </div>
       </div>
