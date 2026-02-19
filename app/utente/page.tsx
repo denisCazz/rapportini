@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import SidebarLayout from '@/components/SidebarLayout';
 import SignaturePad from '@/components/SignaturePad';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
+import { api } from '@/lib/api';
 import { AziendaSettings } from '@/types';
 
 export default function UtentePage() {
@@ -33,41 +35,17 @@ export default function UtentePage() {
     }
   }, [user?.firma]);
 
-  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
-    const text = await response.text();
-    if (!text) return null;
-
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      return null;
-    }
-  };
-
   const handleSaveFirma = async () => {
     if (!user) return;
 
     try {
       setSavingFirma(true);
-      const response = await fetch(`/api/users/${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ firma }),
-      });
-
-      const data = await parseResponseBody<{ error?: string }>(response);
-
-      if (!response.ok) {
-        throw new Error(data?.error || 'Errore nel salvataggio firma');
-      }
-
+      await api.updateUser(user.id, { firma });
       auth.updateUser({ ...user, firma });
-      alert('Firma salvata con successo');
-    } catch (error: any) {
-      alert(error.message || 'Errore nel salvataggio firma');
+      toast.success('Firma salvata con successo');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Errore nel salvataggio firma';
+      toast.error(message);
     } finally {
       setSavingFirma(false);
     }

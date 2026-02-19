@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Rapportino, AziendaSettings } from '@/types';
 import { storage } from '@/lib/storage';
 import { auth } from '@/lib/auth';
@@ -19,6 +20,7 @@ export default function Home() {
   const router = useRouter();
   const [rapportini, setRapportini] = useState<Rapportino[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingRapportino, setEditingRapportino] = useState<Rapportino | null>(null);
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,9 @@ export default function Home() {
     loadRapportini();
     const loadedSettings = storage.getSettings();
     setSettings(loadedSettings);
+    api.getSettings().then((apiSettings) => {
+      setSettings((prev) => ({ ...prev, ...apiSettings }));
+    }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Rimuoviamo router dalle dipendenze - non è necessario
 
@@ -49,8 +54,8 @@ export default function Home() {
       setError(null);
       const data = await api.getRapportini();
       setRapportini(data);
-    } catch (err: any) {
-      setError(err.message || 'Errore nel caricamento dei rapportini');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Errore nel caricamento dei rapportini');
       console.error('Error loading rapportini:', err);
     } finally {
       setLoading(false);
@@ -59,11 +64,19 @@ export default function Home() {
 
   const handleSaveRapportino = async (rapportino: Rapportino) => {
     try {
-      await api.createRapportino(rapportino);
+      const isUpdate = rapportino.id && !rapportino.id.startsWith('rapp_');
+      if (isUpdate) {
+        await api.updateRapportino(rapportino.id, rapportino);
+        toast.success('Rapportino aggiornato');
+      } else {
+        await api.createRapportino(rapportino);
+        toast.success('Rapportino creato');
+      }
       await loadRapportini();
       setShowForm(false);
-    } catch (err: any) {
-      alert(err.message || 'Errore nel salvataggio del rapportino');
+      setEditingRapportino(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio del rapportino');
     }
   };
 
@@ -71,23 +84,23 @@ export default function Home() {
     try {
       await api.deleteRapportino(id);
       await loadRapportini();
-    } catch (err: any) {
-      alert(err.message || 'Errore nell\'eliminazione del rapportino');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nell\'eliminazione del rapportino');
     }
   };
 
   const handleExportPDFs = async () => {
     if (rapportini.length === 0) {
-      alert('Nessun rapportino da esportare');
+      toast.error('Nessun rapportino da esportare');
       return;
     }
     try {
-      // Dynamic import solo quando necessario per ridurre il bundle iniziale
       const { exportAllPDFs } = await import('@/lib/pdfGenerator');
       await exportAllPDFs(rapportini, settings);
-    } catch (error: any) {
+      toast.success('Esportazione completata');
+    } catch (error: unknown) {
       console.error('Error exporting PDFs:', error);
-      alert('Errore durante l\'esportazione dei PDF');
+      toast.error(error instanceof Error ? error.message : 'Errore durante l\'esportazione dei PDF');
     }
   };
 
@@ -135,8 +148,9 @@ export default function Home() {
             </div>
           }>
             <RapportinoForm
+              initialRapportino={editingRapportino ?? undefined}
               onSave={handleSaveRapportino}
-              onCancel={() => setShowForm(false)}
+              onCancel={() => { setShowForm(false); setEditingRapportino(null); }}
             />
           </Suspense>
         )}
@@ -150,6 +164,7 @@ export default function Home() {
           <RapportiniList
             rapportini={rapportini}
             onDelete={handleDeleteRapportino}
+            onEdit={(r) => { setEditingRapportino(r); setShowForm(true); }}
             settings={settings}
           />
         )}

@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  left: 5 + (i * 5.5) % 90,
+  size: 2 + (i % 3),
+  duration: 8 + (i % 5),
+  delay: -(i * 0.8) % 10,
+  drift: -15 + (i % 31),
+}));
+
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -73,10 +81,70 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 overflow-hidden">
-      <div className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-primary-200/40 blur-3xl dark:bg-primary-900/20" />
-      <div className="pointer-events-none absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-indigo-200/30 blur-3xl dark:bg-indigo-900/20" />
-      <div className="relative bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gray-200/80 dark:border-gray-700/80">
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-[#0d0d0d]">
+      {/* Effetto fuoco elegante - calda atmosfera camino */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* Base scura con vignette - concentra lo sguardo al centro */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0d0d0d] via-[#120a06] to-[#0a0502]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
+        {/* Bagliore principale - morbido e diffuso */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-[60%] opacity-70"
+          style={{
+            background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(180,80,20,0.35) 0%, rgba(100,40,10,0.15) 40%, transparent 70%)',
+            animation: 'fire-glow-soft 6s ease-in-out infinite',
+          }}
+        />
+        {/* Secondo strato - calore centrale */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-[45%] opacity-80"
+          style={{
+            background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(220,120,50,0.25) 0%, rgba(160,70,25,0.1) 35%, transparent 60%)',
+            animation: 'fire-ember-pulse 5s ease-in-out infinite',
+          }}
+        />
+        {/* Nucleo caldo - punto focale */}
+        <div
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[min(80vw,400px)] h-[200px] opacity-90"
+          style={{
+            background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(255,180,100,0.2) 0%, rgba(200,100,40,0.08) 50%, transparent 70%)',
+            animation: 'fire-ember-drift 8s ease-in-out infinite',
+          }}
+        />
+        {/* Bagliore laterale sinistro */}
+        <div
+          className="absolute left-[15%] bottom-0 w-64 h-48 opacity-50 blur-2xl"
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(200,90,30,0.2) 0%, transparent 70%)',
+            animation: 'fire-ember-pulse 7s ease-in-out infinite 0.5s',
+          }}
+        />
+        {/* Bagliore laterale destro */}
+        <div
+          className="absolute right-[15%] bottom-0 w-64 h-48 opacity-50 blur-2xl"
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(180,70,25,0.2) 0%, transparent 70%)',
+            animation: 'fire-ember-pulse 6.5s ease-in-out infinite 1s',
+          }}
+        />
+        {/* Particelle brace che salgono */}
+        {PARTICLES.map((p, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-amber-400/80"
+            style={{
+              left: `${p.left}%`,
+              bottom: 0,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              animation: `particle-float ${p.duration}s linear infinite`,
+              animationDelay: `${p.delay}s`,
+              ['--drift']: `${p.drift}px`,
+            } as React.CSSProperties}
+          />
+        ))}
+      </div>
+      <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] text-gray-900">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -94,21 +162,21 @@ export default function LoginPage() {
           <div className="h-32 w-32 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ display: 'none' }}>
             <span className="text-white font-bold text-5xl">B</span>
           </div>
-          <div className="inline-flex items-center rounded-full border border-primary-200 dark:border-primary-800 bg-primary-50/80 dark:bg-primary-900/30 px-3 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300 mb-3">
+          <div className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-800 mb-3">
             Software di Gestione Specializzato
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Accesso alla piattaforma</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Controllo operativo, reportistica e workflow in un unico hub</p>
+          <h1 className="text-2xl font-bold text-gray-900">Accesso alla piattaforma</h1>
+          <p className="mt-1 text-sm text-gray-600">Controllo operativo, reportistica e workflow in un unico hub</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 animate-slideUp">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-slideUp">
               <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             </div>
           )}
@@ -116,7 +184,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="username"
-              className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
+              className="block text-sm font-semibold text-gray-700 mb-2"
             >
               Username o Email
             </label>
@@ -133,7 +201,7 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isLoading}
-                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white placeholder-gray-500 transition-all disabled:opacity-50"
                 placeholder="Username o email"
                 autoComplete="username"
               />
@@ -141,12 +209,20 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
-            >
-              Password
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-semibold text-gray-700"
+              >
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-primary-600 hover:underline"
+              >
+                Password dimenticata?
+              </Link>
+            </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,14 +236,14 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
-                className="w-full pl-10 pr-12 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+                className="w-full pl-10 pr-12 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white placeholder-gray-500 transition-all disabled:opacity-50"
                 placeholder="Inserisci password"
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
               >
                 {showPassword ? (
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,19 +281,19 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+          <p className="text-sm text-gray-600 mb-2">
             Non hai un account?{' '}
-            <Link href="/register" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
+            <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
               Registrati
             </Link>
           </p>
-          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+          <div className="text-xs text-gray-500 space-y-1">
             <p>
               <a 
                 href="https://bitora.it" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                className="hover:text-primary-600 transition-colors"
               >
                 Bitora Software di Gestione Specializzato
               </a>
@@ -226,7 +302,7 @@ export default function LoginPage() {
                 href="https://bitora.it" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
+                className="hover:text-primary-600 transition-colors font-semibold"
               >
                 Bitora.it
               </a>

@@ -102,6 +102,131 @@ export async function GET(
   }
 }
 
+// PATCH - Modifica un rapportino
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { id } = await params;
+    const userId = getUserIdFromRequest(request);
+    const orgId = getOrgIdFromRequest(request);
+    const userRole = request.headers.get('x-user-ruolo') || 'operatore';
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'ID utente non fornito. Effettua il login.' },
+        { status: 401 }
+      );
+    }
+
+    // Verifica permessi: operatore solo sui propri, admin su tutti
+    if (userRole !== 'admin') {
+      const { data: existing, error: fetchError } = await supabase
+        .from('rapportini')
+        .select('utente_id, cliente_id')
+        .eq('id', id)
+        .eq('org_id', orgId)
+        .single();
+
+      if (fetchError || !existing) {
+        return NextResponse.json(
+          { error: 'Rapportino non trovato' },
+          { status: 404 }
+        );
+      }
+
+      if (existing.utente_id !== userId) {
+        return NextResponse.json(
+          { error: 'Non hai i permessi per modificare questo rapportino' },
+          { status: 403 }
+        );
+      }
+    }
+
+    const body = await request.json();
+    const rapportino = body.rapportino as Rapportino;
+
+    if (!rapportino?.cliente || !rapportino?.intervento) {
+      return NextResponse.json(
+        { error: 'Dati rapportino non validi' },
+        { status: 400 }
+      );
+    }
+
+    // Trova o crea cliente (stessa logica del POST)
+    const nomeNormalizzato = rapportino.cliente.nome.trim();
+    const cognomeNormalizzato = rapportino.cliente.cognome.trim();
+    const telefonoNormalizzato = rapportino.cliente.telefono.trim().replace(/\s/g, '');
+
+    let clienteId: string;
+    const { data: clienteEsistente } = await supabase
+      .from('clienti')
+      .select('id')
+      .eq('org_id', orgId)
+      .eq('nome', nomeNormalizzato)
+      .eq('cognome', cognomeNormalizzato)
+      .eq('telefono', telefonoNormalizzato)
+      .maybeSingle();
+
+    if (clienteEsistente) {
+      clienteId = clienteEsistente.id;
+    } else {
+      const { data: newCliente, error: createErr } = await supabase
+        .from('clienti')
+        .insert({
+          org_id: orgId,
+          nome: nomeNormalizzato,
+          cognome: cognomeNormalizzato,
+          ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
+          indirizzo: rapportino.cliente.indirizzo.trim(),
+          citta: rapportino.cliente.citta.trim(),
+          cap: rapportino.cliente.cap.trim(),
+          telefono: telefonoNormalizzato,
+          email: rapportino.cliente.email?.trim() || null,
+          partita_iva: rapportino.cliente.partitaIva?.trim() || null,
+          codice_fiscale: rapportino.cliente.codiceFiscale?.trim() || null,
+        })
+        .select('id')
+        .single();
+
+      if (createErr) throw createErr;
+      clienteId = newCliente.id;
+    }
+
+    const { error } = await supabase
+      .from('rapportini')
+      .update({
+        cliente_id: clienteId,
+        data_intervento: rapportino.intervento.data,
+        ora_intervento: rapportino.intervento.ora,
+        tipo_stufa: rapportino.intervento.tipoStufa,
+        marca: rapportino.intervento.marca,
+        modello: rapportino.intervento.modello,
+        numero_serie: rapportino.intervento.numeroSerie || null,
+        tipo_intervento: rapportino.intervento.tipoIntervento,
+        descrizione: rapportino.intervento.descrizione,
+        materiali_utilizzati: rapportino.intervento.materialiUtilizzati || null,
+        note: rapportino.intervento.note || null,
+        firma_operatore: rapportino.intervento.firmaOperatore || null,
+        firma_cliente: rapportino.intervento.firmaCliente || null,
+      })
+      .eq('id', id)
+      .eq('org_id', orgId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    console.error('Error updating rapportino:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Errore nella modifica del rapportino' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Elimina un rapportino
 export async function DELETE(
   request: NextRequest,

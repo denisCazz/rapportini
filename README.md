@@ -46,6 +46,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    - Esegui lo script contenuto in `supabase/schema.sql`
    - Questo creerà le tabelle necessarie (utenti, clienti, rapportini)
    - Se hai già un database esistente, esegui prima `supabase/migrate_operatori_to_utenti.sql` per migrare i dati
+   - Per impostazioni azienda in DB: esegui `supabase/organizzazioni_schema.sql`
+   - Per recupero password: esegui `supabase/password_reset_schema.sql`
    - 📖 **Guida dettagliata**: Vedi `GUIDA_SUPABASE.md` per istruzioni passo-passo
 
 5. **Avvia l'applicazione:**

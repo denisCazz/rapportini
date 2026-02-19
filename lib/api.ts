@@ -1,7 +1,12 @@
-import { Rapportino } from '@/types';
+import { Rapportino, AziendaSettings } from '@/types';
 import { auth } from './auth';
+import { fetchWithAuth, getAuthHeaders, parseResponseBody } from './api-helpers';
 
 const API_BASE = '/api';
+
+// Re-export per uso in altri moduli
+export { parseResponseBody, fetchWithAuth, getApiErrorMessage } from './api-helpers';
+export { getAuthHeaders } from './api-helpers';
 
 // Interfaccia per i filtri rapportini
 export interface RapportiniFilters {
@@ -26,56 +31,6 @@ export interface PaginatedResponse<T> {
     hasNext: boolean;
     hasPrev: boolean;
   };
-}
-
-// Helper per ottenere headers con autenticazione
-function getAuthHeaders(): HeadersInit {
-  const user = auth.getUser();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  const accessToken = auth.getAccessToken();
-  
-  if (user) {
-    headers['X-User-Id'] = user.id;
-    headers['X-User-Ruolo'] = user.ruolo;
-    if (user.org_id) {
-      headers['X-Org-Id'] = user.org_id;
-    }
-  }
-
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-  
-  return headers;
-}
-
-async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const baseInit: RequestInit = {
-    ...init,
-    credentials: 'include',
-  };
-
-  let response = await fetch(input, baseInit);
-
-  if (response.status === 401) {
-    const refreshed = await auth.refreshTokens();
-    if (refreshed) {
-      const retryHeaders: Record<string, string> = {
-        ...(init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)
-          ? (init.headers as Record<string, string>)
-          : {}),
-        ...(getAuthHeaders() as Record<string, string>),
-      };
-      response = await fetch(input, {
-        ...baseInit,
-        headers: retryHeaders,
-      });
-    }
-  }
-
-  return response;
 }
 
 // Helper per costruire query string
@@ -154,6 +109,19 @@ export const api = {
     return response.json();
   },
 
+  // Modifica un rapportino esistente
+  updateRapportino: async (id: string, rapportino: Rapportino): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ rapportino }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nella modifica del rapportino');
+    }
+  },
+
   // Elimina un rapportino
   deleteRapportino: async (id: string): Promise<void> => {
     const headers = getAuthHeaders();
@@ -193,6 +161,44 @@ export const api = {
       throw new Error(result.error || 'Errore nell\'invio dell\'email');
     }
     return result;
+  },
+
+  // Aggiorna utente (profilo, firma, ecc.)
+  updateUser: async (userId: string, data: { firma?: string; nome?: string; cognome?: string; email?: string; telefono?: string; qualifica?: string }): Promise<{ data?: unknown; success?: boolean; error?: string }> => {
+    const response = await fetchWithAuth(`${API_BASE}/users/${userId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await parseResponseBody<{ data?: unknown; success?: boolean; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(result?.error || 'Errore nell\'aggiornamento');
+    }
+    return result || {};
+  },
+
+  // Impostazioni organizzazione
+  getSettings: async (): Promise<AziendaSettings> => {
+    const response = await fetchWithAuth(`${API_BASE}/settings`);
+    if (!response.ok) {
+      throw new Error('Errore nel recupero delle impostazioni');
+    }
+    const data = await response.json();
+    return data;
+  },
+
+  updateSettings: async (settings: Partial<AziendaSettings>): Promise<AziendaSettings> => {
+    const response = await fetchWithAuth(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Errore nell\'aggiornamento delle impostazioni');
+    }
+    const data = await response.json();
+    return data;
   },
 
   // Ottieni documentazione API

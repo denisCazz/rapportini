@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
+import { parseResponseBody } from '@/lib/api';
 
 const QUALIFICHE = [
   'Tecnico specializzato',
@@ -31,18 +33,6 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const hasCheckedAuth = useRef(false);
-
-  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
-    const text = await response.text();
-    if (!text) return null;
-
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
-      return null;
-    }
-  };
 
   useEffect(() => {
     // Evita controlli multipli
@@ -137,11 +127,10 @@ export default function RegisterPage() {
         return;
       }
 
-      // Registrazione riuscita, reindirizza al login
-      alert('Registrazione completata! Ora puoi effettuare il login.');
+      toast.success('Registrazione completata! Ora puoi effettuare il login.');
       router.push('/login');
-    } catch (err: any) {
-      setError(err.message || 'Errore durante la registrazione');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Errore durante la registrazione');
       setIsLoading(false);
     }
   };

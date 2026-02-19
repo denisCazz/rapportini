@@ -135,6 +135,18 @@ export default function SidebarLayout({
               <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${(isActive('/admin/users') || isActive('/admin/gestione-utenti')) ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>👥</span>
               Utenti
             </Link>
+            <Link
+              href="/admin/impostazioni"
+              onClick={() => setMobileOpen(false)}
+              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                isActive('/admin/impostazioni')
+                  ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-700/30'
+                  : 'text-slate-200 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${isActive('/admin/impostazioni') ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>⚙️</span>
+              Impostazioni
+            </Link>
           </>
         )}
       </div>

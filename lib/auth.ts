@@ -174,11 +174,11 @@ export const auth = {
   },
 };
 
-// Dati operatore predefiniti
+// Dati operatore predefiniti (solo per test/demo - non usare in produzione)
 export const DEFAULT_OPERATORE = {
-  nome: 'Gianfranco',
-  cognome: 'Tropini',
-  telefono: '+39 333 1234567',
-  email: 'gianfranco.tropini@bitora.it',
-  qualifica: 'Tecnico specializzato',
+  nome: '',
+  cognome: '',
+  telefono: '',
+  email: '',
+  qualifica: '',
 };

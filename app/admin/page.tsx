@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
@@ -77,7 +78,10 @@ export default function AdminPage() {
     setIsAuthenticated(true);
     const loadedSettings = storage.getSettings();
     setSettings(loadedSettings);
-    
+    api.getSettings().then((apiSettings) => {
+      setSettings((prev) => ({ ...prev, ...apiSettings }));
+    }).catch(() => {});
+
     loadStatistics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Rimuoviamo router dalle dipendenze - non è necessario
@@ -88,8 +92,8 @@ export default function AdminPage() {
       setError(null);
       const data = await api.getStatistics();
       setStatistiche(data);
-    } catch (err: any) {
-      setError(err.message || 'Errore nel caricamento delle statistiche');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Errore nel caricamento delle statistiche');
       console.error('Error loading statistics:', err);
     } finally {
       setLoading(false);
@@ -106,9 +110,9 @@ export default function AdminPage() {
       setLoadingRapportino(true);
       const rapportino = await api.getRapportino(rapportinoId);
       setSelectedRapportino(rapportino);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading rapportino:', err);
-      alert(err.message || 'Errore nel caricamento del rapportino');
+      toast.error(err instanceof Error ? err.message : 'Errore nel caricamento del rapportino');
     } finally {
       setLoadingRapportino(false);
     }

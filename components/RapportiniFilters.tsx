@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { parseResponseBody, fetchWithAuth } from '@/lib/api';
 
 export interface FilterValues {
   tipoStufa?: 'pellet' | 'legno';
@@ -17,44 +17,33 @@ interface RapportiniFiltersProps {
   initialFilters?: FilterValues;
 }
 
+interface Marca { id: string; nome: string; }
+
 export default function RapportiniFilters({ onFilterChange, initialFilters = {} }: RapportiniFiltersProps) {
   const [filters, setFilters] = useState<FilterValues>(initialFilters);
-  const [marche, setMarche] = useState<string[]>([]);
+  const [marche, setMarche] = useState<Marca[]>([]);
   const [modelli, setModelli] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
-    const text = await response.text();
-    if (!text) return null;
-
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
-      return null;
-    }
-  };
-
   useEffect(() => {
-    // Carica marche disponibili
-    fetch('/api/marche', { credentials: 'include' })
+    fetchWithAuth('/api/marche')
       .then(async (res) => {
-        const data = await parseResponseBody<any[]>(res);
+        const data = await parseResponseBody<Array<{ id: string; nome: string }>>(res);
         if (!res.ok) {
           console.error('Errore caricamento marche:', data);
           return;
         }
         if (Array.isArray(data)) {
-          setMarche(data.map((m: any) => m.nome));
+          setMarche(data);
         }
       })
       .catch(console.error);
   }, []);
 
   useEffect(() => {
-    // Carica modelli quando cambia la marca
-    if (filters.marca) {
-      fetch(`/api/modelli?marca=${encodeURIComponent(filters.marca)}`, { credentials: 'include' })
+    const marcaObj = marche.find((m) => m.nome === filters.marca);
+    if (marcaObj) {
+      fetchWithAuth(`/api/modelli?marca_id=${encodeURIComponent(marcaObj.id)}`)
         .then(async (res) => {
           const data = await parseResponseBody<any[]>(res);
           if (!res.ok) {
@@ -69,7 +58,7 @@ export default function RapportiniFilters({ onFilterChange, initialFilters = {} 
     } else {
       setModelli([]);
     }
-  }, [filters.marca]);
+  }, [filters.marca, marche]);
 
   const handleChange = (key: keyof FilterValues, value: string | undefined) => {
     const newFilters = { ...filters, [key]: value || undefined };
@@ -194,8 +183,8 @@ export default function RapportiniFilters({ onFilterChange, initialFilters = {} 
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Tutte</option>
-                {marche.map((marca) => (
-                  <option key={marca} value={marca}>{marca}</option>
+                {marche.map((m) => (
+                  <option key={m.id} value={m.nome}>{m.nome}</option>
                 ))}
               </select>
             </div>

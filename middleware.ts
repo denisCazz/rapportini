@@ -6,8 +6,12 @@ import { jwtVerify } from 'jose';
 const publicPaths = [
   '/login',
   '/register',
+  '/forgot-password',
+  '/reset-password',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
   '/api/auth/refresh',
   '/api/auth/logout',
   '/_next',

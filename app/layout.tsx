@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
 import './globals.css'
 import Script from 'next/script'
 
@@ -68,6 +69,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         {children}
+        <Toaster richColors position="top-center" closeButton />
         <Script
           id="register-sw"
           strategy="afterInteractive"

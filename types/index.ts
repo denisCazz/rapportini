@@ -46,4 +46,6 @@ export interface AziendaSettings {
   logo?: string; // base64 o URL
   nomeAzienda?: string;
   darkMode?: boolean;
+  indirizzo?: string;
+  partitaIva?: string;
 }

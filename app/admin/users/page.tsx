@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import SidebarLayout from '@/components/SidebarLayout';
 import SignaturePad from '@/components/SignaturePad';
+import { api, parseResponseBody, fetchWithAuth } from '@/lib/api';
 import { AziendaSettings } from '@/types';
 
 interface User {
@@ -51,18 +53,6 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const hasLoadedRef = useRef(false);
 
-  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
-    const text = await response.text();
-    if (!text) return null;
-
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
-      return null;
-    }
-  };
-
   useEffect(() => {
     if (hasLoadedRef.current) return;
     
@@ -86,20 +76,14 @@ export default function UsersPage() {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch('/api/users', {
-        credentials: 'include',
-      });
-
+      const response = await fetchWithAuth('/api/users');
       const data = await parseResponseBody<{ data?: User[]; error?: string }>(response);
-      
       if (!response.ok) {
         throw new Error(data?.error || 'Errore nel caricamento degli utenti');
       }
-      
       setUsers(data?.data || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Errore nel caricamento');
     } finally {
       setLoading(false);
     }
@@ -109,7 +93,7 @@ export default function UsersPage() {
     e.preventDefault();
 
     if (formData.ruolo === 'operatore' && !formData.qualifica.trim()) {
-      alert('La qualifica è obbligatoria per gli operatori');
+      toast.error('La qualifica è obbligatoria per gli operatori');
       return;
     }
 
@@ -123,10 +107,8 @@ export default function UsersPage() {
         ? { nome: formData.nome, cognome: formData.cognome, email: formData.email, telefono: formData.telefono, qualifica: formData.qualifica, firma: formData.firma, ruolo: formData.ruolo }
         : formData;
 
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(body),
       });
 
@@ -140,8 +122,9 @@ export default function UsersPage() {
       setEditingUser(null);
       resetForm();
       loadUsers();
-    } catch (err: any) {
-      alert(err.message);
+      toast.success(editingUser ? 'Utente aggiornato' : 'Utente creato');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio');
     } finally {
       setSaving(false);
     }
@@ -153,41 +136,32 @@ export default function UsersPage() {
     }
 
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
+      const response = await fetchWithAuth(`/api/users/${user.id}`, { method: 'DELETE' });
       const data = await parseResponseBody<{ error?: string }>(response);
-
       if (!response.ok) {
         throw new Error(data?.error || 'Errore nell\'eliminazione');
       }
-
       loadUsers();
-    } catch (err: any) {
-      alert(err.message);
+      toast.success('Utente eliminato');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nell\'eliminazione');
     }
   };
 
   const handleToggleActive = async (user: User) => {
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const response = await fetchWithAuth(`/api/users/${user.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ attivo: !user.attivo }),
       });
-
       const data = await parseResponseBody<{ error?: string }>(response);
-
       if (!response.ok) {
         throw new Error(data?.error || 'Errore nell\'aggiornamento');
       }
-
       loadUsers();
-    } catch (err: any) {
-      alert(err.message);
+      toast.success(user.attivo ? 'Utente disattivato' : 'Utente attivato');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nell\'aggiornamento');
     }
   };
 
@@ -195,25 +169,20 @@ export default function UsersPage() {
     if (!passwordUserId || !newPassword) return;
 
     try {
-      const response = await fetch(`/api/users/${passwordUserId}/password`, {
+      const response = await fetchWithAuth(`/api/users/${passwordUserId}/password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ newPassword }),
       });
-
       const data = await parseResponseBody<{ error?: string }>(response);
-
       if (!response.ok) {
         throw new Error(data?.error || 'Errore nel reset password');
       }
-
       setShowPasswordModal(false);
       setPasswordUserId(null);
       setNewPassword('');
-      alert('Password resettata con successo');
-    } catch (err: any) {
-      alert(err.message);
+      toast.success('Password resettata con successo');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nel reset password');
     }
   };
 

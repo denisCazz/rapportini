@@ -1,12 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Rapportino, Operatore, Cliente, Intervento } from '@/types';
 import { format } from 'date-fns';
 import { auth } from '@/lib/auth';
 import SignaturePad from '@/components/SignaturePad';
+import RapportinoStepIndicator from '@/components/rapportino/RapportinoStepIndicator';
+import { fetchWithAuth, parseResponseBody, getApiErrorMessage } from '@/lib/api';
 
 interface RapportinoFormProps {
+  initialRapportino?: Rapportino;
   onSave: (rapportino: Rapportino) => void;
   onCancel: () => void;
 }
@@ -19,9 +23,9 @@ const DEFAULT_TIPI_INTERVENTO = [
   'Controllo',
 ];
 
-export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps) {
+export default function RapportinoForm({ initialRapportino, onSave, onCancel }: RapportinoFormProps) {
   const [step, setStep] = useState(1);
-  const [operatore, setOperatore] = useState<Operatore>({
+  const [operatore, setOperatore] = useState<Operatore>(initialRapportino?.operatore ?? {
     nome: '',
     cognome: '',
     telefono: '',
@@ -29,8 +33,9 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     qualifica: '',
   });
   
-  // Carica i dati operatore dall'utente loggato
+  // Carica i dati operatore dall'utente loggato (solo se non in modalità modifica)
   useEffect(() => {
+    if (initialRapportino) return; // In modifica usa i dati del rapportino
     const user = auth.getUser();
     if (user) {
       setOperatore({
@@ -45,8 +50,8 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
         setIntervento((prev) => ({ ...prev, firmaOperatore: user.firma || '' }));
       }
     }
-  }, []);
-  const [cliente, setCliente] = useState<Cliente>({
+  }, [initialRapportino]);
+  const [cliente, setCliente] = useState<Cliente>(initialRapportino?.cliente ?? {
     nome: '',
     cognome: '',
     ragioneSociale: '',
@@ -58,7 +63,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     partitaIva: '',
     codiceFiscale: '',
   });
-  const [intervento, setIntervento] = useState<Intervento>({
+  const [intervento, setIntervento] = useState<Intervento>(initialRapportino?.intervento ?? {
     data: format(new Date(), 'yyyy-MM-dd'),
     ora: format(new Date(), 'HH:mm'),
     tipoStufa: 'pellet',
@@ -90,69 +95,6 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
   const [tipiIntervento, setTipiIntervento] = useState<string[]>(DEFAULT_TIPI_INTERVENTO);
   const [showTipoInterventoInput, setShowTipoInterventoInput] = useState(false);
   const [newTipoIntervento, setNewTipoIntervento] = useState('');
-
-  const parseResponseBody = async <T,>(response: Response): Promise<T | null> => {
-    const text = await response.text();
-    if (!text) return null;
-
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      console.error('Risposta API non JSON:', response.status, text.slice(0, 120));
-      return null;
-    }
-  };
-
-  const getApiErrorMessage = (data: unknown, fallback: string): string => {
-    if (data && typeof data === 'object' && 'error' in data) {
-      const maybeError = (data as { error?: unknown }).error;
-      if (typeof maybeError === 'string' && maybeError.trim()) {
-        return maybeError;
-      }
-    }
-    return fallback;
-  };
-
-  const fetchWithAuth = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
-    const headers: Record<string, string> = {
-      ...(init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)
-        ? (init.headers as Record<string, string>)
-        : {}),
-    };
-
-    const token = auth.getAccessToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    let response = await fetch(input, {
-      ...init,
-      headers,
-      credentials: 'include',
-    });
-
-    if (response.status === 401) {
-      const refreshed = await auth.refreshTokens();
-      if (refreshed) {
-        const retryToken = auth.getAccessToken();
-        const retryHeaders: Record<string, string> = {
-          ...(init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)
-            ? (init.headers as Record<string, string>)
-            : {}),
-        };
-        if (retryToken) {
-          retryHeaders['Authorization'] = `Bearer ${retryToken}`;
-        }
-        response = await fetch(input, {
-          ...init,
-          headers: retryHeaders,
-          credentials: 'include',
-        });
-      }
-    }
-
-    return response;
-  };
 
   // Cerca clienti esistenti quando nome e cognome sono inseriti
   useEffect(() => {
@@ -226,6 +168,38 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     loadMarche();
   }, []);
 
+  // In modifica: preseleziona marca quando marche è caricata
+  useEffect(() => {
+    if (!initialRapportino?.intervento?.marca || marche.length === 0) return;
+    const marcaNome = initialRapportino.intervento.marca.trim();
+    const found = marche.find((m) => m.nome.toLowerCase() === marcaNome.toLowerCase());
+    if (found) {
+      setMarcaId(found.id);
+      setShowMarcaInput(false);
+    } else {
+      setMarcaId('');
+      setShowMarcaInput(true);
+      if (initialRapportino.intervento.modello) setShowModelloInput(true);
+    }
+  }, [initialRapportino?.intervento?.marca, initialRapportino?.intervento?.modello, marche]);
+
+  // In modifica: preseleziona modello quando modelli è caricato
+  useEffect(() => {
+    if (!initialRapportino?.intervento?.modello || !marcaId) return;
+    if (modelli.length === 0) {
+      setShowModelloInput(true);
+      return;
+    }
+    const modelloNome = initialRapportino.intervento.modello.trim();
+    const found = modelli.find((m) => m.nome.toLowerCase() === modelloNome.toLowerCase());
+    if (found) {
+      setModelloId(found.id);
+      setShowModelloInput(false);
+    } else {
+      setShowModelloInput(true);
+    }
+  }, [initialRapportino?.intervento?.modello, modelli, marcaId]);
+
   // Carica modelli quando cambia la marca
   useEffect(() => {
     const loadModelli = async () => {
@@ -244,14 +218,15 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       } else {
         setModelli([]);
         setModelloId('');
-        setIntervento(prev => ({ ...prev, modello: '' }));
+        if (!initialRapportino) {
+          setIntervento(prev => ({ ...prev, modello: '' }));
+        }
         setMateriali([]);
         setSelectedMateriali([]);
       }
     };
     loadModelli();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marcaId]);
+  }, [marcaId, initialRapportino]);
 
   // Carica materiali quando cambia il modello
   useEffect(() => {
@@ -311,7 +286,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
 
   const handleSubmit = () => {
     if (!validateStep()) {
-      alert('Compila tutti i campi obbligatori');
+      toast.error('Compila tutti i campi obbligatori');
       return;
     }
 
@@ -330,14 +305,14 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
     ].filter(Boolean).join('; ');
 
     const rapportino: Rapportino = {
-      id: `rapp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: initialRapportino?.id ?? `rapp_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       operatore,
       cliente,
       intervento: {
         ...intervento,
         materialiUtilizzati: materialiFinali || undefined,
       },
-      dataCreazione: new Date().toISOString(),
+      dataCreazione: initialRapportino?.dataCreazione ?? new Date().toISOString(),
     };
 
     onSave(rapportino);
@@ -348,7 +323,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">Nuovo Rapportino</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{initialRapportino ? 'Modifica Rapportino' : 'Nuovo Rapportino'}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">Compila tutti i campi obbligatori per creare un nuovo rapportino</p>
           </div>
           <button
@@ -361,34 +336,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
             </svg>
           </button>
         </div>
-        <div className="flex items-center gap-2 mb-6">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex items-center flex-1">
-              <div
-                className={`flex-1 h-2 rounded-full transition-all duration-300 ${
-                  s <= step ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
-                }`}
-              />
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
-                  s < step
-                    ? 'bg-primary-600 text-white shadow-lg'
-                    : s === step
-                    ? 'bg-primary-600 text-white shadow-lg ring-4 ring-primary-200 dark:ring-primary-900'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}
-              >
-                {s < step ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  s
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <RapportinoStepIndicator step={step} />
         <div className="flex gap-2 text-xs text-gray-600 dark:text-gray-400">
           <span className={step === 1 ? 'font-semibold text-primary-600 dark:text-primary-400' : ''}>1. Operatore</span>
           <span>•</span>
@@ -801,7 +749,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                             const data = await parseResponseBody<{ id?: string; nome?: string; error?: string }>(response);
 
                             if (!response.ok) {
-                              alert(getApiErrorMessage(data, 'Errore nella creazione della marca'));
+                              toast.error(getApiErrorMessage(data, 'Errore nella creazione della marca'));
                               return;
                             }
 
@@ -816,7 +764,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                             }
                           } catch (error) {
                             console.error('Errore creazione marca:', error);
-                            alert('Errore nella creazione della marca');
+                            toast.error('Errore nella creazione della marca');
                           }
                         }
                       }}
@@ -881,10 +829,11 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                       type="text"
                       value={intervento.modello}
                       onChange={(e) => setIntervento({ ...intervento, modello: e.target.value })}
-                      placeholder="Inserisci nuovo modello"
+                      placeholder={marcaId ? 'Inserisci nuovo modello' : 'Modello (marca non in catalogo)'}
                       className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                       required
                     />
+                    {marcaId && (
                     <button
                       type="button"
                       onClick={async () => {
@@ -898,7 +847,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                             const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
 
                             if (!response.ok) {
-                              alert(getApiErrorMessage(data, 'Errore nella creazione del modello'));
+                              toast.error(getApiErrorMessage(data, 'Errore nella creazione del modello'));
                               return;
                             }
 
@@ -913,7 +862,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                             }
                           } catch (error) {
                             console.error('Errore creazione modello:', error);
-                            alert('Errore nella creazione del modello');
+                            toast.error('Errore nella creazione del modello');
                           }
                         }
                       }}
@@ -921,6 +870,8 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                     >
                       Salva
                     </button>
+                    )}
+                    {marcaId && (
                     <button
                       type="button"
                       onClick={() => {
@@ -931,6 +882,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                     >
                       Annulla
                     </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1110,7 +1062,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                                   const data = await parseResponseBody<{ id?: string; nome?: string; descrizione?: string; modello_id?: string; error?: string }>(response);
 
                                   if (!response.ok) {
-                                    alert(getApiErrorMessage(data, 'Errore nella creazione del materiale'));
+                                    toast.error(getApiErrorMessage(data, 'Errore nella creazione del materiale'));
                                     return;
                                   }
 
@@ -1125,7 +1077,7 @@ export default function RapportinoForm({ onSave, onCancel }: RapportinoFormProps
                                   }
                                 } catch (error) {
                                   console.error('Errore creazione materiale:', error);
-                                  alert('Errore nella creazione del materiale');
+                                  toast.error('Errore nella creazione del materiale');
                                 }
                               }
                             }}
