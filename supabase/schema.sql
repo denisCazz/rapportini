@@ -2,6 +2,12 @@
 -- Bitora - Schema completo database
 -- ============================================
 -- Esegui questo file nel SQL Editor di Supabase per creare un nuovo database.
+--
+-- Ottimizzazioni (Supabase Postgres Best Practices):
+-- - RLS: funzioni current_org_id/current_user_id/current_user_role in (SELECT ...) per evitare chiamate per-row
+-- - Indici FK: password_reset_tokens(user_id) per JOIN/CASCADE veloci
+-- - Indice composito: rapportini(org_id, utente_id) per policy RLS
+-- - Trigger: funzione unica update_updated_at_column per tutte le tabelle
 
 -- ============================================
 -- 1. TABELLE PRINCIPALI
@@ -137,8 +143,10 @@ CREATE INDEX IF NOT EXISTS idx_rapportini_utente ON rapportini(utente_id);
 CREATE INDEX IF NOT EXISTS idx_rapportini_data ON rapportini(data_intervento);
 CREATE INDEX IF NOT EXISTS idx_rapportini_tipo_stufa ON rapportini(tipo_stufa);
 CREATE INDEX IF NOT EXISTS idx_rapportini_org_id ON rapportini(org_id);
+CREATE INDEX IF NOT EXISTS idx_rapportini_org_utente ON rapportini(org_id, utente_id);
 CREATE INDEX IF NOT EXISTS idx_rapportini_org_data ON rapportini(org_id, data_intervento DESC);
 
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires ON password_reset_tokens(expires_at);
 
@@ -154,14 +162,6 @@ CREATE INDEX IF NOT EXISTS idx_materiali_org_id ON materiali(org_id);
 -- ============================================
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION update_organizzazioni_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -218,7 +218,7 @@ CREATE TRIGGER update_rapportini_updated_at BEFORE UPDATE ON rapportini
 DROP TRIGGER IF EXISTS update_organizzazioni_updated_at ON organizzazioni;
 CREATE TRIGGER update_organizzazioni_updated_at
   BEFORE UPDATE ON organizzazioni
-  FOR EACH ROW EXECUTE FUNCTION update_organizzazioni_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_marche_updated_at BEFORE UPDATE ON marche
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -266,51 +266,51 @@ DROP POLICY IF EXISTS "materiali_org_insert" ON materiali;
 DROP POLICY IF EXISTS "materiali_org_update" ON materiali;
 DROP POLICY IF EXISTS "materiali_org_delete" ON materiali;
 
--- Policy UTENTI
+-- Policy UTENTI (ottimizzate: SELECT wrapper evita chiamate per-row alle funzioni RLS)
 CREATE POLICY "utenti_org_select" ON utenti FOR SELECT USING (
-  org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR id = public.current_user_id())
+  org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR id = (SELECT public.current_user_id()))
 );
-CREATE POLICY "utenti_org_insert" ON utenti FOR INSERT WITH CHECK (org_id = public.current_org_id() AND public.current_user_role() = 'admin');
+CREATE POLICY "utenti_org_insert" ON utenti FOR INSERT WITH CHECK (org_id = (SELECT public.current_org_id()) AND (SELECT public.current_user_role()) = 'admin');
 CREATE POLICY "utenti_org_update" ON utenti FOR UPDATE USING (
-  org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR id = public.current_user_id())
-) WITH CHECK (org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR id = public.current_user_id()));
-CREATE POLICY "utenti_org_delete" ON utenti FOR DELETE USING (org_id = public.current_org_id() AND public.current_user_role() = 'admin');
+  org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR id = (SELECT public.current_user_id()))
+) WITH CHECK (org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR id = (SELECT public.current_user_id())));
+CREATE POLICY "utenti_org_delete" ON utenti FOR DELETE USING (org_id = (SELECT public.current_org_id()) AND (SELECT public.current_user_role()) = 'admin');
 
 -- Policy CLIENTI
-CREATE POLICY "clienti_org_select" ON clienti FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "clienti_org_insert" ON clienti FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "clienti_org_update" ON clienti FOR UPDATE USING (org_id = public.current_org_id()) WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "clienti_org_delete" ON clienti FOR DELETE USING (org_id = public.current_org_id() AND public.current_user_role() = 'admin');
+CREATE POLICY "clienti_org_select" ON clienti FOR SELECT USING (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "clienti_org_insert" ON clienti FOR INSERT WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "clienti_org_update" ON clienti FOR UPDATE USING (org_id = (SELECT public.current_org_id())) WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "clienti_org_delete" ON clienti FOR DELETE USING (org_id = (SELECT public.current_org_id()) AND (SELECT public.current_user_role()) = 'admin');
 
 -- Policy RAPPORTINI
 CREATE POLICY "rapportini_org_select" ON rapportini FOR SELECT USING (
-  org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR utente_id = public.current_user_id())
+  org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR utente_id = (SELECT public.current_user_id()))
 );
 CREATE POLICY "rapportini_org_insert" ON rapportini FOR INSERT WITH CHECK (
-  org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR utente_id = public.current_user_id())
+  org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR utente_id = (SELECT public.current_user_id()))
 );
 CREATE POLICY "rapportini_org_update" ON rapportini FOR UPDATE USING (
-  org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR utente_id = public.current_user_id())
-) WITH CHECK (org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR utente_id = public.current_user_id()));
+  org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR utente_id = (SELECT public.current_user_id()))
+) WITH CHECK (org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR utente_id = (SELECT public.current_user_id())));
 CREATE POLICY "rapportini_org_delete" ON rapportini FOR DELETE USING (
-  org_id = public.current_org_id() AND (public.current_user_role() = 'admin' OR utente_id = public.current_user_id())
+  org_id = (SELECT public.current_org_id()) AND ((SELECT public.current_user_role()) = 'admin' OR utente_id = (SELECT public.current_user_id()))
 );
 
 -- Policy MARCHE, MODELLI, MATERIALI
-CREATE POLICY "marche_org_select" ON marche FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "marche_org_insert" ON marche FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "marche_org_update" ON marche FOR UPDATE USING (org_id = public.current_org_id()) WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "marche_org_delete" ON marche FOR DELETE USING (org_id = public.current_org_id() AND public.current_user_role() = 'admin');
+CREATE POLICY "marche_org_select" ON marche FOR SELECT USING (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "marche_org_insert" ON marche FOR INSERT WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "marche_org_update" ON marche FOR UPDATE USING (org_id = (SELECT public.current_org_id())) WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "marche_org_delete" ON marche FOR DELETE USING (org_id = (SELECT public.current_org_id()) AND (SELECT public.current_user_role()) = 'admin');
 
-CREATE POLICY "modelli_org_select" ON modelli FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "modelli_org_insert" ON modelli FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "modelli_org_update" ON modelli FOR UPDATE USING (org_id = public.current_org_id()) WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "modelli_org_delete" ON modelli FOR DELETE USING (org_id = public.current_org_id() AND public.current_user_role() = 'admin');
+CREATE POLICY "modelli_org_select" ON modelli FOR SELECT USING (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "modelli_org_insert" ON modelli FOR INSERT WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "modelli_org_update" ON modelli FOR UPDATE USING (org_id = (SELECT public.current_org_id())) WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "modelli_org_delete" ON modelli FOR DELETE USING (org_id = (SELECT public.current_org_id()) AND (SELECT public.current_user_role()) = 'admin');
 
-CREATE POLICY "materiali_org_select" ON materiali FOR SELECT USING (org_id = public.current_org_id());
-CREATE POLICY "materiali_org_insert" ON materiali FOR INSERT WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "materiali_org_update" ON materiali FOR UPDATE USING (org_id = public.current_org_id()) WITH CHECK (org_id = public.current_org_id());
-CREATE POLICY "materiali_org_delete" ON materiali FOR DELETE USING (org_id = public.current_org_id() AND public.current_user_role() = 'admin');
+CREATE POLICY "materiali_org_select" ON materiali FOR SELECT USING (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "materiali_org_insert" ON materiali FOR INSERT WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "materiali_org_update" ON materiali FOR UPDATE USING (org_id = (SELECT public.current_org_id())) WITH CHECK (org_id = (SELECT public.current_org_id()));
+CREATE POLICY "materiali_org_delete" ON materiali FOR DELETE USING (org_id = (SELECT public.current_org_id()) AND (SELECT public.current_user_role()) = 'admin');
 
 -- Utente admin iniziale (password: admin123 - esegui hash-passwords.js dopo!)
 INSERT INTO utenti (org_id, username, password_hash, ruolo, nome, cognome, email) VALUES
