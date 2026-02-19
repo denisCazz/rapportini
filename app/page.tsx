@@ -8,51 +8,40 @@ import { Rapportino, AziendaSettings } from '@/types';
 import { storage } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
-import { Suspense, lazy } from 'react';
 import RapportiniList from '@/components/RapportiniList';
 import SidebarLayout from '@/components/SidebarLayout';
 import InstallPWA from '@/components/InstallPWA';
 
-// Dynamic import per componenti pesanti - migliora il bundle splitting
-const RapportinoForm = lazy(() => import('@/components/RapportinoForm'));
+const RECENT_LIMIT = 10;
 
 export default function Home() {
   const router = useRouter();
   const [rapportini, setRapportini] = useState<Rapportino[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingRapportino, setEditingRapportino] = useState<Rapportino | null>(null);
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const hasLoadedRef = useRef(false); // Previene doppie chiamate in React Strict Mode
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    // Previene doppie chiamate in React Strict Mode
     if (hasLoadedRef.current) return;
-    
-    // Verifica autenticazione
     if (!auth.isAuthenticated()) {
       router.push('/login');
       return;
     }
-    
     hasLoadedRef.current = true;
     setIsAuthenticated(true);
     loadRapportini();
     const loadedSettings = storage.getSettings();
     setSettings(loadedSettings);
-    api.getSettings().then((apiSettings) => {
-      setSettings((prev) => ({ ...prev, ...apiSettings }));
-    }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Rimuoviamo router dalle dipendenze - non è necessario
+    api.getSettings().then((apiSettings) => setSettings((prev) => ({ ...prev, ...apiSettings }))).catch(() => {});
+  }, []);
 
   const loadRapportini = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getRapportini();
+      const data = await api.getRapportini({ limit: RECENT_LIMIT });
       setRapportini(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Errore nel caricamento dei rapportini');
@@ -62,28 +51,11 @@ export default function Home() {
     }
   };
 
-  const handleSaveRapportino = async (rapportino: Rapportino) => {
-    try {
-      const isUpdate = rapportino.id && !rapportino.id.startsWith('rapp_');
-      if (isUpdate) {
-        await api.updateRapportino(rapportino.id, rapportino);
-        toast.success('Rapportino aggiornato');
-      } else {
-        await api.createRapportino(rapportino);
-        toast.success('Rapportino creato');
-      }
-      await loadRapportini();
-      setShowForm(false);
-      setEditingRapportino(null);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio del rapportino');
-    }
-  };
-
   const handleDeleteRapportino = async (id: string) => {
     try {
       await api.deleteRapportino(id);
-      await loadRapportini();
+      toast.success('Rapportino eliminato');
+      loadRapportini();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Errore nell\'eliminazione del rapportino');
     }
@@ -96,7 +68,8 @@ export default function Home() {
     }
     try {
       const { exportAllPDFs } = await import('@/lib/pdfGenerator');
-      await exportAllPDFs(rapportini, settings);
+      const allRapportini = await api.getRapportini();
+      await exportAllPDFs(allRapportini, settings);
       toast.success('Esportazione completata');
     } catch (error: unknown) {
       console.error('Error exporting PDFs:', error);
@@ -109,8 +82,10 @@ export default function Home() {
     router.push('/login');
   };
 
+  const isOperatore = auth.getUser()?.ruolo === 'operatore';
+
   if (!isAuthenticated) {
-    return null; // Mostra nulla mentre verifica l'autenticazione
+    return null;
   }
 
   return (
@@ -120,7 +95,6 @@ export default function Home() {
         pageTitle="Dashboard"
         pageSubtitle="Software di gestione specializzato per rapportini e attività operative"
         onLogout={handleLogout}
-        onNewRapportino={() => setShowForm(true)}
         onExportPDF={handleExportPDFs}
       >
         {error && (
@@ -140,60 +114,50 @@ export default function Home() {
           </div>
         )}
 
-        {showForm && (
-          <Suspense fallback={
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento form...</p>
-            </div>
-          }>
-            <RapportinoForm
-              initialRapportino={editingRapportino ?? undefined}
-              onSave={handleSaveRapportino}
-              onCancel={() => { setShowForm(false); setEditingRapportino(null); }}
-            />
-          </Suspense>
-        )}
-
         {loading ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento rapportini...</p>
           </div>
         ) : (
-          <RapportiniList
-            rapportini={rapportini}
-            onDelete={handleDeleteRapportino}
-            onEdit={(r) => { setEditingRapportino(r); setShowForm(true); }}
-            settings={settings}
-          />
+          <>
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Rapportini recenti</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Ultimi {rapportini.length} rapportini</p>
+              </div>
+              <Link
+                href="/rapportini"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all text-sm font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Cerca tutti i rapportini
+              </Link>
+            </div>
+            <RapportiniList
+              rapportini={rapportini}
+              onDelete={handleDeleteRapportino}
+              onEdit={isOperatore ? (r) => router.push(`/rapportini/modifica/${r.id}`) : undefined}
+              settings={settings}
+            />
+          </>
         )}
 
         <footer className="mt-12 py-6 border-t border-gray-200 dark:border-gray-700">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
               <p>
-                <a 
-                  href="https://bitora.it" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
-                >
+                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold">
                   Bitora Software di Gestione Specializzato
                 </a>
                 {' è un prodotto di '}
-                <a 
-                  href="https://bitora.it" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
-                >
+                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold">
                   Bitora.it
                 </a>
               </p>
-              <p className="text-xs mt-1">
-                © {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati
-              </p>
+              <p className="text-xs mt-1">© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
             </div>
           </div>
         </footer>

@@ -108,6 +108,18 @@ export default function SidebarLayout({
           <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${isActive('/') ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>🏠</span>
           Dashboard
         </Link>
+        <Link
+          href="/rapportini"
+          onClick={() => setMobileOpen(false)}
+          className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+            isActive('/rapportini') || pathname.startsWith('/rapportini/')
+              ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-700/30'
+              : 'text-slate-200 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${(isActive('/rapportini') || pathname.startsWith('/rapportini/')) ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>📋</span>
+          Rapportini
+        </Link>
 
         {user?.ruolo === 'admin' && (
           <>
@@ -151,20 +163,17 @@ export default function SidebarLayout({
         )}
       </div>
 
-      {(onNewRapportino || onExportPDF) && (
+      {((user?.ruolo === 'operatore') || onExportPDF) && (
         <div className="px-4 pb-4 space-y-2">
-          {onNewRapportino && (
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                onNewRapportino();
-              }}
-              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition"
+          {user?.ruolo === 'operatore' && (
+            <Link
+              href="/rapportini/nuovo"
+              onClick={() => setMobileOpen(false)}
+              className="block w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition text-center"
             >
               + Nuovo Rapportino
-            </button>
+            </Link>
           )}
-
           {onExportPDF && (
             <button
               onClick={() => {

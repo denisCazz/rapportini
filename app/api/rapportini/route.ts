@@ -75,6 +75,28 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('cliente_id', filters.clienteId);
     }
 
+    // Ricerca testuale (cliente, descrizione, note, marca, modello)
+    if (filters.search && filters.search.trim()) {
+      const searchTerm = `%${filters.search.trim()}%`;
+      const { data: clientiMatch } = await supabase
+        .from('clienti')
+        .select('id')
+        .eq('org_id', orgId)
+        .or(`nome.ilike.${searchTerm},cognome.ilike.${searchTerm},ragione_sociale.ilike.${searchTerm},citta.ilike.${searchTerm},indirizzo.ilike.${searchTerm}`);
+      const clientIds = (clientiMatch || []).map((c: { id: string }) => c.id);
+      const orParts = [
+        `descrizione.ilike.${searchTerm}`,
+        `note.ilike.${searchTerm}`,
+        `marca.ilike.${searchTerm}`,
+        `modello.ilike.${searchTerm}`,
+      ];
+      if (clientIds.length > 0) {
+        orParts.push(`cliente_id.in.(${clientIds.join(',')})`);
+      }
+      query = query.or(orParts.join(','));
+      countQuery = countQuery.or(orParts.join(','));
+    }
+
     // Paginazione
     const offset = (filters.page - 1) * filters.limit;
     query = query.range(offset, offset + filters.limit - 1);

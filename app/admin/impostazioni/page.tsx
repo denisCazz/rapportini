@@ -82,7 +82,15 @@ export default function ImpostazioniPage() {
       setSettings((prev) => ({ ...prev, ...formData }));
       toast.success('Impostazioni salvate');
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio');
+      const msg = err instanceof Error ? err.message : 'Errore nel salvataggio';
+      // Se la tabella non esiste, salva comunque in localStorage
+      if (msg.includes('organizzazioni non esiste') || msg.includes('TABLE_MISSING')) {
+        storage.saveSettings({ ...storage.getSettings(), ...formData });
+        setSettings((prev) => ({ ...prev, ...formData }));
+        toast.warning('Impostazioni salvate localmente. Per salvarle nel database, esegui supabase/organizzazioni_fix_completo.sql nel SQL Editor di Supabase.');
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSaving(false);
     }
