@@ -32,8 +32,8 @@ export async function POST(
 
     const body = await request.json();
 
-    // Se è admin che cambia password di un altro utente, non serve la password attuale
-    if (isAdmin && !isSelf) {
+    // Se è admin che cambia password da gestione utenti, non serve la password attuale
+    if (isAdmin) {
       const adminResetSchema = z.object({
         newPassword: z.string().min(8, 'Nuova password deve avere almeno 8 caratteri').max(100),
       });

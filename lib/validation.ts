@@ -94,9 +94,15 @@ export const updateUserSchema = z.object({
 
 // Schema per cambio password
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Password attuale obbligatoria'),
+  currentPassword: z.preprocess(
+    (value) => (typeof value === 'string' ? value : ''),
+    z.string().min(1, 'Password attuale obbligatoria')
+  ),
   newPassword: z.string().min(8, 'Nuova password deve avere almeno 8 caratteri').max(100),
-  confirmPassword: z.string().min(1, 'Conferma password obbligatoria'),
+  confirmPassword: z.preprocess(
+    (value) => (typeof value === 'string' ? value : ''),
+    z.string().min(1, 'Conferma password obbligatoria')
+  ),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: 'Le password non coincidono',
   path: ['confirmPassword'],

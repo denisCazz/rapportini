@@ -79,29 +79,30 @@ export default function SidebarLayout({
 
   const NavContent = ({ showCloseButton = false }: { showCloseButton?: boolean }) => (
     <>
-      <div className="relative px-5 pt-6 pb-5 border-b border-white/10">
-        <div className="pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full bg-indigo-500/20 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-violet-500/20 blur-2xl" />
-        <div className="flex items-center justify-between gap-2">
-        <Link href="/" className="flex items-center gap-3 min-w-0 flex-1" onClick={() => setMobileOpen(false)}>
+      <div className="relative px-6 pt-8 pb-6 border-b border-surface-200/70 dark:border-surface-800/70">
+        <div className="flex items-center justify-between gap-3">
+        <Link href="/" className="flex items-center gap-3 min-w-0 flex-1 group" onClick={() => setMobileOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={settings.logo || '/logo.png'}
-            alt={settings.nomeAzienda || 'Bitora'}
-            className="h-10 w-auto object-contain rounded-xl"
-          />
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary-500 blur-md opacity-20 group-hover:opacity-40 transition-opacity rounded-xl"></div>
+            <img
+              src={settings.logo || '/logo.png'}
+              alt={settings.nomeAzienda || 'Bitora'}
+              className="relative h-12 w-auto object-contain rounded-xl p-1"
+            />
+          </div>
           <div>
-            <p className="text-white font-semibold leading-tight tracking-tight">{settings.nomeAzienda || 'Bitora'}</p>
-            <p className="text-xs text-indigo-200/80">Software di Gestione Specializzato</p>
+            <p className="text-surface-900 dark:text-white font-bold leading-tight tracking-tight text-lg">{settings.nomeAzienda || 'Bitora'}</p>
+            <p className="text-xs text-surface-500 dark:text-surface-400 font-medium">Gestione Specializzata</p>
           </div>
         </Link>
         {showCloseButton && (
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="lg:hidden h-10 w-10 shrink-0 grid place-items-center rounded-xl hover:bg-surface-100/70 dark:hover:bg-surface-800/70 text-surface-600 dark:text-surface-300 transition-colors"
             aria-label="Chiudi menu"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -109,69 +110,73 @@ export default function SidebarLayout({
         </div>
       </div>
 
-      <div className="p-4 space-y-2">
-        <p className="px-2 text-[11px] uppercase tracking-[0.18em] text-slate-400/80 font-semibold">Navigazione</p>
+      <div className="p-4 space-y-1.5 overflow-y-auto scrollbar-hide">
+        <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-surface-400 dark:text-surface-500 font-bold">Menu Principale</p>
         <Link
           href="/"
           onClick={() => setMobileOpen(false)}
-          className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+          className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
             isActive('/')
-              ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-700/30'
-              : 'text-slate-200 hover:bg-white/10 hover:text-white'
+              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+              : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
           }`}
         >
-          <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${isActive('/') ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>🏠</span>
+          <span className={`grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110`}>🏠</span>
           Dashboard
         </Link>
         <Link
           href="/rapportini"
           onClick={() => setMobileOpen(false)}
-          className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+          className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
             isActive('/rapportini') || pathname.startsWith('/rapportini/')
-              ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-700/30'
-              : 'text-slate-200 hover:bg-white/10 hover:text-white'
+              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+              : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
           }`}
         >
-          <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${(isActive('/rapportini') || pathname.startsWith('/rapportini/')) ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>📋</span>
+          <span className={`grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110`}>📋</span>
           Rapportini
         </Link>
 
         {user?.ruolo === 'admin' && (
           <>
+            <div className="pt-4 pb-2">
+              <div className="h-px w-full bg-surface-200 dark:bg-surface-800"></div>
+            </div>
+            <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-surface-400 dark:text-surface-500 font-bold">Amministrazione</p>
             <Link
               href="/admin"
               onClick={() => setMobileOpen(false)}
-              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
                 isActive('/admin')
-                  ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-700/30'
-                  : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
               }`}
             >
-              <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${isActive('/admin') ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>📊</span>
+              <span className="grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110">📊</span>
               Statistiche
             </Link>
             <Link
               href="/admin/gestione-utenti"
               onClick={() => setMobileOpen(false)}
-              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
                 isActive('/admin/users') || isActive('/admin/gestione-utenti')
-                  ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-700/30'
-                  : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
               }`}
             >
-              <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${(isActive('/admin/users') || isActive('/admin/gestione-utenti')) ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>👥</span>
+              <span className="grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110">👥</span>
               Utenti
             </Link>
             <Link
               href="/admin/impostazioni"
               onClick={() => setMobileOpen(false)}
-              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
                 isActive('/admin/impostazioni')
-                  ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-700/30'
-                  : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
               }`}
             >
-              <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm transition ${isActive('/admin/impostazioni') ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/20'}`}>⚙️</span>
+              <span className="grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110">⚙️</span>
               Impostazioni
             </Link>
           </>
@@ -179,12 +184,12 @@ export default function SidebarLayout({
       </div>
 
       {((user?.ruolo === 'operatore') || onExportPDF) && (
-        <div className="px-4 pb-4 space-y-2">
+        <div className="px-4 pb-4 space-y-3 mt-auto">
           {user?.ruolo === 'operatore' && (
             <Link
               href="/rapportini/nuovo"
               onClick={() => setMobileOpen(false)}
-              className="block w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition text-center"
+              className="block w-full rounded-2xl border border-primary-400/40 px-4 py-3.5 text-sm font-bold text-primary-700 dark:text-primary-300 hover:bg-primary-500/10 transition-all text-center"
             >
               + Nuovo Rapportino
             </Link>
@@ -195,7 +200,7 @@ export default function SidebarLayout({
                 setMobileOpen(false);
                 onExportPDF();
               }}
-              className="w-full rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-700 transition"
+              className="w-full rounded-2xl border border-surface-300 dark:border-surface-700 px-4 py-3.5 text-sm font-bold text-surface-700 dark:text-surface-200 hover:bg-surface-100/70 dark:hover:bg-surface-800/70 transition-all"
             >
               Esporta PDF
             </button>
@@ -203,11 +208,11 @@ export default function SidebarLayout({
         </div>
       )}
 
-      <div className="mt-auto px-4 pb-5">
+      <div className="px-4 pb-6">
         <InstallPWAButton />
         <button
           onClick={toggleDarkMode}
-          className="w-full rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-slate-700/70 transition-all mb-3"
+          className="w-full min-h-[46px] flex items-center justify-center gap-2 rounded-2xl border border-surface-200 dark:border-surface-700 px-4 py-3 text-sm font-semibold text-surface-700 dark:text-surface-300 hover:bg-surface-100/70 dark:hover:bg-surface-800/70 transition-all mb-4"
           aria-label="Cambia modalità tema"
         >
           {darkMode ? '🌙 Modalità Scura' : '☀️ Modalità Chiara'}
@@ -216,15 +221,15 @@ export default function SidebarLayout({
         <Link
           href="/utente"
           onClick={() => setMobileOpen(false)}
-          className="block rounded-xl bg-white/5 p-3 mb-3 border border-white/10 hover:bg-white/10 transition"
+          className="block rounded-2xl p-3 mb-3 border border-surface-200 dark:border-surface-700 hover:bg-surface-100/70 dark:hover:bg-surface-800/70 transition-all group"
         >
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white grid place-items-center text-xs font-bold shadow-lg shadow-indigo-900/30">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white grid place-items-center text-sm font-bold shadow-md group-hover:scale-105 transition-transform">
               {user?.nome?.charAt(0)}{user?.cognome?.charAt(0)}
             </div>
-            <div className="min-w-0">
-              <p className="text-sm text-white font-medium truncate">{user?.nome} {user?.cognome}</p>
-              <p className="text-xs text-slate-400 capitalize">{user?.ruolo}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-surface-900 dark:text-white font-bold truncate">{user?.nome} {user?.cognome}</p>
+              <p className="text-xs text-surface-500 dark:text-surface-400 capitalize font-medium">{user?.ruolo}</p>
             </div>
           </div>
         </Link>
@@ -232,8 +237,11 @@ export default function SidebarLayout({
         {onLogout && (
           <button
             onClick={onLogout}
-            className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 hover:bg-red-500/20 transition-all"
+            className="w-full min-h-[46px] flex items-center justify-center gap-2 rounded-2xl border border-red-300/50 dark:border-red-800/60 px-4 py-3 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-900/20 transition-all"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
             Esci
           </button>
         )}
@@ -242,20 +250,27 @@ export default function SidebarLayout({
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-white/10 flex-col">
+    <div className="min-h-screen bg-surface-50 dark:bg-surface-950 text-surface-900 dark:text-surface-50 selection:bg-primary-500/30">
+      {/* Sfondo decorativo moderno */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-400/10 dark:bg-primary-600/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-400/10 dark:bg-purple-600/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-400/10 dark:bg-pink-600/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 bg-transparent border-r border-surface-200/70 dark:border-surface-800/70 flex-col z-20">
         <NavContent />
       </aside>
 
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 animate-fadeIn">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-surface-900/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
           <aside
-            className="absolute left-0 top-0 h-full w-[min(85vw,320px)] max-w-[320px] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-white/10 flex flex-col shadow-2xl animate-slideInLeft"
+            className="absolute left-0 top-0 h-full w-[min(88vw,360px)] max-w-[360px] bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-xl border-r border-surface-200 dark:border-surface-800 flex flex-col shadow-2xl rounded-r-3xl animate-slideInLeft"
             role="dialog"
             aria-label="Menu di navigazione"
           >
@@ -266,13 +281,13 @@ export default function SidebarLayout({
         </div>
       )}
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/70 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="px-4 md:px-8 py-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div className="lg:pl-72 flex flex-col min-h-screen relative z-10">
+        <header className="sticky top-0 z-30 bg-surface-50/85 dark:bg-surface-900/85 backdrop-blur-xl border-b border-surface-200/80 dark:border-surface-800 shadow-sm">
+          <div className="px-4 md:px-8 py-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden mt-0.5 h-11 w-11 shrink-0 grid place-items-center rounded-xl bg-slate-800 dark:bg-slate-800 text-white hover:bg-slate-700 dark:hover:bg-slate-700 border border-slate-700 shadow-md active:scale-95 transition-transform"
+                className="lg:hidden mt-0.5 h-12 w-12 shrink-0 grid place-items-center rounded-2xl bg-white/80 dark:bg-surface-800/80 text-surface-900 dark:text-white hover:bg-white dark:hover:bg-surface-700 border border-surface-200 dark:border-surface-700 shadow-sm active:scale-95 transition-all"
                 aria-label="Apri menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,22 +296,22 @@ export default function SidebarLayout({
               </button>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white break-words">{pageTitle}</h1>
+                  <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-surface-900 dark:text-white break-words tracking-tight leading-tight">{pageTitle}</h1>
                   {isTestEnv() && (
                     <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
                       TEST
                     </span>
                   )}
                 </div>
-                {pageSubtitle && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{pageSubtitle}</p>}
+                {pageSubtitle && <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 mt-1 font-medium line-clamp-2">{pageSubtitle}</p>}
               </div>
             </div>
           </div>
         </header>
 
-        <main className="px-4 sm:px-6 md:px-8 py-6 md:py-8 max-w-7xl mx-auto">
+        <main className="flex-1 px-3 sm:px-6 md:px-8 py-5 md:py-8 max-w-7xl mx-auto w-full animate-fadeIn">
           {topActions && (
-            <div className="mb-4 flex flex-wrap items-center gap-2 justify-start sm:justify-end">
+            <div className="mb-5 flex flex-wrap items-center gap-3 justify-start sm:justify-end w-full">
               {topActions}
             </div>
           )}

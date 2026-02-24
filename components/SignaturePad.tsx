@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface SignaturePadProps {
   label: string;
@@ -11,302 +11,254 @@ interface SignaturePadProps {
 
 export default function SignaturePad({ label, value, required = false, onChange }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const isDrawingRef = useRef(false);
-  const draftSignatureRef = useRef<string>('');
+  const draftRef = useRef<string>('');
+  const historyRef = useRef<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(true);
-  const [allowVerticalSigning, setAllowVerticalSigning] = useState(false);
+  const [hasStrokes, setHasStrokes] = useState(false);
 
-  const checkOrientation = () => {
-    if (typeof window === 'undefined') return;
-    const isSmallScreen = window.matchMedia('(max-width: 1024px)').matches;
-    const orientationMedia = window.matchMedia('(orientation: landscape)').matches;
-    const viewportLandscape = window.innerWidth >= window.innerHeight;
-    const landscape = orientationMedia || viewportLandscape;
-    setIsLandscape(!isSmallScreen || landscape);
-  };
-
-  const setupCanvas = (sourceImage?: string) => {
+  const initCanvas = useCallback((img?: string) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
+    const w = container.clientWidth;
+    const h = container.clientHeight;
 
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    context.setTransform(1, 0, 0, 1, 0, 0);
-    context.scale(dpr, dpr);
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
 
-    context.lineWidth = 2;
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
-    context.strokeStyle = '#0f172a';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = window.innerWidth < 640 ? 2.5 : 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.strokeStyle = isDark ? '#ffffff' : '#1e293b';
+    ctx.clearRect(0, 0, w, h);
 
-    context.clearRect(0, 0, rect.width, rect.height);
-
-    const imageToDraw = sourceImage ?? draftSignatureRef.current ?? value;
-    if (imageToDraw) {
-      const img = new Image();
-      img.onload = () => {
-        context.drawImage(img, 0, 0, rect.width, rect.height);
-      };
-      img.src = imageToDraw;
+    const src = img ?? draftRef.current ?? value;
+    if (src) {
+      const image = new Image();
+      image.onload = () => ctx.drawImage(image, 0, 0, w, h);
+      image.src = src;
     }
-  };
+  }, [value]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    draftSignatureRef.current = value || '';
-    setupCanvas();
-  }, [isOpen, value]);
-
+  // Open: lock body scroll, init canvas after layout
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';
+    draftRef.current = value || '';
+    historyRef.current = [];
+    setHasStrokes(!!value);
+    const raf = requestAnimationFrame(() => initCanvas());
     return () => {
-      document.body.style.overflow = 'unset';
+      cancelAnimationFrame(raf);
+      document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, value, initCanvas]);
 
+  // Resize handler
   useEffect(() => {
     if (!isOpen) return;
-
-    checkOrientation();
-    const handleResize = () => {
-      checkOrientation();
-
+    const onResize = () => {
       if (isDrawingRef.current) return;
-
-      const canvas = canvasRef.current;
-      if (canvas && canvas.width > 0 && canvas.height > 0) {
-        try {
-          draftSignatureRef.current = canvas.toDataURL('image/png');
-        } catch {
-        }
+      const c = canvasRef.current;
+      if (c && c.width > 0 && c.height > 0) {
+        try { draftRef.current = c.toDataURL('image/png'); } catch { /* noop */ }
       }
-
-      window.requestAnimationFrame(() => {
-        setupCanvas(draftSignatureRef.current);
-      });
+      requestAnimationFrame(() => initCanvas(draftRef.current));
     };
-
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
     };
-  }, [isOpen]);
+  }, [isOpen, initCanvas]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setAllowVerticalSigning(false);
-      return;
-    }
-
-    if (isLandscape) {
-      setAllowVerticalSigning(true);
-      return;
-    }
-
-    setAllowVerticalSigning(false);
-    const timer = window.setTimeout(() => {
-      setAllowVerticalSigning(true);
-    }, 5000);
-
-    return () => window.clearTimeout(timer);
-  }, [isOpen, isLandscape]);
-
-  const canSign = isLandscape || allowVerticalSigning;
-  const showRotateHint = !isLandscape && !allowVerticalSigning;
-
-  const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
+  const getPoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
-  const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-    if (!canSign) return;
-
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    canvas.setPointerCapture(event.pointerId);
+    // Save snapshot for undo
+    if (canvas.width > 0 && canvas.height > 0) {
+      try {
+        historyRef.current = [...historyRef.current.slice(-19), canvas.toDataURL('image/png')];
+      } catch { /* noop */ }
+    }
 
-    const { x, y } = getPoint(event);
-    context.beginPath();
-    context.moveTo(x, y);
+    canvas.setPointerCapture(e.pointerId);
+    const { x, y } = getPoint(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
     isDrawingRef.current = true;
     setIsDrawing(true);
   };
 
-  const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-    if (!isDrawing) return;
-    if (!canSign) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    const { x, y } = getPoint(event);
-    context.lineTo(x, y);
-    context.stroke();
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!isDrawingRef.current) return;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getPoint(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
   };
 
-  const stopDrawing = (event?: React.PointerEvent<HTMLCanvasElement>) => {
-    if (event) event.preventDefault();
-    if (!isDrawing) return;
-
-    if (event && canvasRef.current?.hasPointerCapture(event.pointerId)) {
-      canvasRef.current.releasePointerCapture(event.pointerId);
+  const stopDrawing = (e?: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e) e.preventDefault();
+    if (!isDrawingRef.current) return;
+    if (e && canvasRef.current?.hasPointerCapture(e.pointerId)) {
+      canvasRef.current.releasePointerCapture(e.pointerId);
     }
-
-    const canvas = canvasRef.current;
-    if (canvas && canvas.width > 0 && canvas.height > 0) {
-      try {
-        draftSignatureRef.current = canvas.toDataURL('image/png');
-      } catch {
-      }
+    const c = canvasRef.current;
+    if (c && c.width > 0 && c.height > 0) {
+      try { draftRef.current = c.toDataURL('image/png'); } catch { /* noop */ }
     }
-
     isDrawingRef.current = false;
     setIsDrawing(false);
+    setHasStrokes(true);
   };
 
-  const saveSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const undo = () => {
+    if (historyRef.current.length === 0) return;
+    const prev = historyRef.current.pop()!;
+    draftRef.current = prev;
+    initCanvas(prev);
+    if (historyRef.current.length === 0 && !value) setHasStrokes(false);
+  };
 
-    const dataUrl = draftSignatureRef.current || canvas.toDataURL('image/png');
-    onChange(dataUrl);
+  const clearCanvas = () => {
+    const c = canvasRef.current;
+    if (c) {
+      const ctx = c.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, c.width, c.height);
+    }
+    draftRef.current = '';
+    historyRef.current = [];
+    setHasStrokes(false);
+  };
+
+  const save = () => {
+    const c = canvasRef.current;
+    if (!c) return;
+    onChange(draftRef.current || c.toDataURL('image/png'));
     setIsOpen(false);
   };
 
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const context = canvas.getContext('2d');
-      if (context) {
-        const rect = canvas.getBoundingClientRect();
-        context.clearRect(0, 0, rect.width, rect.height);
-      }
-    }
+  const cancel = () => {
+    draftRef.current = '';
+    historyRef.current = [];
+    setIsOpen(false);
+  };
 
-    draftSignatureRef.current = '';
+  const removeSignature = () => {
     onChange('');
+    draftRef.current = '';
+    historyRef.current = [];
   };
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-100 mb-2">
+      <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-2">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p className="text-xs text-gray-600 dark:text-gray-300">
-            {value ? 'Firma acquisita' : 'Nessuna firma acquisita'}
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setIsOpen(true)}
-              className="px-3 py-2 text-xs font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700"
-            >
-              {value ? 'Modifica firma' : 'Apri firma fullscreen'}
-            </button>
-            {value && (
-              <button
-                type="button"
-                onClick={clearSignature}
-                className="px-3 py-2 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Cancella
-              </button>
-            )}
+
+      {/* --- Inline: tap to sign area --- */}
+      <div
+        onClick={() => setIsOpen(true)}
+        className="rounded-2xl border-2 border-dashed border-surface-300 dark:border-surface-600 bg-white/60 dark:bg-surface-800/60 cursor-pointer hover:border-primary-400 dark:hover:border-primary-500 transition-colors overflow-hidden"
+      >
+        {value ? (
+          <div className="p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={value} alt={label} className="w-full h-24 object-contain" />
           </div>
-        </div>
+        ) : (
+          <div className="h-24 flex items-center justify-center">
+            <span className="text-surface-400 dark:text-surface-500 text-xs">Tocca per firmare</span>
+          </div>
+        )}
       </div>
+      {value && (
+        <div className="mt-1.5 flex justify-end gap-2">
+          <button type="button" onClick={() => setIsOpen(true)} className="text-xs text-primary-500 hover:text-primary-600 font-medium">Modifica</button>
+          <button type="button" onClick={removeSignature} className="text-xs text-red-500 hover:text-red-600 font-medium">Rimuovi</button>
+        </div>
+      )}
 
+      {/* --- Firma overlay --- */}
       {isOpen && (
-        <div className="fixed inset-0 z-[80]">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setIsOpen(false)} />
-          <div className="absolute inset-0 p-2 sm:p-6">
-            <div className="h-full w-full rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
-                <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">{label}</h4>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                >
-                  Chiudi
-                </button>
-              </div>
+        <>
+          {/* Backdrop desktop */}
+          <div className="hidden sm:block fixed inset-0 bg-black/40" style={{ zIndex: 99998 }} onClick={cancel} />
 
-              <div className="flex-1 min-h-0 p-3 sm:p-4 flex flex-col gap-3">
-                {showRotateHint && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-amber-800 shrink-0">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-amber-100 grid place-items-center animate-bounce">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5h8a1 1 0 011 1v12a1 1 0 01-1 1H8a1 1 0 01-1-1V6a1 1 0 011-1zm1 2v10h6V7H9z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold animate-pulse">Ruota il telefono</p>
-                        <p className="text-sm font-medium">Firma con telefono orizzontale. Tra 5 secondi puoi continuare anche in verticale.</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <canvas
-                  ref={canvasRef}
-                  className="w-full flex-1 min-h-0 rounded-xl bg-slate-100 touch-none"
-                  onPointerDown={startDrawing}
-                  onPointerMove={draw}
-                  onPointerUp={stopDrawing}
-                  onPointerLeave={stopDrawing}
-                  onPointerCancel={stopDrawing}
-                />
-              </div>
-
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:justify-end shrink-0 bg-white dark:bg-slate-900">
-                <button
-                  type="button"
-                  onClick={clearSignature}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                >
-                  Cancella firma
+          {/* Card */}
+          <div
+            className="fixed top-0 left-0 w-full h-full sm:top-1/2 sm:left-1/2 sm:w-[min(36rem,calc(100%-3rem))] sm:h-auto sm:max-h-[80vh] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl bg-white dark:bg-surface-900 sm:shadow-2xl flex flex-col"
+            style={{ zIndex: 99999 }}
+          >
+            {/* Header */}
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-700">
+              <span className="text-sm font-bold text-surface-800 dark:text-surface-100">{label}</span>
+              <div className="flex items-center gap-1.5">
+                <button type="button" onClick={undo} disabled={historyRef.current.length === 0} className="h-7 px-2 text-xs rounded-md border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 disabled:opacity-30 transition-colors flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+                  Annulla
                 </button>
-                <button
-                  type="button"
-                  onClick={saveSignature}
-                  disabled={!canSign}
-                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Salva firma
+                <button type="button" onClick={clearCanvas} className="h-7 px-2 text-xs rounded-md border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 transition-colors">
+                  Pulisci
                 </button>
               </div>
             </div>
+
+            {/* Canvas */}
+            <div ref={containerRef} className="flex-1 min-h-0 sm:min-h-[50vh] relative overflow-hidden bg-white dark:bg-surface-800">
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
+                onPointerDown={startDrawing}
+                onPointerMove={draw}
+                onPointerUp={stopDrawing}
+                onPointerLeave={stopDrawing}
+                onPointerCancel={stopDrawing}
+              />
+              {!hasStrokes && !isDrawing && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                  <p className="text-surface-300 dark:text-surface-600 text-sm">Disegna qui la tua firma</p>
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="shrink-0 flex gap-3 px-4 py-3 border-t border-surface-200 dark:border-surface-700" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+              <button type="button" onClick={cancel} className="flex-1 h-12 sm:h-11 rounded-xl text-sm font-bold border-2 border-red-400 text-red-600 dark:border-red-500 dark:text-red-400 bg-white dark:bg-surface-950 hover:bg-red-50 active:scale-[0.97] transition-all">
+                Annulla
+              </button>
+              <button type="button" onClick={save} className="flex-[1.3] h-12 sm:h-11 rounded-xl text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] shadow-md transition-all">
+                Salva firma
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

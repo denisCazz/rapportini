@@ -144,18 +144,18 @@ export default function LoginPage() {
           />
         ))}
       </div>
-      <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] text-gray-900">
+      <div className="relative z-10 rounded-3xl max-w-md w-full p-6 sm:p-10 text-surface-100 animate-fade-in-up">
         {process.env.NEXT_PUBLIC_APP_ENV === 'TEST' && (
-          <div className="absolute -top-2 -right-2 inline-flex items-center rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white shadow-md ring-2 ring-white">
+          <div className="absolute -top-3 -right-3 inline-flex items-center rounded-full bg-amber-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg ring-4 ring-white dark:ring-surface-900">
             TEST
           </div>
         )}
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
             alt="Logo"
-            className="h-32 w-auto object-contain mx-auto mb-6"
+            className="h-24 sm:h-28 w-auto object-contain mx-auto mb-6 drop-shadow-xl"
             onError={(e) => {
               // Se il logo non esiste, mostra il fallback
               const target = e.target as HTMLImageElement;
@@ -164,38 +164,40 @@ export default function LoginPage() {
               if (fallback) fallback.style.display = 'flex';
             }}
           />
-          <div className="h-32 w-32 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ display: 'none' }}>
+          <div className="h-24 w-24 sm:h-28 sm:w-28 bg-gradient-to-br from-primary-500 to-primary-700 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-glow" style={{ display: 'none' }}>
             <span className="text-white font-bold text-5xl">B</span>
           </div>
-          <div className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-800 mb-3">
+          <div className="inline-flex items-center rounded-full border border-primary-300/30 bg-primary-500/10 px-4 py-1.5 text-xs font-semibold text-primary-200 mb-4 backdrop-blur-sm">
             Software di Gestione Specializzato
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Accesso alla piattaforma</h1>
-          <p className="mt-1 text-sm text-gray-600">Controllo operativo, reportistica e workflow in un unico hub</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Bentornato</h1>
+          <p className="mt-2 text-sm text-surface-300">Accedi per gestire i tuoi rapportini</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-slideUp">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-sm text-red-600">{error}</p>
+            <div className="bg-red-50/80 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-2xl p-4 animate-slideUp backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
               </div>
             </div>
           )}
 
-          <div>
+          <div className="space-y-1.5">
             <label
               htmlFor="username"
-              className="block text-sm font-semibold text-gray-700 mb-2"
+              className="block text-sm font-medium text-surface-200 ml-1"
             >
               Username o Email
             </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-surface-400 group-focus-within:text-primary-300 transition-colors">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -206,31 +208,31 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isLoading}
-                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white placeholder-gray-500 transition-all disabled:opacity-50"
-                placeholder="Username o email"
+                className="w-full pl-11 pr-4 py-3.5 bg-black/35 border border-surface-300/30 rounded-2xl focus:ring-2 focus:ring-primary-400/60 focus:border-primary-400 text-white placeholder-surface-400 transition-all disabled:opacity-50 backdrop-blur-md"
+                placeholder="Inserisci username o email"
                 autoComplete="username"
               />
             </div>
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center ml-1">
               <label
                 htmlFor="password"
-                className="block text-sm font-semibold text-gray-700"
+                className="block text-sm font-medium text-surface-200"
               >
                 Password
               </label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-primary-600 hover:underline"
+                className="text-xs font-medium text-primary-300 hover:text-primary-200 transition-colors"
               >
                 Password dimenticata?
               </Link>
             </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-surface-400 group-focus-within:text-primary-300 transition-colors">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
@@ -241,14 +243,14 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
-                className="w-full pl-10 pr-12 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white placeholder-gray-500 transition-all disabled:opacity-50"
+                className="w-full pl-11 pr-12 py-3.5 bg-black/35 border border-surface-300/30 rounded-2xl focus:ring-2 focus:ring-primary-400/60 focus:border-primary-400 text-white placeholder-surface-400 transition-all disabled:opacity-50 backdrop-blur-md"
                 placeholder="Inserisci password"
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-surface-400 hover:text-white transition-colors"
               >
                 {showPassword ? (
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,16 +269,19 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-2xl shadow-glow text-sm font-bold text-white bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
           >
             {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <div className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
                 <span>Accesso in corso...</span>
-              </>
+              </div>
             ) : (
               <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
                 <span>Accedi</span>
@@ -285,20 +290,20 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 mb-2">
+        <div className="mt-8 text-center">
+          <p className="text-sm text-surface-300 mb-4">
             Non hai un account?{' '}
-            <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
+            <Link href="/register" className="text-primary-300 hover:text-primary-200 font-bold transition-colors">
               Registrati
             </Link>
           </p>
-          <div className="text-xs text-gray-500 space-y-1">
+          <div className="text-xs text-surface-400 space-y-1.5">
             <p>
               <a 
                 href="https://bitora.it" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="hover:text-primary-600 transition-colors"
+                className="hover:text-primary-300 transition-colors"
               >
                 Bitora Software di Gestione Specializzato
               </a>
@@ -307,14 +312,14 @@ export default function LoginPage() {
                 href="https://bitora.it" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="hover:text-primary-600 transition-colors font-semibold"
+                className="hover:text-primary-300 transition-colors font-bold"
               >
                 Bitora.it
               </a>
             </p>
-            <p>© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
+            <p className="font-medium">© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
             <p>
-              <Link href="/privacy" className="hover:text-primary-600 transition-colors underline">
+              <Link href="/privacy" className="hover:text-primary-300 transition-colors underline font-medium">
                 Privacy Policy e Cookie
               </Link>
             </p>

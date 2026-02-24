@@ -145,10 +145,10 @@ export default function AdminPage() {
       pageSubtitle="Statistiche avanzate clienti e rapportini"
       onLogout={handleLogout}
       topActions={
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-3 justify-end">
           <Link
             href="/admin/users"
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition-colors"
+            className="px-5 py-2.5 bg-purple-500 text-white rounded-xl hover:bg-purple-600 flex items-center gap-2 transition-all shadow-glow-purple font-medium"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -161,20 +161,20 @@ export default function AdminPage() {
                 const dropdown = document.getElementById('export-dropdown');
                 dropdown?.classList.toggle('hidden');
               }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
+              className="px-5 py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 flex items-center gap-2 transition-all shadow-glow-emerald font-medium"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Esporta
             </button>
-            <div id="export-dropdown" className="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+            <div id="export-dropdown" className="hidden absolute right-0 mt-2 w-48 glass-card rounded-2xl shadow-xl border border-surface-200/50 dark:border-surface-700/50 z-10 overflow-hidden">
               <button
                 onClick={() => {
                   exportStatistiche(statistiche, { format: 'xlsx' });
                   document.getElementById('export-dropdown')?.classList.add('hidden');
                 }}
-                className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
+                className="w-full px-4 py-3 text-left text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800/50 transition-colors"
               >
                 Esporta Excel (.xlsx)
               </button>
@@ -183,7 +183,7 @@ export default function AdminPage() {
                   exportStatistiche(statistiche, { format: 'csv' });
                   document.getElementById('export-dropdown')?.classList.add('hidden');
                 }}
-                className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg"
+                className="w-full px-4 py-3 text-left text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800/50 transition-colors border-t border-surface-200/50 dark:border-surface-700/50"
               >
                 Esporta CSV
               </button>
@@ -194,55 +194,59 @@ export default function AdminPage() {
     >
       <div className="space-y-8">
         {/* Statistiche Generali */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="glass-card rounded-3xl p-6 border border-surface-200/50 dark:border-surface-700/50 relative overflow-hidden group">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
+            <div className="flex items-center justify-between relative z-10">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Totale Clienti</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{totalClienti}</p>
+                <p className="text-sm font-medium text-surface-500 dark:text-surface-400">Totale Clienti</p>
+                <p className="text-4xl font-bold text-surface-900 dark:text-white mt-2">{totalClienti}</p>
               </div>
-              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-3">
-                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl p-4 text-blue-600 dark:text-blue-400">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className="glass-card rounded-3xl p-6 border border-surface-200/50 dark:border-surface-700/50 relative overflow-hidden group">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors"></div>
+            <div className="flex items-center justify-between relative z-10">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Totale Rapportini</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{totalRapportini}</p>
+                <p className="text-sm font-medium text-surface-500 dark:text-surface-400">Totale Rapportini</p>
+                <p className="text-4xl font-bold text-surface-900 dark:text-white mt-2">{totalRapportini}</p>
               </div>
-              <div className="bg-green-100 dark:bg-green-900/30 rounded-full p-3">
-                <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl p-4 text-emerald-600 dark:text-emerald-400">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className="glass-card rounded-3xl p-6 border border-surface-200/50 dark:border-surface-700/50 relative overflow-hidden group">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-colors"></div>
+            <div className="flex items-center justify-between relative z-10">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Stufe Pellet</p>
-                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-2">{totalPellet}</p>
+                <p className="text-sm font-medium text-surface-500 dark:text-surface-400">Stufe Pellet</p>
+                <p className="text-4xl font-bold text-orange-500 dark:text-orange-400 mt-2">{totalPellet}</p>
               </div>
-              <div className="bg-orange-100 dark:bg-orange-900/30 rounded-full p-3">
-                <span className="text-2xl">🔥</span>
+              <div className="bg-orange-500/10 dark:bg-orange-500/20 rounded-2xl p-4">
+                <span className="text-3xl">🔥</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className="glass-card rounded-3xl p-6 border border-surface-200/50 dark:border-surface-700/50 relative overflow-hidden group">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors"></div>
+            <div className="flex items-center justify-between relative z-10">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Stufe Legno</p>
-                <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-2">{totalLegno}</p>
+                <p className="text-sm font-medium text-surface-500 dark:text-surface-400">Stufe Legno</p>
+                <p className="text-4xl font-bold text-amber-600 dark:text-amber-400 mt-2">{totalLegno}</p>
               </div>
-              <div className="bg-amber-100 dark:bg-amber-900/30 rounded-full p-3">
-                <span className="text-2xl">🪵</span>
+              <div className="bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl p-4">
+                <span className="text-3xl">🪵</span>
               </div>
             </div>
           </div>
@@ -253,7 +257,7 @@ export default function AdminPage() {
           <div className="mb-8">
             <button
               onClick={() => setShowCharts(!showCharts)}
-              className="mb-4 flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+              className="mb-4 flex items-center gap-2 text-surface-500 dark:text-surface-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors font-medium"
             >
               <svg className={`w-5 h-5 transition-transform ${showCharts ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -262,9 +266,9 @@ export default function AdminPage() {
             </button>
             {showCharts && (
               <Suspense fallback={
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                  <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento grafici...</p>
+                <div className="glass-card rounded-3xl p-12 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                  <p className="mt-4 text-surface-600 dark:text-surface-300">Caricamento grafici...</p>
                 </div>
               }>
                 <StatisticsCharts data={statistiche} />
@@ -274,17 +278,17 @@ export default function AdminPage() {
         )}
 
         {/* Barra di ricerca */}
-        <div className="mb-6">
-          <div className="relative">
+        <div className="mb-8">
+          <div className="relative group">
             <input
               type="text"
               placeholder="Cerca cliente per nome, cognome, città o telefono..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 shadow-md"
+              className="w-full px-6 py-4 pl-14 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm shadow-glass transition-all"
             />
             <svg
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              className="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-surface-400 group-focus-within:text-primary-500 transition-colors"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

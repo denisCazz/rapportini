@@ -114,50 +114,55 @@ export default function Home() {
         )}
 
         {loading ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento rapportini...</p>
+          <div className="glass-card rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
+            <div className="relative w-16 h-16 mb-6">
+              <div className="absolute inset-0 border-4 border-primary-200 dark:border-primary-900 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-primary-500 rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <p className="text-lg font-medium text-surface-600 dark:text-surface-300">Caricamento rapportini in corso...</p>
           </div>
         ) : (
-          <>
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/50 dark:bg-surface-900/50 p-6 rounded-3xl border border-surface-200 dark:border-surface-800 backdrop-blur-sm shadow-sm">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Rapportini recenti</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Ultimi {rapportini.length} rapportini</p>
+                <h2 className="text-2xl font-bold text-surface-900 dark:text-white tracking-tight">Rapportini recenti</h2>
+                <p className="text-sm text-surface-500 dark:text-surface-400 font-medium mt-1">Ultimi {rapportini.length} rapportini registrati</p>
               </div>
               <Link
                 href="/rapportini"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all text-sm font-medium"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-surface-800 text-surface-900 dark:text-white border border-surface-200 dark:border-surface-700 rounded-2xl hover:bg-surface-50 dark:hover:bg-surface-700 transition-all text-sm font-bold shadow-sm group"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-primary-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 Cerca tutti i rapportini
               </Link>
             </div>
-            <RapportiniList
-              rapportini={rapportini}
-              onDelete={handleDeleteRapportino}
-              onEdit={isOperatore ? (r) => router.push(`/rapportini/modifica/${r.id}`) : undefined}
-              settings={settings}
-            />
-          </>
+            <div className="glass-card rounded-3xl overflow-hidden">
+              <RapportiniList
+                rapportini={rapportini}
+                onDelete={handleDeleteRapportino}
+                onEdit={isOperatore ? (r) => router.push(`/rapportini/modifica/${r.id}`) : undefined}
+                settings={settings}
+              />
+            </div>
+          </div>
         )}
 
-        <footer className="mt-12 py-6 border-t border-gray-200 dark:border-gray-700">
+        <footer className="mt-16 py-8 border-t border-surface-200 dark:border-surface-800">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
+            <div className="text-sm text-surface-500 dark:text-surface-400 text-center sm:text-left">
               <p>
-                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold">
+                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-bold">
                   Bitora Software di Gestione Specializzato
                 </a>
                 {' è un prodotto di '}
-                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold">
+                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-bold">
                   Bitora.it
                 </a>
               </p>
-              <p className="text-xs mt-1">© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
-              <Link href="/privacy" className="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-1 inline-block">Privacy Policy</Link>
+              <p className="text-xs mt-2 font-medium">© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
+              <Link href="/privacy" className="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block font-medium">Privacy Policy</Link>
             </div>
           </div>
         </footer>
