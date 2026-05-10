@@ -1,55 +1,126 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { createTokenPair } from '@/lib/jwt';
 import { loginSchema, validateRequest } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
 import { resolveAuthOrgId } from '@/lib/api-auth';
+import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-options';
+import { writeAuditLog } from '@/lib/audit-log';
+import {
+  isSuperUserConfigured,
+  resolveSuperUserOrgId,
+  superUserDisplayProfile,
+  verifySuperUserCredentials,
+  getSuperUserJwtUserId,
+} from '@/lib/super-user';
+
+const userLoginSelect = {
+  id: true,
+  username: true,
+  password_hash: true,
+  ruolo: true,
+  nome: true,
+  cognome: true,
+  telefono: true,
+  email: true,
+  qualifica: true,
+  firma: true,
+  attivo: true,
+  org_id: true,
+  must_change_password: true,
+} as const;
 
 // POST - Login utente
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    // Rate limiting
     const clientIP = getClientIP(request);
     const rateLimitKey = createRateLimitKey('login', clientIP);
     const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMIT_CONFIGS.login);
 
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: `Troppi tentativi di login. Riprova tra ${rateLimitResult.retryAfter} secondi.`,
-          retryAfter: rateLimitResult.retryAfter 
+          retryAfter: rateLimitResult.retryAfter,
         },
-        { 
+        {
           status: 429,
           headers: {
             'Retry-After': String(rateLimitResult.retryAfter),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(rateLimitResult.resetTime),
-          }
+          },
         }
       );
     }
 
     const body = await request.json();
 
-    // Validazione input con Zod
     const validation = validateRequest(loginSchema, body);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.errors.join(', ') },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
     }
 
     const { username, password } = validation.data;
     const requestedOrgId = (
-      body?.org_id
-      || body?.idsocieta
-      || await resolveAuthOrgId(request, supabase)
-      || ''
-    ).toString().trim();
+      body?.org_id ||
+      body?.idsocieta ||
+      (await resolveAuthOrgId(request)) ||
+      ''
+    )
+      .toString()
+      .trim();
+
+    if (isSuperUserConfigured() && (await verifySuperUserCredentials(username, password))) {
+      const resolvedOrgId = resolveSuperUserOrgId(requestedOrgId);
+      const profile = superUserDisplayProfile();
+      const envUser = (process.env.SUPER_USER_USERNAME || '').trim();
+
+      const { accessToken, refreshToken } = await createTokenPair({
+        id: getSuperUserJwtUserId(),
+        username: envUser,
+        org_id: resolvedOrgId,
+        ruolo: 'admin',
+        must_change_password: false,
+      });
+
+      const userData = {
+        id: getSuperUserJwtUserId(),
+        username: envUser,
+        org_id: resolvedOrgId,
+        ruolo: 'admin' as const,
+        nome: profile.nome,
+        cognome: profile.cognome,
+        telefono: '',
+        email: '',
+        qualifica: '',
+        firma: '',
+        must_change_password: false,
+      };
+
+      const response = NextResponse.json({
+        user: userData,
+        success: true,
+        accessToken,
+        refreshToken,
+      });
+
+      response.cookies.set('access_token', accessToken, authAccessCookieOptions(15 * 60));
+      response.cookies.set('refresh_token', refreshToken, authRefreshCookieOptions(7 * 24 * 60 * 60));
+      response.headers.set('X-RateLimit-Remaining', String(rateLimitResult.remaining));
+      response.headers.set('X-RateLimit-Reset', String(rateLimitResult.resetTime));
+
+      void writeAuditLog({
+        org_id: resolvedOrgId,
+        user_id: getSuperUserJwtUserId(),
+        action: 'login_success_super',
+        resource: 'session',
+        ip: clientIP,
+      });
+
+      return response;
+    }
 
     if (!requestedOrgId) {
       return NextResponse.json(
@@ -58,90 +129,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cerca utente nel database - supporta sia username che email
-    // Username e email sono case-insensitive (non distinguono maiuscole/minuscole)
     const isEmail = username.includes('@');
-    
-    let utente: any = null;
-    let error = null;
+    const trimmed = username.trim();
 
-    if (isEmail) {
-      // Cerca per email (case-insensitive)
-      const result = await supabase
-        .from('utenti')
-        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, org_id')
-        .eq('org_id', requestedOrgId)
-        .ilike('email', username)
-        .limit(20);
-      const candidati = result.data || [];
-      error = result.error;
+    const candidati = await prisma.utenti.findMany({
+      where: {
+        org_id: requestedOrgId,
+        attivo: true,
+        ...(isEmail
+          ? { email: { equals: trimmed, mode: 'insensitive' as const } }
+          : { username: { equals: trimmed, mode: 'insensitive' as const } }),
+      },
+      take: 20,
+      select: userLoginSelect,
+    });
 
-      for (const candidato of candidati) {
-        if (!candidato.attivo || !candidato.password_hash) {
-          continue;
-        }
+    let utente: (typeof candidati)[0] | null = null;
 
-        let ok = false;
-        if (candidato.password_hash.match(/^\$2[abxy]\$/)) {
-          ok = await bcrypt.compare(password, candidato.password_hash);
-        } else {
-          ok = password === candidato.password_hash;
-        }
-
-        if (ok) {
-          utente = candidato;
-          break;
-        }
+    for (const candidato of candidati) {
+      if (!candidato.password_hash?.match(/^\$2[abxy]\$/)) {
+        continue;
       }
-    } else {
-      // Cerca per username (case-insensitive)
-      const result = await supabase
-        .from('utenti')
-        .select('id, username, password_hash, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, org_id')
-        .eq('org_id', requestedOrgId)
-        .ilike('username', username)
-        .limit(20);
-      const candidati = result.data || [];
-      error = result.error;
-
-      for (const candidato of candidati) {
-        if (!candidato.attivo || !candidato.password_hash) {
-          continue;
-        }
-
-        let ok = false;
-        if (candidato.password_hash.match(/^\$2[abxy]\$/)) {
-          ok = await bcrypt.compare(password, candidato.password_hash);
-        } else {
-          ok = password === candidato.password_hash;
-        }
-
-        if (ok) {
-          utente = candidato;
-          break;
-        }
+      const ok = await bcrypt.compare(password, candidato.password_hash);
+      if (ok) {
+        utente = candidato;
+        break;
       }
     }
 
-    if (error) {
-      console.error('Errore query utente:', error);
+    if (!utente) {
+      return NextResponse.json({ error: 'Credenziali non valide' }, { status: 401 });
     }
-
-    if (error || !utente) {
-      console.log('Utente non trovato:', username);
-      return NextResponse.json(
-        { error: 'Credenziali non valide' },
-        { status: 401 }
-      );
-    }
-
-    console.log('Utente trovato:', utente.username, 'ruolo:', utente.ruolo, 'attivo:', utente.attivo);
 
     if (!utente.attivo) {
-      return NextResponse.json(
-        { error: 'Account disattivato' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Account disattivato' }, { status: 403 });
     }
 
     const resolvedOrgId = utente.org_id || requestedOrgId;
@@ -152,72 +173,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Aggiorna ultimo accesso
-    await supabase
-      .from('utenti')
-      .update({ ultimo_accesso: new Date().toISOString() })
-      .eq('id', utente.id)
-      .eq('org_id', resolvedOrgId);
+    await prisma.utenti.updateMany({
+      where: { id: utente.id, org_id: resolvedOrgId },
+      data: { ultimo_accesso: new Date() },
+    });
 
-    // Crea token JWT
+    const mustChange = Boolean(utente.must_change_password);
+    const ruolo = utente.ruolo === 'admin' ? 'admin' : 'operatore';
+
     const { accessToken, refreshToken } = await createTokenPair({
       id: utente.id,
       username: utente.username,
       org_id: resolvedOrgId,
-      ruolo: utente.ruolo,
+      ruolo,
+      must_change_password: mustChange,
     });
 
-    // Dati utente (senza password)
     const userData = {
       id: utente.id,
       username: utente.username,
       org_id: resolvedOrgId,
-      ruolo: utente.ruolo,
+      ruolo,
       nome: utente.nome,
       cognome: utente.cognome,
       telefono: utente.telefono || '',
       email: utente.email || '',
       qualifica: utente.qualifica || '',
       firma: utente.firma || '',
+      must_change_password: mustChange,
     };
 
-    // Crea response con cookie HttpOnly
-    const response = NextResponse.json({ 
-      user: userData, 
+    const response = NextResponse.json({
+      user: userData,
       success: true,
-      // Includi anche i token per retrocompatibilità con localStorage
       accessToken,
       refreshToken,
     });
 
-    // Imposta cookie HttpOnly per sicurezza
-    response.cookies.set('access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60, // 15 minuti
-      path: '/',
-    });
+    response.cookies.set('access_token', accessToken, authAccessCookieOptions(15 * 60));
+    response.cookies.set('refresh_token', refreshToken, authRefreshCookieOptions(7 * 24 * 60 * 60));
 
-    response.cookies.set('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 giorni
-      path: '/',
-    });
-
-    // Aggiungi header rate limit info
     response.headers.set('X-RateLimit-Remaining', String(rateLimitResult.remaining));
     response.headers.set('X-RateLimit-Reset', String(rateLimitResult.resetTime));
 
+    void writeAuditLog({
+      org_id: resolvedOrgId,
+      user_id: utente.id,
+      action: 'login_success',
+      resource: 'session',
+      ip: clientIP,
+    });
+
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error during login:', error);
+    const message = error instanceof Error ? error.message : 'Errore durante il login';
+    if (message.includes('JWT_SECRET')) {
+      return NextResponse.json({ error: 'Configurazione server incompleta' }, { status: 503 });
+    }
     return NextResponse.json(
-      { error: error.message || 'Errore durante il login' },
+      { error: process.env.NODE_ENV === 'development' ? message : 'Errore durante il login' },
       { status: 500 }
     );
   }
 }
-

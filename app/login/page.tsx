@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
+import AuthSidePanel from '@/components/auth/AuthSidePanel';
 
 const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   left: 5 + (i * 5.5) % 90,
@@ -69,7 +70,11 @@ export default function LoginPage() {
       const result = await auth.login(username, password);
       
       if (result.success && result.user) {
-        router.push('/');
+        if (result.user.must_change_password) {
+          router.push('/change-password-required');
+        } else {
+          router.push('/');
+        }
       } else {
         setError(result.error || 'Credenziali non valide');
         setIsLoading(false);
@@ -81,7 +86,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-[#0d0d0d]">
+    <div className="relative min-h-screen flex overflow-hidden bg-[#0d0d0d]">
+      <AuthSidePanel />
+    <div className="relative flex-1 flex items-center justify-center p-4 overflow-hidden">
       {/* Effetto fuoco elegante - calda atmosfera camino */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Base scura con vignette - concentra lo sguardo al centro */}
@@ -326,6 +333,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -1,0 +1,7 @@
+# Sidecar backup giornaliero (crond + pg_dump client)
+FROM alpine:3.20
+RUN apk add --no-cache postgresql-client findutils dcron
+COPY scripts/backup.sh /backup.sh
+COPY scripts/pg-backup-entrypoint.sh /entrypoint.sh
+RUN chmod +x /backup.sh /entrypoint.sh
+CMD ["/bin/sh", "/entrypoint.sh"]

@@ -1,17 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { resolveAuthOrgId } from '@/lib/api-auth';
+import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
+
+const BCRYPT_ROUNDS = 12;
 
 // POST - Registrazione nuovo utente (solo operatore)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
+    const clientIP = getClientIP(request);
+    const rateLimitKey = createRateLimitKey('register', clientIP);
+    const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMIT_CONFIGS.register);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: `Troppe richieste di registrazione. Riprova tra ${rateLimitResult.retryAfter} secondi.`,
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter) } }
+      );
+    }
     const payload = await request.json();
     const orgId = (
       payload?.org_id
       || payload?.idsocieta
-      || await resolveAuthOrgId(request, supabase)
+      || (await resolveAuthOrgId(request))
       || ''
     ).toString().trim();
 
@@ -39,16 +53,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica se l'username esiste già
-    const { data: existingUser, error: checkError } = await supabase
-      .from('utenti')
-      .select('id')
-      .eq('username', username)
-      .eq('org_id', orgId)
-      .maybeSingle();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
-    }
+    const existingUser = await prisma.utenti.findFirst({
+      where: { username, org_id: orgId },
+      select: { id: true },
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -58,35 +66,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash della password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     // Crea nuovo utente (SOLO operatore, non admin)
-    const { data: newUser, error: createError } = await supabase
-      .from('utenti')
-      .insert({
-        username,
-        password_hash: passwordHash,
-        ruolo: 'operatore', // FORZATO a operatore, non può essere admin
-        org_id: orgId,
-        nome,
-        cognome,
-        telefono,
-        email: email || null,
-        qualifica,
-        attivo: true,
-      })
-      .select('id, username, ruolo, nome, cognome, email, org_id')
-      .single();
-
-    if (createError) {
-      console.error('Error creating user:', createError);
-      if (createError.code === '23503' || String(createError.message || '').includes('utenti_org_id_fkey')) {
+    let newUser;
+    try {
+      newUser = await prisma.utenti.create({
+        data: {
+          username,
+          password_hash: passwordHash,
+          ruolo: 'operatore',
+          org_id: orgId,
+          nome,
+          cognome,
+          telefono,
+          email: email || null,
+          qualifica,
+          attivo: true,
+          must_change_password: false,
+        },
+        select: { id: true, username: true, ruolo: true, nome: true, cognome: true, email: true, org_id: true },
+      });
+    } catch (e: unknown) {
+      console.error('Error creating user:', e);
+      if (e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === 'P2003') {
         return NextResponse.json(
           { error: `Organizzazione non valida (org_id: ${orgId}). Verifica che esista nel database.` },
           { status: 400 }
         );
       }
-      throw createError;
+      throw e;
     }
 
     return NextResponse.json({

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS utenti (
   firma TEXT,
   attivo BOOLEAN DEFAULT true,
   ultimo_accesso TIMESTAMP WITH TIME ZONE,
+  must_change_password BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT uq_utenti_org_id_username UNIQUE (org_id, username)
@@ -126,6 +127,21 @@ CREATE TABLE IF NOT EXISTS materiali (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(org_id, modello_id, nome)
 );
+
+-- Audit (azioni sensibili)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id VARCHAR(100) NOT NULL DEFAULT 'default',
+  user_id UUID REFERENCES utenti(id) ON DELETE SET NULL,
+  action VARCHAR(64) NOT NULL,
+  resource VARCHAR(128),
+  details JSONB,
+  ip VARCHAR(64),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_org_created ON audit_log(org_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);
 
 -- ============================================
 -- 2. INDICI
@@ -312,8 +328,9 @@ CREATE POLICY "materiali_org_insert" ON materiali FOR INSERT WITH CHECK (org_id 
 CREATE POLICY "materiali_org_update" ON materiali FOR UPDATE USING (org_id = (SELECT public.current_org_id())) WITH CHECK (org_id = (SELECT public.current_org_id()));
 CREATE POLICY "materiali_org_delete" ON materiali FOR DELETE USING (org_id = (SELECT public.current_org_id()) AND (SELECT public.current_user_role()) = 'admin');
 
--- Utente admin iniziale (password: admin123 - esegui hash-passwords.js dopo!)
-INSERT INTO utenti (org_id, username, password_hash, ruolo, nome, cognome, email) VALUES
-  ('default', 'admin', 'admin123', 'admin', 'Admin', 'Sistema', 'admin@bitora.it')
+-- Utenti iniziali: password bcrypt (cambiale al primo accesso — must_change_password = true)
+INSERT INTO utenti (org_id, username, password_hash, ruolo, nome, cognome, email, must_change_password) VALUES
+  ('default', 'admin', '$2a$12$oFJVhBNV7P8fCP952yJf8uOtQDOokcQCtHCLO1HUlStfFlY41tTo.', 'admin', 'Admin', 'Sistema', 'admin@bitora.it', true),
+  ('default', 'operatore', '$2a$12$J8N8RfBUjXCuWu5v2AsoAetHsMhdRHpkhLbdAAVFTtc/lQBs8y/Oy', 'operatore', 'Operatore', 'Demo', 'operatore@bitora.it', true)
 ON CONFLICT (org_id, username) DO NOTHING;
 

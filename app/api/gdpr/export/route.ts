@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import { getUserIdFromRequest, getOrgIdFromRequest } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
@@ -14,39 +14,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
+    const utente = await prisma.utenti.findFirst({
+      where: { id: userId, org_id: orgId },
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        cognome: true,
+        email: true,
+        telefono: true,
+        qualifica: true,
+        ruolo: true,
+        created_at: true,
+        ultimo_accesso: true,
+      },
+    });
 
-    // Dati utente
-    const { data: utente, error: utenteError } = await supabase
-      .from('utenti')
-      .select('id, username, nome, cognome, email, telefono, qualifica, ruolo, created_at, ultimo_accesso')
-      .eq('id', userId)
-      .eq('org_id', orgId)
-      .single();
-
-    if (utenteError || !utente) {
+    if (!utente) {
       return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
     }
 
-    // Rapportini creati dall'utente
-    const { data: rapportini } = await supabase
-      .from('rapportini')
-      .select(`
-        id,
-        data_intervento,
-        ora_intervento,
-        tipo_stufa,
-        tipo_intervento,
-        cliente:clienti(nome, cognome, indirizzo, citta)
-      `)
-      .eq('utente_id', userId)
-      .eq('org_id', orgId)
-      .order('data_intervento', { ascending: false })
-      .limit(500);
+    const rapportini = await prisma.rapportini.findMany({
+      where: { utente_id: userId, org_id: orgId },
+      orderBy: { data_intervento: 'desc' },
+      take: 500,
+      select: {
+        id: true,
+        data_intervento: true,
+        ora_intervento: true,
+        tipo_stufa: true,
+        tipo_intervento: true,
+        clienti: { select: { nome: true, cognome: true, indirizzo: true, citta: true } },
+      },
+    });
 
     const exportData = {
       exportDate: new Date().toISOString(),
-      dataSubject: 'Dati personali dell\'utente',
+      dataSubject: "Dati personali dell'utente",
       user: {
         id: utente.id,
         username: utente.username,
@@ -59,13 +63,15 @@ export async function GET(request: NextRequest) {
         dataRegistrazione: utente.created_at,
         ultimoAccesso: utente.ultimo_accesso || null,
       },
-      rapportiniCreati: (rapportini || []).map((r: any) => ({
+      rapportiniCreati: rapportini.map((r) => ({
         id: r.id,
-        data: r.data_intervento,
-        ora: r.ora_intervento,
+        data: r.data_intervento.toISOString().slice(0, 10),
+        ora: typeof r.ora_intervento === 'string' ? r.ora_intervento : r.ora_intervento.toISOString().slice(11, 19),
         tipoStufa: r.tipo_stufa,
         tipoIntervento: r.tipo_intervento,
-        cliente: r.cliente ? `${r.cliente.nome} ${r.cliente.cognome} - ${r.cliente.indirizzo}, ${r.cliente.citta}` : null,
+        cliente: r.clienti
+          ? `${r.clienti.nome} ${r.clienti.cognome} - ${r.clienti.indirizzo}, ${r.clienti.citta}`
+          : null,
       })),
     };
 
@@ -77,7 +83,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('GDPR export error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Errore nell\'esportazione' },
+      { error: error instanceof Error ? error.message : "Errore nell'esportazione" },
       { status: 500 }
     );
   }

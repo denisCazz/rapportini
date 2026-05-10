@@ -1,0 +1,5 @@
+# Imposta DOMAIN nel .env (es. app.tuodominio.it)
+{$DOMAIN:localhost} {
+  encode gzip zstd
+  reverse_proxy app:3000
+}

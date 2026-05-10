@@ -1,66 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { registerSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
+const userSelectPublic = {
+  id: true,
+  username: true,
+  ruolo: true,
+  nome: true,
+  cognome: true,
+  telefono: true,
+  email: true,
+  qualifica: true,
+  firma: true,
+  attivo: true,
+  ultimo_accesso: true,
+  created_at: true,
+} as const;
+
 // GET - Ottieni tutti gli utenti (solo admin)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 
     if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Accesso non autorizzato' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
-    const { data: utenti, error } = await supabase
-      .from('utenti')
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, ultimo_accesso, created_at')
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    const utenti = await prisma.utenti.findMany({
+      where: { org_id: orgId },
+      orderBy: { created_at: 'desc' },
+      select: userSelectPublic,
+    });
 
     return NextResponse.json({ data: utenti });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching users:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nel recupero degli utenti' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nel recupero degli utenti';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 // POST - Crea nuovo utente (solo admin)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 
     if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Accesso non autorizzato' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
     const body = await request.json();
 
-    // Validazione
     const validation = validateRequest(registerSchema, body);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.errors.join(', ') },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
     }
 
     const { username, password, nome, cognome, email, telefono, qualifica, ruolo, firma } = validation.data as {
@@ -75,28 +74,19 @@ export async function POST(request: NextRequest) {
       firma?: string;
     };
 
-    // Verifica username unico
-    const { data: existingUser } = await supabase
-      .from('utenti')
-      .select('id')
-      .eq('username', username)
-      .eq('org_id', orgId)
-      .single();
+    const existingUser = await prisma.utenti.findFirst({
+      where: { username, org_id: orgId },
+      select: { id: true },
+    });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Username già in uso' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Username già in uso' }, { status: 400 });
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Crea utente
-    const { data: newUser, error } = await supabase
-      .from('utenti')
-      .insert({
+    const newUser = await prisma.utenti.create({
+      data: {
         username,
         password_hash: passwordHash,
         nome,
@@ -108,18 +98,26 @@ export async function POST(request: NextRequest) {
         ruolo,
         org_id: orgId,
         attivo: true,
-      })
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo')
-      .single();
-
-    if (error) throw error;
+        must_change_password: false,
+      },
+      select: {
+        id: true,
+        username: true,
+        ruolo: true,
+        nome: true,
+        cognome: true,
+        telefono: true,
+        email: true,
+        qualifica: true,
+        firma: true,
+        attivo: true,
+      },
+    });
 
     return NextResponse.json({ data: newUser, success: true }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating user:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nella creazione dell\'utente' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Errore nella creazione dell'utente";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

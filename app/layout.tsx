@@ -1,28 +1,37 @@
-import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
-import { Toaster } from 'sonner'
-import CookieConsent from '@/components/CookieConsent'
-import { PWAProvider } from '@/lib/pwa-context'
-import './globals.css'
-import Script from 'next/script'
+import type { Metadata, Viewport } from 'next';
+import { Inter, Fraunces } from 'next/font/google';
+import { Toaster } from 'sonner';
+import CookieConsent from '@/components/CookieConsent';
+import { PWAProvider } from '@/lib/pwa-context';
+import './globals.css';
+import Script from 'next/script';
+import { cn } from '@/lib/utils';
 
-// Ottimizzazione font loading con display swap
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
-  display: 'swap', // Migliora il rendering del font
+  display: 'swap',
   preload: true,
-})
+  variable: '--font-sans',
+});
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-heading',
+});
 
 export const viewport: Viewport = {
-  themeColor: '#f97316',
+  themeColor: '#ea580c',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-}
+};
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'Bitora - Software di Gestione Specializzato',
-  description: 'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
+  description:
+    'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -36,7 +45,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Bitora - Software di Gestione Specializzato',
-    description: 'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
+    description:
+      'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
     images: [
       {
         url: '/logo.png',
@@ -52,24 +62,25 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Bitora - Software di Gestione Specializzato',
-    description: 'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
+    description:
+      'Piattaforma verticale per la gestione operativa specializzata e dei rapportini di intervento',
     images: ['/logo.png'],
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="it">
+    <html lang="it" className={cn('font-sans', inter.variable, fraunces.variable)}>
       <head>
         <link rel="apple-touch-icon" href="/logo.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={inter.className}>
+      <body className={cn(inter.className, 'antialiased')}>
         <PWAProvider>
           {children}
           <Toaster richColors position="top-center" closeButton />
@@ -97,5 +108,5 @@ export default function RootLayout({
         />
       </body>
     </html>
-  )
+  );
 }

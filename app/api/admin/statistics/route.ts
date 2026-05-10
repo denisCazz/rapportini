@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 
 // GET - Ottieni statistiche raggruppate per cliente (solo admin)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    // Verifica autenticazione e ruolo admin
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Autenticazione richiesta' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Autenticazione richiesta' }, { status: 401 });
     }
 
     if (userRole !== 'admin') {
@@ -24,54 +19,45 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       );
     }
-    // Ottieni tutti i rapportini con dati cliente
-    const { data: rapportini, error } = await supabase
-      .from('rapportini')
-      .select(`
-        id,
-        data_intervento,
-        tipo_stufa,
-        tipo_intervento,
-        cliente_id,
-        cliente:clienti(
-          id,
-          nome,
-          cognome,
-          ragione_sociale,
-          indirizzo,
-          citta,
-          cap,
-          telefono,
-          email
-        )
-      `)
-      .eq('org_id', orgId)
-      .order('data_intervento', { ascending: false });
 
-    if (error) {
-      throw error;
-    }
+    const rapportini = await prisma.rapportini.findMany({
+      where: { org_id: orgId },
+      orderBy: { data_intervento: 'desc' },
+      select: {
+        id: true,
+        data_intervento: true,
+        tipo_stufa: true,
+        tipo_intervento: true,
+        cliente_id: true,
+        clienti: {
+          select: {
+            id: true,
+            nome: true,
+            cognome: true,
+            ragione_sociale: true,
+            indirizzo: true,
+            citta: true,
+            cap: true,
+            telefono: true,
+            email: true,
+          },
+        },
+      },
+    });
 
-    // Verifica che ci siano rapportini
-    if (!rapportini || rapportini.length === 0) {
+    if (!rapportini.length) {
       return NextResponse.json([]);
     }
 
-    // Raggruppa per cliente usando l'ID cliente come chiave
-    const clientiMap = new Map<string, any>();
+    const clientiMap = new Map<string, Record<string, unknown>>();
 
-    rapportini.forEach((rapportino: any) => {
-      // Salta rapportini senza cliente
-      if (!rapportino.cliente || !rapportino.cliente.id) {
-        return;
-      }
+    rapportini.forEach((rapportino) => {
+      const cliente = rapportino.clienti;
+      if (!cliente?.id) return;
 
-      const cliente = rapportino.cliente;
       const clienteId = cliente.id;
-      
-      // Usa l'ID cliente come chiave per il raggruppamento
+
       if (!clientiMap.has(clienteId)) {
-        // Crea un nuovo gruppo cliente
         clientiMap.set(clienteId, {
           cliente: {
             id: cliente.id,
@@ -84,64 +70,65 @@ export async function GET(request: NextRequest) {
             telefono: cliente.telefono,
             email: cliente.email || '',
           },
-          rapportini: [],
+          rapportini: [] as unknown[],
           statistiche: {
             totale: 0,
             pellet: 0,
             legno: 0,
-            ultimoIntervento: null,
-            primoIntervento: null,
+            ultimoIntervento: null as string | null,
+            primoIntervento: null as string | null,
             tipiIntervento: {} as Record<string, number>,
           },
         });
       }
 
-      const clienteData = clientiMap.get(clienteId);
-      if (!clienteData) {
-        return;
-      }
+      const clienteData = clientiMap.get(clienteId)!;
+      const stats = clienteData.statistiche as {
+        totale: number;
+        pellet: number;
+        legno: number;
+        ultimoIntervento: string | null;
+        primoIntervento: string | null;
+        tipiIntervento: Record<string, number>;
+      };
 
-      // Aggiungi il rapportino al gruppo
-      clienteData.rapportini.push({
+      (clienteData.rapportini as unknown[]).push({
         id: rapportino.id,
-        dataIntervento: rapportino.data_intervento,
+        dataIntervento: rapportino.data_intervento.toISOString().slice(0, 10),
         tipoStufa: rapportino.tipo_stufa,
         tipoIntervento: rapportino.tipo_intervento,
       });
 
-      // Aggiorna statistiche
-      clienteData.statistiche.totale++;
+      stats.totale++;
       if (rapportino.tipo_stufa === 'pellet') {
-        clienteData.statistiche.pellet++;
+        stats.pellet++;
       } else {
-        clienteData.statistiche.legno++;
+        stats.legno++;
       }
 
+      const dataStr = rapportino.data_intervento.toISOString().slice(0, 10);
       const dataIntervento = new Date(rapportino.data_intervento);
-      if (!clienteData.statistiche.ultimoIntervento || dataIntervento > new Date(clienteData.statistiche.ultimoIntervento)) {
-        clienteData.statistiche.ultimoIntervento = rapportino.data_intervento;
+      if (!stats.ultimoIntervento || dataIntervento > new Date(stats.ultimoIntervento)) {
+        stats.ultimoIntervento = dataStr;
       }
-      if (!clienteData.statistiche.primoIntervento || dataIntervento < new Date(clienteData.statistiche.primoIntervento)) {
-        clienteData.statistiche.primoIntervento = rapportino.data_intervento;
+      if (!stats.primoIntervento || dataIntervento < new Date(stats.primoIntervento)) {
+        stats.primoIntervento = dataStr;
       }
 
-      clienteData.statistiche.tipiIntervento[rapportino.tipo_intervento] = 
-        (clienteData.statistiche.tipiIntervento[rapportino.tipo_intervento] || 0) + 1;
+      stats.tipiIntervento[rapportino.tipo_intervento] = (stats.tipiIntervento[rapportino.tipo_intervento] || 0) + 1;
     });
 
-    // Converti Map in array e ordina per totale rapportini (decrescente)
     const statistiche = Array.from(clientiMap.values()).sort(
-      (a, b) => b.statistiche.totale - a.statistiche.totale
+      (a, b) =>
+        (b.statistiche as { totale: number }).totale - (a.statistiche as { totale: number }).totale
     );
 
     const response = NextResponse.json(statistiche);
     response.headers.set('Cache-Control', 'no-store, must-revalidate');
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching statistics:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nel recupero delle statistiche' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nel recupero delle statistiche';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

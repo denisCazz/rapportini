@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { Prisma } from '@prisma/client';
 
 // GET - Cerca clienti esistenti per nome e cognome
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
     const searchParams = request.nextUrl.searchParams;
     const nome = searchParams.get('nome')?.trim();
@@ -16,36 +16,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    // Cerca clienti con query flessibile su nome/cognome (case-insensitive)
-    let query = supabase
-      .from('clienti')
-      .select('id, nome, cognome, ragione_sociale, indirizzo, citta, cap, telefono, email, partita_iva, codice_fiscale')
-      .eq('org_id', orgId)
-      .limit(10);
+    const conditions: Prisma.ClientiWhereInput[] = [];
 
     if (q) {
-      query = query.or(`nome.ilike.%${q}%,cognome.ilike.%${q}%`);
+      conditions.push({
+        OR: [
+          { nome: { contains: q, mode: 'insensitive' } },
+          { cognome: { contains: q, mode: 'insensitive' } },
+        ],
+      });
     }
-
     if (nome) {
-      query = query.ilike('nome', `%${nome}%`);
+      conditions.push({ nome: { contains: nome, mode: 'insensitive' } });
     }
-
     if (cognome) {
-      query = query.ilike('cognome', `%${cognome}%`);
+      conditions.push({ cognome: { contains: cognome, mode: 'insensitive' } });
     }
 
-    const { data: clienti, error } = await query
-      .order('cognome', { ascending: true })
-      .order('nome', { ascending: true });
+    const where: Prisma.ClientiWhereInput = {
+      org_id: orgId,
+      AND: conditions.length ? conditions : undefined,
+    };
 
-    if (error) {
-      console.error('Errore nella ricerca clienti:', error);
-      throw error;
-    }
+    const clienti = await prisma.clienti.findMany({
+      where,
+      take: 10,
+      orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+      select: {
+        id: true,
+        nome: true,
+        cognome: true,
+        ragione_sociale: true,
+        indirizzo: true,
+        citta: true,
+        cap: true,
+        telefono: true,
+        email: true,
+        partita_iva: true,
+        codice_fiscale: true,
+      },
+    });
 
-    // Formatta i risultati
-    const risultati = (clienti || []).map((cliente) => ({
+    const risultati = clienti.map((cliente) => ({
       id: cliente.id,
       nome: cliente.nome,
       cognome: cliente.cognome,
@@ -60,12 +72,9 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json(risultati);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error searching clienti:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nella ricerca clienti' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nella ricerca clienti';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

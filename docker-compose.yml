@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bitora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-bitora}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bitora}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bitora}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET min 32 chars}
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://localhost}
+      NEXT_PUBLIC_DEFAULT_ORG_ID: ${NEXT_PUBLIC_DEFAULT_ORG_ID:-default}
+    depends_on:
+      - postgres
+    networks:
+      - internal
+      - web
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - web
+
+  pg_backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.pg-backup
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bitora}
+      POSTGRES_DB: ${POSTGRES_DB:-bitora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      PGHOST: postgres
+      BACKUP_DIR: /backups
+    volumes:
+      - backups:/backups
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  backups:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+  web:

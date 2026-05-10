@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
 import { parseResponseBody } from '@/lib/api';
+import AuthSidePanel from '@/components/auth/AuthSidePanel';
 
 const QUALIFICHE = [
   'Tecnico specializzato',
@@ -136,10 +137,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 overflow-hidden">
+    <div className="relative min-h-screen flex overflow-hidden bg-stone-100 dark:bg-stone-950">
+      <AuthSidePanel />
+      <div className="relative flex-1 flex items-center justify-center p-4 overflow-hidden">
       <div className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-primary-200/40 blur-3xl dark:bg-primary-900/20" />
-      <div className="pointer-events-none absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-violet-200/30 blur-3xl dark:bg-violet-900/20" />
-      <div className="relative bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gray-200/80 dark:border-gray-700/80">
+      <div className="pointer-events-none absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-amber-900/20 blur-3xl dark:bg-amber-950/30" />
+      <div className="relative bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 border border-stone-200/80 dark:border-stone-700/80">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -391,6 +394,7 @@ export default function RegisterPage() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

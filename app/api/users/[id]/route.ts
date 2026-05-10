@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
-import bcrypt from 'bcryptjs';
-import { updateUserSchema, changePasswordSchema, validateRequest } from '@/lib/validation';
+import { prisma } from '@/lib/db';
+import { updateUserSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { writeAuditLog } from '@/lib/audit-log';
+import { getClientIP } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+const userSelectPublic = {
+  id: true,
+  username: true,
+  ruolo: true,
+  nome: true,
+  cognome: true,
+  telefono: true,
+  email: true,
+  qualifica: true,
+  firma: true,
+  attivo: true,
+  ultimo_accesso: true,
+  created_at: true,
+} as const;
 
 // GET - Ottieni singolo utente
 export async function GET(
@@ -12,41 +28,29 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
     const orgId = getOrgIdFromRequest(request);
 
-    // Solo admin può vedere altri utenti, operatore solo se stesso
     if (userRole !== 'admin' && currentUserId !== id) {
-      return NextResponse.json(
-        { error: 'Accesso non autorizzato' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
-    const { data: utente, error } = await supabase
-      .from('utenti')
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo, ultimo_accesso, created_at')
-      .eq('id', id)
-      .eq('org_id', orgId)
-      .single();
+    const utente = await prisma.utenti.findFirst({
+      where: { id, org_id: orgId },
+      select: userSelectPublic,
+    });
 
-    if (error || !utente) {
-      return NextResponse.json(
-        { error: 'Utente non trovato' },
-        { status: 404 }
-      );
+    if (!utente) {
+      return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
     }
 
     return NextResponse.json({ data: utente });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching user:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nel recupero dell\'utente' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Errore nel recupero dell'utente";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -56,67 +60,84 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
     const orgId = getOrgIdFromRequest(request);
 
-    // Solo admin può modificare altri utenti
     const isAdmin = userRole === 'admin';
     const isSelf = currentUserId === id;
 
     if (!isAdmin && !isSelf) {
-      return NextResponse.json(
-        { error: 'Accesso non autorizzato' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
     const body = await request.json();
 
-    // Validazione
     const validation = validateRequest(updateUserSchema, body);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.errors.join(', ') },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
     }
 
-    const updateData = validation.data;
+    const raw = validation.data as Record<string, unknown>;
+    const updateData: Record<string, unknown> = { ...raw };
 
-    // Solo admin può cambiare ruolo e stato attivo
     if (!isAdmin) {
       delete updateData.ruolo;
       delete updateData.attivo;
     }
 
-    // Non permettere di disattivare se stesso
     if (isSelf && updateData.attivo === false) {
-      return NextResponse.json(
-        { error: 'Non puoi disattivare il tuo account' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Non puoi disattivare il tuo account' }, { status: 400 });
     }
 
-    const { data: updatedUser, error } = await supabase
-      .from('utenti')
-      .update(updateData)
-      .eq('id', id)
-      .eq('org_id', orgId)
-      .select('id, username, ruolo, nome, cognome, telefono, email, qualifica, firma, attivo')
-      .single();
+    const prismaData: {
+      nome?: string;
+      cognome?: string;
+      email?: string | null;
+      telefono?: string | null;
+      qualifica?: string | null;
+      firma?: string | null;
+      attivo?: boolean;
+      ruolo?: string;
+    } = {};
 
-    if (error) throw error;
+    if (updateData.nome !== undefined) prismaData.nome = updateData.nome as string;
+    if (updateData.cognome !== undefined) prismaData.cognome = updateData.cognome as string;
+    if (updateData.email !== undefined) prismaData.email = (updateData.email as string) || null;
+    if (updateData.telefono !== undefined) prismaData.telefono = (updateData.telefono as string) || null;
+    if (updateData.qualifica !== undefined) prismaData.qualifica = (updateData.qualifica as string) || null;
+    if (updateData.firma !== undefined) prismaData.firma = (updateData.firma as string) || null;
+    if (updateData.attivo !== undefined) prismaData.attivo = updateData.attivo as boolean;
+    if (updateData.ruolo !== undefined) prismaData.ruolo = updateData.ruolo as string;
+
+    const existing = await prisma.utenti.findFirst({ where: { id, org_id: orgId }, select: { id: true } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
+    }
+
+    const updatedUser = await prisma.utenti.update({
+      where: { id },
+      data: prismaData,
+      select: {
+        id: true,
+        username: true,
+        ruolo: true,
+        nome: true,
+        cognome: true,
+        telefono: true,
+        email: true,
+        qualifica: true,
+        firma: true,
+        attivo: true,
+      },
+    });
 
     return NextResponse.json({ data: updatedUser, success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating user:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nell\'aggiornamento dell\'utente' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Errore nell'aggiornamento dell'utente";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -126,63 +147,48 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
     const { id } = await params;
     const userRole = request.headers.get('x-user-ruolo');
     const currentUserId = request.headers.get('x-user-id');
     const orgId = getOrgIdFromRequest(request);
 
     if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Accesso non autorizzato' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
-    // Non permettere di eliminare se stesso
     if (currentUserId === id) {
-      return NextResponse.json(
-        { error: 'Non puoi eliminare il tuo account' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Non puoi eliminare il tuo account' }, { status: 400 });
     }
 
-    // Verifica che non sia l'ultimo admin
-    const { count } = await supabase
-      .from('utenti')
-      .select('*', { count: 'exact', head: true })
-      .eq('org_id', orgId)
-      .eq('ruolo', 'admin')
-      .eq('attivo', true);
+    const adminCount = await prisma.utenti.count({
+      where: { org_id: orgId, ruolo: 'admin', attivo: true },
+    });
 
-    const { data: userToDelete } = await supabase
-      .from('utenti')
-      .select('ruolo')
-      .eq('id', id)
-      .eq('org_id', orgId)
-      .single();
+    const userToDelete = await prisma.utenti.findFirst({
+      where: { id, org_id: orgId },
+      select: { ruolo: true },
+    });
 
-    if (userToDelete?.ruolo === 'admin' && (count || 0) <= 1) {
-      return NextResponse.json(
-        { error: 'Non puoi eliminare l\'ultimo admin' },
-        { status: 400 }
-      );
+    if (userToDelete?.ruolo === 'admin' && adminCount <= 1) {
+      return NextResponse.json({ error: "Non puoi eliminare l'ultimo admin" }, { status: 400 });
     }
 
-    const { error } = await supabase
-      .from('utenti')
-      .delete()
-      .eq('id', id)
-      .eq('org_id', orgId);
+    await prisma.utenti.deleteMany({
+      where: { id, org_id: orgId },
+    });
 
-    if (error) throw error;
+    void writeAuditLog({
+      org_id: orgId,
+      user_id: currentUserId,
+      action: 'user_delete',
+      resource: `user:${id}`,
+      ip: getClientIP(request),
+    });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting user:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nell\'eliminazione dell\'utente' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Errore nell'eliminazione dell'utente";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

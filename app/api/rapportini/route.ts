@@ -1,139 +1,154 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import { Rapportino } from '@/types';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
+import { parseTimeForDb, parseDateOnly } from '@/lib/time-db';
+import { Prisma } from '@prisma/client';
 
-// Cache configuration per Next.js 16.1
-export const dynamic = 'force-dynamic'; // Disabilita caching per dati dinamici
-export const revalidate = 0; // Non cacheare
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+function buildRapportiniWhere(
+  orgId: string,
+  userRole: string,
+  userId: string | null,
+  filters: {
+    tipoStufa?: 'pellet' | 'legno';
+    dataInizio?: string;
+    dataFine?: string;
+    marca?: string;
+    modello?: string;
+    clienteId?: string;
+    search?: string;
+  },
+  clientIdsFromSearch: string[] | undefined
+): Prisma.RapportiniWhereInput {
+  const where: Prisma.RapportiniWhereInput = { org_id: orgId };
+
+  if (userRole !== 'admin' && userId) {
+    where.utente_id = userId;
+  }
+  if (filters.tipoStufa) {
+    where.tipo_stufa = filters.tipoStufa;
+  }
+  const dateFilter: Prisma.DateTimeFilter = {};
+  if (filters.dataInizio) {
+    dateFilter.gte = parseDateOnly(filters.dataInizio);
+  }
+  if (filters.dataFine) {
+    dateFilter.lte = parseDateOnly(filters.dataFine);
+  }
+  if (Object.keys(dateFilter).length > 0) {
+    where.data_intervento = dateFilter;
+  }
+  if (filters.marca) {
+    where.marca = { contains: filters.marca, mode: 'insensitive' };
+  }
+  if (filters.modello) {
+    where.modello = { contains: filters.modello, mode: 'insensitive' };
+  }
+  if (filters.clienteId) {
+    where.cliente_id = filters.clienteId;
+  }
+
+  if (filters.search?.trim()) {
+    const t = filters.search.trim();
+    const searchOr: Prisma.RapportiniWhereInput[] = [
+      { descrizione: { contains: t, mode: 'insensitive' } },
+      { note: { contains: t, mode: 'insensitive' } },
+      { marca: { contains: t, mode: 'insensitive' } },
+      { modello: { contains: t, mode: 'insensitive' } },
+    ];
+    if (clientIdsFromSearch?.length) {
+      searchOr.push({ cliente_id: { in: clientIdsFromSearch } });
+    }
+    const prevAnd = where.AND;
+    const andList = Array.isArray(prevAnd) ? [...prevAnd] : prevAnd ? [prevAnd] : [];
+    andList.push({ OR: searchOr });
+    where.AND = andList;
+  }
+
+  return where;
+}
 
 // GET - Ottieni tutti i rapportini (filtrati per utente se operatore)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    // Ottieni ID utente dalla richiesta
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
 
-    // Valida e ottieni i parametri di filtro
     const validation = validateQueryParams(rapportiniFilterSchema, request.nextUrl.searchParams);
     const filters = validation.success ? validation.data : { page: 1, limit: 20 };
 
-    // Costruisci la query base con conteggio
-    let countQuery = supabase
-      .from('rapportini')
-      .select('*', { count: 'exact', head: true })
-      .eq('org_id', orgId);
-
-    let query = supabase
-      .from('rapportini')
-      .select(`
-        *,
-        utente:utenti(id, nome, cognome, telefono, email, qualifica),
-        cliente:clienti(*)
-      `)
-      .eq('org_id', orgId)
-      .order('data_intervento', { ascending: false });
-
-    // Se è un operatore (non admin), mostra solo i suoi rapportini
-    if (userRole !== 'admin' && userId) {
-      query = query.eq('utente_id', userId);
-      countQuery = countQuery.eq('utente_id', userId);
+    let clientIdsFromSearch: string[] | undefined;
+    if (filters.search?.trim()) {
+      const t = filters.search.trim();
+      const rows = await prisma.clienti.findMany({
+        where: {
+          org_id: orgId,
+          OR: [
+            { nome: { contains: t, mode: 'insensitive' } },
+            { cognome: { contains: t, mode: 'insensitive' } },
+            { ragione_sociale: { contains: t, mode: 'insensitive' } },
+            { citta: { contains: t, mode: 'insensitive' } },
+            { indirizzo: { contains: t, mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      });
+      clientIdsFromSearch = rows.map((r) => r.id);
     }
 
-    // Applica filtri
-    if (filters.tipoStufa) {
-      query = query.eq('tipo_stufa', filters.tipoStufa);
-      countQuery = countQuery.eq('tipo_stufa', filters.tipoStufa);
-    }
+    const where = buildRapportiniWhere(orgId, userRole, userId, filters, clientIdsFromSearch);
 
-    if (filters.dataInizio) {
-      query = query.gte('data_intervento', filters.dataInizio);
-      countQuery = countQuery.gte('data_intervento', filters.dataInizio);
-    }
-
-    if (filters.dataFine) {
-      query = query.lte('data_intervento', filters.dataFine);
-      countQuery = countQuery.lte('data_intervento', filters.dataFine);
-    }
-
-    if (filters.marca) {
-      query = query.ilike('marca', `%${filters.marca}%`);
-      countQuery = countQuery.ilike('marca', `%${filters.marca}%`);
-    }
-
-    if (filters.modello) {
-      query = query.ilike('modello', `%${filters.modello}%`);
-      countQuery = countQuery.ilike('modello', `%${filters.modello}%`);
-    }
-
-    if (filters.clienteId) {
-      query = query.eq('cliente_id', filters.clienteId);
-      countQuery = countQuery.eq('cliente_id', filters.clienteId);
-    }
-
-    // Ricerca testuale (cliente, descrizione, note, marca, modello)
-    if (filters.search && filters.search.trim()) {
-      const searchTerm = `%${filters.search.trim()}%`;
-      const { data: clientiMatch } = await supabase
-        .from('clienti')
-        .select('id')
-        .eq('org_id', orgId)
-        .or(`nome.ilike.${searchTerm},cognome.ilike.${searchTerm},ragione_sociale.ilike.${searchTerm},citta.ilike.${searchTerm},indirizzo.ilike.${searchTerm}`);
-      const clientIds = (clientiMatch || []).map((c: { id: string }) => c.id);
-      const orParts = [
-        `descrizione.ilike.${searchTerm}`,
-        `note.ilike.${searchTerm}`,
-        `marca.ilike.${searchTerm}`,
-        `modello.ilike.${searchTerm}`,
-      ];
-      if (clientIds.length > 0) {
-        orParts.push(`cliente_id.in.(${clientIds.join(',')})`);
-      }
-      query = query.or(orParts.join(','));
-      countQuery = countQuery.or(orParts.join(','));
-    }
-
-    // Paginazione
     const offset = (filters.page - 1) * filters.limit;
-    query = query.range(offset, offset + filters.limit - 1);
 
-    // Esegui query
-    const [{ data: rapportini, error }, { count }] = await Promise.all([
-      query,
-      countQuery,
+    const [rapportini, count] = await Promise.all([
+      prisma.rapportini.findMany({
+        where,
+        orderBy: { data_intervento: 'desc' },
+        skip: offset,
+        take: filters.limit,
+        include: {
+          utenti: {
+            select: { id: true, nome: true, cognome: true, telefono: true, email: true, qualifica: true },
+          },
+          clienti: true,
+        },
+      }),
+      prisma.rapportini.count({ where }),
     ]);
 
-    if (error) throw error;
-
-    // Trasforma i dati dal formato DB al formato dell'app
-    const formattedRapportini: Rapportino[] = (rapportini || []).map((r: any) => ({
+    const formattedRapportini: Rapportino[] = rapportini.map((r) => ({
       id: r.id,
       operatore: {
-        nome: r.utente?.nome || '',
-        cognome: r.utente?.cognome || '',
-        telefono: r.utente?.telefono || '',
-        email: r.utente?.email || '',
-        qualifica: r.utente?.qualifica || '',
+        nome: r.utenti?.nome || '',
+        cognome: r.utenti?.cognome || '',
+        telefono: r.utenti?.telefono || '',
+        email: r.utenti?.email || '',
+        qualifica: r.utenti?.qualifica || '',
       },
       cliente: {
-        nome: r.cliente.nome,
-        cognome: r.cliente.cognome,
-        ragioneSociale: r.cliente.ragione_sociale || '',
-        indirizzo: r.cliente.indirizzo,
-        citta: r.cliente.citta,
-        cap: r.cliente.cap,
-        telefono: r.cliente.telefono,
-        email: r.cliente.email || '',
-        partitaIva: r.cliente.partita_iva || '',
-        codiceFiscale: r.cliente.codice_fiscale || '',
+        nome: r.clienti.nome,
+        cognome: r.clienti.cognome,
+        ragioneSociale: r.clienti.ragione_sociale || '',
+        indirizzo: r.clienti.indirizzo,
+        citta: r.clienti.citta,
+        cap: r.clienti.cap,
+        telefono: r.clienti.telefono,
+        email: r.clienti.email || '',
+        partitaIva: r.clienti.partita_iva || '',
+        codiceFiscale: r.clienti.codice_fiscale || '',
       },
       intervento: {
-        data: r.data_intervento,
-        ora: r.ora_intervento,
+        data: r.data_intervento.toISOString().slice(0, 10),
+        ora:
+          typeof r.ora_intervento === 'string'
+            ? r.ora_intervento
+            : r.ora_intervento.toISOString().slice(11, 19),
         tipoStufa: r.tipo_stufa as 'pellet' | 'legno',
         marca: r.marca,
         modello: r.modello,
@@ -145,40 +160,34 @@ export async function GET(request: NextRequest) {
         firmaOperatore: r.firma_operatore || '',
         firmaCliente: r.firma_cliente || '',
       },
-      dataCreazione: r.data_creazione || r.created_at,
+      dataCreazione: (r.data_creazione || r.created_at || new Date()).toISOString(),
     }));
 
-    const totalPages = Math.ceil((count || 0) / filters.limit);
+    const totalPages = Math.ceil(count / filters.limit);
 
     const response = NextResponse.json({
       data: formattedRapportini,
       pagination: {
         page: filters.page,
         limit: filters.limit,
-        total: count || 0,
+        total: count,
         totalPages,
         hasNext: filters.page < totalPages,
         hasPrev: filters.page > 1,
       },
     });
-    
-    // Aggiungi cache headers per ottimizzare le richieste
     response.headers.set('Cache-Control', 'no-store, must-revalidate');
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching rapportini:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nel recupero dei rapportini' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nel recupero dei rapportini';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 // POST - Crea un nuovo rapportino
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    // Rate limiting
     const clientIP = getClientIP(request);
     const rateLimitKey = createRateLimitKey('createRapportino', clientIP);
     const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMIT_CONFIGS.createRapportino);
@@ -197,171 +206,139 @@ export async function POST(request: NextRequest) {
     let effectiveOrgId = orgId;
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'ID utente non fornito. Effettua il login.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'ID utente non fornito. Effettua il login.' }, { status: 401 });
     }
 
-    // Validazione input con Zod
     const validation = validateRequest(rapportinoSchema, rapportinoData);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.errors.join(', ') },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
     }
 
     const rapportino = validation.data;
 
-    // Verifica che l'utente esista
-    let { data: utente, error: utenteError } = await supabase
-      .from('utenti')
-      .select('id, ruolo')
-      .eq('id', userId)
-      .eq('org_id', effectiveOrgId)
-      .single();
+    let utente = await prisma.utenti.findFirst({
+      where: { id: userId, org_id: effectiveOrgId },
+      select: { id: true, ruolo: true, org_id: true },
+    });
 
-    if (utenteError || !utente) {
-      const fallback = await supabase
-        .from('utenti')
-        .select('id, ruolo, org_id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (!fallback.error && fallback.data) {
-        utente = { id: fallback.data.id, ruolo: fallback.data.ruolo };
-        effectiveOrgId = fallback.data.org_id;
+    if (!utente) {
+      const fallback = await prisma.utenti.findFirst({
+        where: { id: userId },
+        select: { id: true, ruolo: true, org_id: true },
+      });
+      if (fallback) {
+        utente = fallback;
+        effectiveOrgId = fallback.org_id;
       }
     }
 
-    if (utenteError || !utente) {
-      return NextResponse.json(
-        { error: 'Utente non trovato' },
-        { status: 404 }
-      );
+    if (!utente) {
+      return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
     }
 
-    // Solo operatori possono creare rapportini (admin può vedere tutto ma non creare)
     if (utente.ruolo !== 'operatore') {
-      return NextResponse.json(
-        { error: 'Solo gli operatori possono creare rapportini' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Solo gli operatori possono creare rapportini' }, { status: 403 });
     }
 
-    // Cerca o crea cliente
     const nomeNormalizzato = rapportino.cliente.nome.trim();
     const cognomeNormalizzato = rapportino.cliente.cognome.trim();
     const telefonoNormalizzato = rapportino.cliente.telefono.trim();
 
     let clienteId: string | null = null;
 
-    // Prima cerca per nome + cognome + telefono (match esatto)
-    let { data: clienteData } = await supabase
-      .from('clienti')
-      .select('id')
-      .eq('org_id', effectiveOrgId)
-      .eq('nome', nomeNormalizzato)
-      .eq('cognome', cognomeNormalizzato)
-      .eq('telefono', telefonoNormalizzato)
-      .maybeSingle();
+    let clienteData = await prisma.clienti.findFirst({
+      where: {
+        org_id: effectiveOrgId,
+        nome: nomeNormalizzato,
+        cognome: cognomeNormalizzato,
+        telefono: telefonoNormalizzato,
+      },
+      select: { id: true },
+    });
 
     if (clienteData) {
       clienteId = clienteData.id;
     } else {
-      // Se non trovato, cerca solo per nome + cognome
-      const { data: clienteNomeCognome } = await supabase
-        .from('clienti')
-        .select('id')
-        .eq('org_id', effectiveOrgId)
-        .eq('nome', nomeNormalizzato)
-        .eq('cognome', cognomeNormalizzato)
-        .limit(1)
-        .maybeSingle();
-
+      const clienteNomeCognome = await prisma.clienti.findFirst({
+        where: {
+          org_id: effectiveOrgId,
+          nome: nomeNormalizzato,
+          cognome: cognomeNormalizzato,
+        },
+        select: { id: true },
+      });
       if (clienteNomeCognome) {
         clienteId = clienteNomeCognome.id;
       }
     }
 
-    // Se non trovato, crea nuovo cliente
     if (!clienteId) {
-      const { data: newCliente, error: createClienteError } = await supabase
-        .from('clienti')
-        .insert({
-          org_id: effectiveOrgId,
-          nome: nomeNormalizzato,
-          cognome: cognomeNormalizzato,
-          ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
-          indirizzo: rapportino.cliente.indirizzo.trim(),
-          citta: rapportino.cliente.citta.trim(),
-          cap: rapportino.cliente.cap.trim(),
-          telefono: telefonoNormalizzato,
-          email: rapportino.cliente.email?.trim() || null,
-          partita_iva: rapportino.cliente.partitaIva?.trim() || null,
-          codice_fiscale: rapportino.cliente.codiceFiscale?.trim() || null,
-        })
-        .select('id')
-        .single();
-
-      if (createClienteError) {
-        if (createClienteError.code === '23505') {
-          const { data: existingCliente } = await supabase
-            .from('clienti')
-            .select('id')
-            .eq('org_id', effectiveOrgId)
-            .eq('nome', nomeNormalizzato)
-            .eq('cognome', cognomeNormalizzato)
-            .eq('telefono', telefonoNormalizzato)
-            .maybeSingle();
-          
+      try {
+        const newCliente = await prisma.clienti.create({
+          data: {
+            org_id: effectiveOrgId,
+            nome: nomeNormalizzato,
+            cognome: cognomeNormalizzato,
+            ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
+            indirizzo: rapportino.cliente.indirizzo.trim(),
+            citta: rapportino.cliente.citta.trim(),
+            cap: rapportino.cliente.cap.trim(),
+            telefono: telefonoNormalizzato,
+            email: rapportino.cliente.email?.trim() || null,
+            partita_iva: rapportino.cliente.partitaIva?.trim() || null,
+            codice_fiscale: rapportino.cliente.codiceFiscale?.trim() || null,
+          },
+          select: { id: true },
+        });
+        clienteId = newCliente.id;
+      } catch (e: unknown) {
+        if (e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === 'P2002') {
+          const existingCliente = await prisma.clienti.findFirst({
+            where: {
+              org_id: effectiveOrgId,
+              nome: nomeNormalizzato,
+              cognome: cognomeNormalizzato,
+              telefono: telefonoNormalizzato,
+            },
+            select: { id: true },
+          });
           if (existingCliente) {
             clienteId = existingCliente.id;
           } else {
-            throw createClienteError;
+            throw e;
           }
         } else {
-          throw createClienteError;
+          throw e;
         }
-      } else {
-        clienteId = newCliente.id;
       }
     }
 
-    // Crea rapportino usando l'ID utente
-    const { data: newRapportino, error: rapportinoError } = await supabase
-      .from('rapportini')
-      .insert({
+    const newRapportino = await prisma.rapportini.create({
+      data: {
         org_id: effectiveOrgId,
         utente_id: userId,
-        cliente_id: clienteId,
-        data_intervento: rapportino.intervento.data,
-        ora_intervento: rapportino.intervento.ora,
+        cliente_id: clienteId!,
+        data_intervento: parseDateOnly(rapportino.intervento.data),
+        ora_intervento: parseTimeForDb(rapportino.intervento.ora),
         tipo_stufa: rapportino.intervento.tipoStufa,
         marca: rapportino.intervento.marca,
         modello: rapportino.intervento.modello,
-        numero_serie: rapportino.intervento.numeroSerie || null,
+        numero_serie: rapportino.intervento.numeroSerie?.trim() || null,
         tipo_intervento: rapportino.intervento.tipoIntervento,
         descrizione: rapportino.intervento.descrizione,
-        materiali_utilizzati: rapportino.intervento.materialiUtilizzati || null,
-        note: rapportino.intervento.note || null,
-        firma_operatore: rapportino.intervento.firmaOperatore || null,
-        firma_cliente: rapportino.intervento.firmaCliente || null,
-        data_creazione: new Date().toISOString(),
-      })
-      .select('id')
-      .single();
-
-    if (rapportinoError) throw rapportinoError;
+        materiali_utilizzati: rapportino.intervento.materialiUtilizzati?.trim() || null,
+        note: rapportino.intervento.note?.trim() || null,
+        firma_operatore: rapportino.intervento.firmaOperatore?.trim() || null,
+        firma_cliente: rapportino.intervento.firmaCliente?.trim() || null,
+        data_creazione: new Date(),
+      },
+      select: { id: true },
+    });
 
     return NextResponse.json({ id: newRapportino.id, success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating rapportino:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nella creazione del rapportino' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nella creazione del rapportino';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

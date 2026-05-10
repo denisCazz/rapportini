@@ -87,7 +87,7 @@ export default function ImpostazioniPage() {
       if (msg.includes('organizzazioni non esiste') || msg.includes('TABLE_MISSING')) {
         storage.saveSettings({ ...storage.getSettings(), ...formData });
         setSettings((prev) => ({ ...prev, ...formData }));
-        toast.warning('Impostazioni salvate localmente. Per salvarle nel database, esegui supabase/schema.sql nel SQL Editor di Supabase.');
+        toast.warning('Impostazioni salvate localmente. Verifica DATABASE_URL e che la tabella organizzazioni esista (migrazioni Prisma / schema SQL).');
       } else {
         toast.error(msg);
       }

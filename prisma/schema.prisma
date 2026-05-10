@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Utenti {
+  id                   String    @id @default(uuid()) @db.Uuid
+  org_id               String    @default("default") @db.VarChar(100)
+  username             String    @db.VarChar(255)
+  password_hash        String    @db.VarChar(255)
+  ruolo                String    @db.VarChar(20)
+  nome                 String    @db.VarChar(255)
+  cognome              String    @db.VarChar(255)
+  telefono             String?   @db.VarChar(50)
+  email                String?   @db.VarChar(255)
+  qualifica            String?   @db.VarChar(255)
+  firma                String?
+  attivo               Boolean?  @default(true)
+  ultimo_accesso       DateTime? @db.Timestamptz(6)
+  must_change_password Boolean   @default(false)
+  created_at           DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime? @default(now()) @db.Timestamptz(6)
+
+  password_reset_tokens PasswordResetTokens[]
+  rapportini            Rapportini[]
+
+  @@unique([org_id, username], map: "uq_utenti_org_id_username")
+  @@map("utenti")
+}
+
+model Clienti {
+  id             String    @id @default(uuid()) @db.Uuid
+  org_id         String    @default("default") @db.VarChar(100)
+  nome           String    @db.VarChar(255)
+  cognome        String    @db.VarChar(255)
+  ragione_sociale String?  @db.VarChar(255)
+  indirizzo      String    @db.VarChar(500)
+  citta          String    @db.VarChar(255)
+  cap            String    @db.VarChar(10)
+  telefono       String    @db.VarChar(50)
+  email          String?   @db.VarChar(255)
+  partita_iva    String?   @db.VarChar(50)
+  codice_fiscale String?   @db.VarChar(50)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  rapportini Rapportini[]
+
+  @@unique([org_id, nome, cognome, telefono], map: "unique_cliente")
+  @@map("clienti")
+}
+
+model Rapportini {
+  id                  String    @id @default(uuid()) @db.Uuid
+  org_id              String    @default("default") @db.VarChar(100)
+  utente_id           String    @db.Uuid
+  cliente_id          String    @db.Uuid
+  data_intervento     DateTime  @db.Date
+  ora_intervento      DateTime  @db.Time(6)
+  tipo_stufa          String    @db.VarChar(20)
+  marca               String    @db.VarChar(255)
+  modello             String    @db.VarChar(255)
+  numero_serie        String?   @db.VarChar(255)
+  tipo_intervento     String    @db.VarChar(255)
+  descrizione         String
+  materiali_utilizzati String?
+  note                String?
+  firma_operatore     String?
+  firma_cliente       String?
+  data_creazione      DateTime? @default(now()) @db.Timestamptz(6)
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime? @default(now()) @db.Timestamptz(6)
+
+  utenti  Utenti  @relation(fields: [utente_id], references: [id], onDelete: Restrict)
+  clienti Clienti @relation(fields: [cliente_id], references: [id], onDelete: Restrict)
+
+  @@index([cliente_id], map: "idx_rapportini_cliente")
+  @@index([utente_id], map: "idx_rapportini_utente")
+  @@index([data_intervento], map: "idx_rapportini_data")
+  @@index([tipo_stufa], map: "idx_rapportini_tipo_stufa")
+  @@index([org_id], map: "idx_rapportini_org_id")
+  @@index([org_id, utente_id], map: "idx_rapportini_org_utente")
+  @@index([org_id, data_intervento], map: "idx_rapportini_org_data")
+  @@map("rapportini")
+}
+
+model Organizzazioni {
+  org_id        String    @id @db.VarChar(100)
+  nome_azienda  String?   @db.VarChar(255)
+  logo          String?
+  indirizzo     String?   @db.VarChar(500)
+  partita_iva   String?   @db.VarChar(50)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("organizzazioni")
+}
+
+model PasswordResetTokens {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  token      String    @unique @db.VarChar(64)
+  expires_at DateTime  @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  utenti Utenti @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "idx_password_reset_tokens_user_id")
+  @@index([token], map: "idx_password_reset_tokens_token")
+  @@index([expires_at], map: "idx_password_reset_tokens_expires")
+  @@map("password_reset_tokens")
+}
+
+model Marche {
+  id         String    @id @default(uuid()) @db.Uuid
+  org_id     String    @default("default") @db.VarChar(100)
+  nome       String    @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  modelli Modelli[]
+
+  @@unique([org_id, nome])
+  @@index([nome], map: "idx_marche_nome")
+  @@index([org_id], map: "idx_marche_org_id")
+  @@map("marche")
+}
+
+model Modelli {
+  id         String    @id @default(uuid()) @db.Uuid
+  org_id     String    @default("default") @db.VarChar(100)
+  marca_id   String    @db.Uuid
+  nome       String    @db.VarChar(200)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  marche     Marche      @relation(fields: [marca_id], references: [id], onDelete: Cascade)
+  materiali Materiali[]
+
+  @@unique([org_id, marca_id, nome])
+  @@index([marca_id], map: "idx_modelli_marca")
+  @@index([org_id], map: "idx_modelli_org_id")
+  @@map("modelli")
+}
+
+model Materiali {
+  id          String    @id @default(uuid()) @db.Uuid
+  org_id      String    @default("default") @db.VarChar(100)
+  modello_id  String    @db.Uuid
+  nome        String    @db.VarChar(200)
+  descrizione String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  modelli Modelli @relation(fields: [modello_id], references: [id], onDelete: Cascade)
+
+  @@unique([org_id, modello_id, nome])
+  @@index([modello_id], map: "idx_materiali_modello")
+  @@index([org_id], map: "idx_materiali_org_id")
+  @@map("materiali")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  org_id     String   @default("default") @db.VarChar(100)
+  user_id    String?  @db.Uuid
+  action     String   @db.VarChar(64)
+  resource   String?  @db.VarChar(128)
+  details    Json?
+  ip         String?  @db.VarChar(64)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([org_id, created_at(sort: Desc)])
+  @@index([user_id])
+  @@map("audit_log")
+}

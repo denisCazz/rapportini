@@ -3,6 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import AuthSidePanel from '@/components/auth/AuthSidePanel';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Mail } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -45,65 +52,66 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  if (sent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-gray-200 dark:border-gray-700">
-          <div className="h-16 w-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Controlla la tua email</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Se un account è associato a <strong>{email}</strong>, riceverai un link per reimpostare la password.
-          </p>
-          <Link
-            href="/login"
-            className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-semibold"
-          >
-            Torna al login
-          </Link>
+  const formCard = sent ? (
+    <Card className="w-full max-w-md border-border shadow-xl">
+      <CardHeader className="text-center">
+        <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15">
+          <Mail className="h-7 w-7 text-primary" aria-hidden />
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full border border-gray-200 dark:border-gray-700">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Password dimenticata</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <CardTitle>Controlla la tua email</CardTitle>
+        <CardDescription>
+          Se un account è associato a <strong className="text-foreground">{email}</strong>, riceverai un link per
+          reimpostare la password.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Link href="/login" className={cn(buttonVariants(), 'inline-flex w-full justify-center')}>
+          Torna al login
+        </Link>
+      </CardContent>
+    </Card>
+  ) : (
+    <Card className="w-full max-w-md border-border shadow-xl">
+      <CardHeader>
+        <CardTitle className="text-2xl">Password dimenticata</CardTitle>
+        <CardDescription>
           Inserisci l&apos;email o lo username del tuo account. Ti invieremo un link per reimpostare la password.
-        </p>
-
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email o username</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="email">Email o username</Label>
+            <Input
+              id="email"
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="email@esempio.it o username"
+              autoComplete="username"
             />
           </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-semibold"
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Invio...' : 'Invia link reset'}
-          </button>
+          </Button>
         </form>
-
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/login" className="text-primary-600 dark:text-primary-400 hover:underline">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          <Link href="/login" className="text-primary hover:underline font-medium">
             Torna al login
           </Link>
         </p>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="relative min-h-screen flex overflow-hidden bg-background">
+      <AuthSidePanel />
+      <div className="relative flex flex-1 items-center justify-center p-6">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background via-background to-primary/5" />
+        <div className="relative z-10 w-full flex justify-center">{formCard}</div>
       </div>
     </div>
   );

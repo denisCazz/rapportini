@@ -62,6 +62,15 @@ export const rapportinoSchema = z.object({
   intervento: interventoSchema,
 });
 
+/** Body POST catalogo marche / modelli (nome testuale) */
+export const catalogNomeBodySchema = z.object({
+  nome: z.string().trim().min(1, 'Nome obbligatorio').max(120, 'Nome troppo lungo'),
+});
+
+export const modelloCreateBodySchema = catalogNomeBodySchema.extend({
+  marca_id: z.string().uuid('ID marca non valido'),
+});
+
 // Schema per ricerca clienti
 export const searchClienteSchema = z.object({
   q: z.string().min(1, 'Query di ricerca obbligatoria').max(100, 'Query troppo lunga'),

@@ -115,6 +115,31 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             </div>
           </div>
 
+          {/* Timeline sintetica intervento */}
+          <div className="mb-6 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent p-4 print:hidden">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Flusso intervento</p>
+            <ol className="grid gap-3 sm:grid-cols-5 text-sm">
+              {[
+                { t: 'Operatore', d: `${rapportino.operatore.nome} ${rapportino.operatore.cognome}` },
+                { t: 'Cliente', d: `${rapportino.cliente.nome} ${rapportino.cliente.cognome}` },
+                { t: 'Stufa', d: `${rapportino.intervento.marca} ${rapportino.intervento.modello}` },
+                { t: 'Tipo', d: rapportino.intervento.tipoIntervento },
+                { t: 'Firme', d: rapportino.intervento.firmaCliente ? 'Cliente ✓' : '—' },
+              ].map((step, idx) => (
+                <li
+                  key={step.t}
+                  className="relative rounded-xl border border-border bg-card/80 px-3 py-2 shadow-sm"
+                >
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">{step.t}</span>
+                  <p className="mt-1 line-clamp-2 text-xs font-semibold text-foreground">{step.d}</p>
+                  <span className="absolute -top-2 -left-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {idx + 1}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
           {/* Dati Operatore */}
           <div className="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-surface-200 dark:border-surface-700">
             <h2 className="text-lg sm:text-xl font-bold text-surface-900 dark:text-white mb-4 sm:mb-5 print:text-2xl flex items-center gap-2">

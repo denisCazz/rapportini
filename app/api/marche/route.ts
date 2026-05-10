@@ -1,75 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { catalogNomeBodySchema } from '@/lib/validation';
 
 // GET - Ottieni tutte le marche
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
-    const { data: marche, error } = await supabase
-      .from('marche')
-      .select('id, nome')
-      .eq('org_id', orgId)
-      .order('nome', { ascending: true });
+    const marche = await prisma.marche.findMany({
+      where: { org_id: orgId },
+      orderBy: { nome: 'asc' },
+      select: { id: true, nome: true },
+    });
 
-    if (error) throw error;
-
-    return NextResponse.json(marche || []);
-  } catch (error: any) {
+    return NextResponse.json(marche);
+  } catch (error: unknown) {
     console.error('Error fetching marche:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nel recupero delle marche' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nel recupero delle marche';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 // POST - Crea una nuova marca
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
-    const body = await request.json();
-    const { nome } = body;
-
-    if (!nome || !nome.trim()) {
-      return NextResponse.json(
-        { error: 'Il nome della marca è obbligatorio' },
-        { status: 400 }
-      );
+    const json = await request.json();
+    const parsed = catalogNomeBodySchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Dati non validi' }, { status: 400 });
     }
+    const trimmed = parsed.data.nome;
 
-    const { data: marca, error } = await supabase
-      .from('marche')
-      .insert({ nome: nome.trim(), org_id: orgId })
-      .select('id, nome')
-      .single();
-
-    if (error) {
-      if (error.code === '23505') {
-        // Duplicato - cerca quella esistente
-        const { data: existing } = await supabase
-          .from('marche')
-          .select('id, nome')
-          .eq('org_id', orgId)
-          .eq('nome', nome.trim())
-          .single();
-        
-        if (existing) {
-          return NextResponse.json(existing);
-        }
+    try {
+      const marca = await prisma.marche.create({
+        data: { nome: trimmed, org_id: orgId },
+        select: { id: true, nome: true },
+      });
+      return NextResponse.json(marca);
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === 'P2002') {
+        const existing = await prisma.marche.findFirst({
+          where: { org_id: orgId, nome: trimmed },
+          select: { id: true, nome: true },
+        });
+        if (existing) return NextResponse.json(existing);
       }
-      throw error;
+      throw e;
     }
-
-    return NextResponse.json(marca);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating marca:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nella creazione della marca' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nella creazione della marca';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

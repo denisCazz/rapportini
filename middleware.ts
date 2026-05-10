@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getJwtSecretBytes } from '@/lib/jwt-secret';
 
 // Percorsi pubblici che non richiedono autenticazione
 const publicPaths = [
@@ -31,14 +32,14 @@ const adminPaths = [
 ];
 
 // Verifica token inline per il middleware (edge runtime)
-async function verifyTokenInMiddleware(token: string): Promise<{ userId: string; username: string; ruolo: string; org_id?: string; idsocieta?: string; type: string } | null> {
+async function verifyTokenInMiddleware(token: string): Promise<{ userId: string; username: string; ruolo: string; org_id?: string; idsocieta?: string; type: string; must_change_password?: boolean } | null> {
   try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'bitora-jwt-secret-key-change-this-in-production-2024'
-    );
-    const { payload } = await jwtVerify(token, secret);
-    return payload as { userId: string; username: string; ruolo: string; org_id?: string; idsocieta?: string; type: string };
-  } catch {
+    const { payload } = await jwtVerify(token, getJwtSecretBytes());
+    return payload as { userId: string; username: string; ruolo: string; org_id?: string; idsocieta?: string; type: string; must_change_password?: boolean };
+  } catch (e) {
+    if (e instanceof Error && e.message.includes('JWT_SECRET')) {
+      throw e;
+    }
     return null;
   }
 }
@@ -69,7 +70,15 @@ export async function middleware(request: NextRequest) {
   }
 
   // Verifica il token
-  const payload = await verifyTokenInMiddleware(accessToken);
+  let payload: Awaited<ReturnType<typeof verifyTokenInMiddleware>>;
+  try {
+    payload = await verifyTokenInMiddleware(accessToken);
+  } catch {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Configurazione server incompleta' }, { status: 503 });
+    }
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
   if (!payload || payload.type !== 'access') {
     // Token non valido o scaduto
@@ -84,6 +93,25 @@ export async function middleware(request: NextRequest) {
     response.cookies.delete('access_token');
     response.cookies.delete('refresh_token');
     return response;
+  }
+
+  // Obbligo cambio password: solo logout, refresh, cambio password API, pagina dedicata
+  if (payload.must_change_password === true) {
+    const allowedWhenMustChange =
+      pathname === '/change-password-required' ||
+      pathname.startsWith('/api/auth/logout') ||
+      pathname.startsWith('/api/auth/refresh') ||
+      /^\/api\/users\/[0-9a-f-]{36}\/password$/i.test(pathname);
+
+    if (!allowedWhenMustChange) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'È necessario cambiare la password prima di continuare.' },
+          { status: 403 }
+        );
+      }
+      return NextResponse.redirect(new URL('/change-password-required', request.url));
+    }
   }
 
   // Verifica permessi admin per percorsi protetti

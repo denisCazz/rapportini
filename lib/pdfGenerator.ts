@@ -108,7 +108,8 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   let yPos = margin;
 
   // Colori
-  const primaryColor = [14, 165, 233]; // primary-600
+  /* Tema brace / arancio Bitora (#E25822 ≈) */
+  const primaryColor = [226, 88, 12];
   const darkGray = [30, 30, 30];
   const mediumGray = [100, 100, 100];
   const lightGray = [200, 200, 200];
@@ -136,6 +137,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   };
 
   const drawFooter = () => {
+    drawBox(margin, footerTop - 2.5, contentWidth, 1.2, primaryColor);
     drawLine(footerTop, lightGray, 0.5);
     doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
 

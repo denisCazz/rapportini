@@ -24,10 +24,14 @@ export interface RateLimitConfig {
 }
 
 export const RATE_LIMIT_CONFIGS = {
-  // Login: 5 tentativi ogni 15 minuti
-  login: { maxRequests: 20, windowMs: 15 * 60 * 100 },
+  // Login: limita brute force (15 min window)
+  login: { maxRequests: 10, windowMs: 15 * 60 * 1000 },
+  // Forgot password: evita spam email
+  forgotPassword: { maxRequests: 5, windowMs: 60 * 60 * 1000 },
+  // Registrazione pubblica
+  register: { maxRequests: 10, windowMs: 60 * 60 * 1000 },
   // API generiche: 100 richieste al minuto
-  api: { maxRequests: 100, windowMs: 60 * 100},
+  api: { maxRequests: 100, windowMs: 60 * 1000 },
   // Creazione rapportini: 30 al minuto
   createRapportino: { maxRequests: 30, windowMs: 60 * 100 },
   // Ricerca: 60 richieste al minuto

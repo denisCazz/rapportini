@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/db';
 
 const DEFAULT_TENANT_ID = 'default';
 
@@ -29,7 +30,7 @@ export function getOrgIdFromRequest(request: NextRequest, fallback = DEFAULT_TEN
  * Risolve org_id per endpoint auth pre-login (senza contesto JWT affidabile)
  * Priorità: header -> env -> primo org_id esistente in utenti
  */
-export async function resolveAuthOrgId(request: NextRequest, supabase: any): Promise<string | null> {
+export async function resolveAuthOrgId(request: NextRequest): Promise<string | null> {
   const headerOrgId = getOrgIdFromRequest(request, '');
   if (headerOrgId) {
     return headerOrgId;
@@ -40,18 +41,15 @@ export async function resolveAuthOrgId(request: NextRequest, supabase: any): Pro
     return envOrgId;
   }
 
-  const { data, error } = await supabase
-    .from('utenti')
-    .select('org_id')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const row = await prisma.utenti.findFirst({
+      orderBy: { created_at: 'asc' },
+      select: { org_id: true },
+    });
+    return row?.org_id?.trim() || null;
+  } catch {
     return null;
   }
-
-  return data?.org_id?.trim() || null;
 }
 
 /**

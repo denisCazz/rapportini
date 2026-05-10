@@ -1,25 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import crypto from 'crypto';
+import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    const clientIP = getClientIP(request);
+    const rateLimitKey = createRateLimitKey('forgot-password', clientIP);
+    const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMIT_CONFIGS.forgotPassword);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: `Troppe richieste. Riprova tra ${rateLimitResult.retryAfter} secondi.`,
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter) } }
+      );
+    }
+
     const body = await request.json();
     const { email, org_id } = body;
 
     if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Email obbligatoria' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Email obbligatoria' }, { status: 400 });
     }
 
-    const supabase = getSupabaseAdmin();
-    const orgId = (org_id || (await resolveAuthOrgId(request, supabase)) || process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || 'default').trim();
+    const orgId = (
+      org_id ||
+      (await resolveAuthOrgId(request)) ||
+      process.env.NEXT_PUBLIC_DEFAULT_ORG_ID ||
+      'default'
+    ).trim();
 
     const emailTrim = email.trim().toLowerCase();
     const isEmail = emailTrim.includes('@');
@@ -27,29 +42,29 @@ export async function POST(request: NextRequest) {
     let utente: { id: string; username: string; email: string | null; nome: string; cognome: string } | null = null;
 
     if (isEmail) {
-      const { data, error } = await supabase
-        .from('utenti')
-        .select('id, username, email, nome, cognome')
-        .eq('org_id', orgId)
-        .eq('attivo', true)
-        .ilike('email', emailTrim)
-        .maybeSingle();
-      if (!error) utente = data;
+      utente = await prisma.utenti.findFirst({
+        where: {
+          org_id: orgId,
+          attivo: true,
+          email: { equals: emailTrim, mode: 'insensitive' },
+        },
+        select: { id: true, username: true, email: true, nome: true, cognome: true },
+      });
     } else {
-      const { data, error } = await supabase
-        .from('utenti')
-        .select('id, username, email, nome, cognome')
-        .eq('org_id', orgId)
-        .eq('attivo', true)
-        .ilike('username', emailTrim)
-        .maybeSingle();
-      if (!error) utente = data;
+      utente = await prisma.utenti.findFirst({
+        where: {
+          org_id: orgId,
+          attivo: true,
+          username: { equals: emailTrim, mode: 'insensitive' },
+        },
+        select: { id: true, username: true, email: true, nome: true, cognome: true },
+      });
     }
 
     if (!utente) {
       return NextResponse.json({
         success: true,
-        message: 'Se l\'email è registrata, riceverai un link per reimpostare la password.',
+        message: "Se l'email è registrata, riceverai un link per reimpostare la password.",
       });
     }
 
@@ -57,27 +72,24 @@ export async function POST(request: NextRequest) {
     if (!userEmail || !userEmail.includes('@')) {
       return NextResponse.json({
         success: true,
-        message: 'Se l\'email è registrata, riceverai un link per reimpostare la password.',
+        message: "Se l'email è registrata, riceverai un link per reimpostare la password.",
       });
     }
 
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    const { error: insertError } = await supabase
-      .from('password_reset_tokens')
-      .insert({
-        user_id: utente.id,
-        token,
-        expires_at: expiresAt.toISOString(),
+    try {
+      await prisma.passwordResetTokens.create({
+        data: {
+          user_id: utente.id,
+          token,
+          expires_at: expiresAt,
+        },
       });
-
-    if (insertError) {
-      console.error('Errore creazione token reset:', insertError);
-      return NextResponse.json(
-        { error: 'Errore nella richiesta di reset' },
-        { status: 500 }
-      );
+    } catch (e) {
+      console.error('Errore creazione token reset:', e);
+      return NextResponse.json({ error: 'Errore nella richiesta di reset' }, { status: 500 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
@@ -102,7 +114,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: sent
-        ? 'Se l\'email è registrata, riceverai un link per reimpostare la password.'
+        ? "Se l'email è registrata, riceverai un link per reimpostare la password."
         : 'Richiesta ricevuta. Controlla la configurazione email del server.',
     });
   } catch (error: unknown) {

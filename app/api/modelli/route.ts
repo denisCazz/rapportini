@@ -1,108 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { modelloCreateBodySchema } from '@/lib/validation';
 
 // GET - Ottieni modelli filtrati per marca
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
     const { searchParams } = new URL(request.url);
     const marcaId = searchParams.get('marca_id');
 
-    let query = supabase
-      .from('modelli')
-      .select('id, nome, marca_id')
-      .eq('org_id', orgId)
-      .order('nome', { ascending: true });
+    const modelli = await prisma.modelli.findMany({
+      where: {
+        org_id: orgId,
+        ...(marcaId ? { marca_id: marcaId } : {}),
+      },
+      orderBy: { nome: 'asc' },
+      select: { id: true, nome: true, marca_id: true },
+    });
 
-    if (marcaId) {
-      query = query.eq('marca_id', marcaId);
-    }
-
-    const { data: modelli, error } = await query;
-
-    if (error) throw error;
-
-    return NextResponse.json(modelli || []);
-  } catch (error: any) {
+    return NextResponse.json(modelli);
+  } catch (error: unknown) {
     console.error('Error fetching modelli:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nel recupero dei modelli' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nel recupero dei modelli';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 // POST - Crea un nuovo modello
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
     const orgId = getOrgIdFromRequest(request);
-    const body = await request.json();
-    const { nome, marca_id } = body;
-
-    if (!nome || !nome.trim()) {
-      return NextResponse.json(
-        { error: 'Il nome del modello è obbligatorio' },
-        { status: 400 }
-      );
+    const json = await request.json();
+    const parsed = modelloCreateBodySchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Dati non validi' }, { status: 400 });
     }
+    const { nome: trimmed, marca_id } = parsed.data;
 
-    if (!marca_id) {
-      return NextResponse.json(
-        { error: 'L\'ID della marca è obbligatorio' },
-        { status: 400 }
-      );
-    }
-
-    const { data: marcaOwner, error: marcaOwnerError } = await supabase
-      .from('marche')
-      .select('id')
-      .eq('id', marca_id)
-      .eq('org_id', orgId)
-      .maybeSingle();
-
-    if (marcaOwnerError) throw marcaOwnerError;
+    const marcaOwner = await prisma.marche.findFirst({
+      where: { id: marca_id, org_id: orgId },
+      select: { id: true },
+    });
 
     if (!marcaOwner) {
-      return NextResponse.json(
-        { error: 'Marca non trovata per la società corrente' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Marca non trovata per la società corrente' }, { status: 404 });
     }
 
-    const { data: modello, error } = await supabase
-      .from('modelli')
-      .insert({ nome: nome.trim(), marca_id, org_id: orgId })
-      .select('id, nome, marca_id')
-      .single();
-
-    if (error) {
-      if (error.code === '23505') {
-        // Duplicato - cerca quello esistente
-        const { data: existing } = await supabase
-          .from('modelli')
-          .select('id, nome, marca_id')
-          .eq('org_id', orgId)
-          .eq('nome', nome.trim())
-          .eq('marca_id', marca_id)
-          .single();
-        
-        if (existing) {
-          return NextResponse.json(existing);
-        }
+    try {
+      const modello = await prisma.modelli.create({
+        data: { nome: trimmed, marca_id, org_id: orgId },
+        select: { id: true, nome: true, marca_id: true },
+      });
+      return NextResponse.json(modello);
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === 'P2002') {
+        const existing = await prisma.modelli.findFirst({
+          where: { org_id: orgId, nome: trimmed, marca_id },
+          select: { id: true, nome: true, marca_id: true },
+        });
+        if (existing) return NextResponse.json(existing);
       }
-      throw error;
+      throw e;
     }
-
-    return NextResponse.json(modello);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating modello:', error);
-    return NextResponse.json(
-      { error: error.message || 'Errore nella creazione del modello' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Errore nella creazione del modello';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

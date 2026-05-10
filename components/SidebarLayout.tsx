@@ -8,6 +8,18 @@ import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import InstallPWAButton from '@/components/InstallPWA';
 import { isTestEnv } from '@/lib/env';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { Menu, Moon, Sun, UserRound } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SidebarLayoutProps {
   settings: AziendaSettings;
@@ -258,52 +270,91 @@ export default function SidebarLayout({
         <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-400/10 dark:bg-pink-600/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
 
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 bg-transparent border-r border-surface-200/70 dark:border-surface-800/70 flex-col z-20">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 flex-col z-20 border-r border-border bg-card/90 backdrop-blur-md shadow-sm">
         <NavContent />
       </aside>
 
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 animate-fadeIn">
-          <div
-            className="absolute inset-0 bg-surface-900/60 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-          <aside
-            className="absolute left-0 top-0 h-full w-[min(88vw,360px)] max-w-[360px] bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-xl border-r border-surface-200 dark:border-surface-800 flex flex-col shadow-2xl rounded-r-3xl animate-slideInLeft"
-            role="dialog"
-            aria-label="Menu di navigazione"
-          >
-            <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
-              <NavContent showCloseButton />
-            </div>
-          </aside>
-        </div>
-      )}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side="left"
+          className="lg:hidden w-[min(88vw,360px)] max-w-[360px] border-r border-border bg-card/95 p-0 backdrop-blur-xl"
+        >
+          <div className="flex h-full max-h-[100dvh] flex-col overflow-y-auto overscroll-contain">
+            <NavContent showCloseButton />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <div className="lg:pl-72 flex flex-col min-h-screen relative z-10">
         <header className="sticky top-0 z-30 bg-surface-50/85 dark:bg-surface-900/85 backdrop-blur-xl border-b border-surface-200/80 dark:border-surface-800 shadow-sm">
           <div className="px-4 md:px-8 py-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0">
-              <button
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden mt-0.5 h-12 w-12 shrink-0 grid place-items-center rounded-2xl bg-white/80 dark:bg-surface-800/80 text-surface-900 dark:text-white hover:bg-white dark:hover:bg-surface-700 border border-surface-200 dark:border-surface-700 shadow-sm active:scale-95 transition-all"
+                className="lg:hidden mt-0.5 h-11 w-11 shrink-0 rounded-xl border-border bg-card/80"
                 aria-label="Apri menu"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <div className="min-w-0">
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-surface-900 dark:text-white break-words tracking-tight leading-tight">{pageTitle}</h1>
+                  <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-surface-900 dark:text-white break-words tracking-tight leading-tight">
+                    {pageTitle}
+                  </h1>
                   {isTestEnv() && (
                     <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
                       TEST
                     </span>
                   )}
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-lg border-border"
+                      onClick={toggleDarkMode}
+                      aria-label={darkMode ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
+                    >
+                      {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    </Button>
+                    {user && (
+                      <Link
+                        href="/utente"
+                        aria-label="Profilo utente"
+                        className={cn(
+                          buttonVariants({ variant: 'outline', size: 'icon' }),
+                          'h-9 w-9 rounded-lg border-border'
+                        )}
+                      >
+                        <UserRound className="h-4 w-4" />
+                      </Link>
+                    )}
+                  </div>
                 </div>
-                {pageSubtitle && <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 mt-1 font-medium line-clamp-2">{pageSubtitle}</p>}
+                <Breadcrumb className="mt-2">
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink
+                        className="text-muted-foreground"
+                        render={<Link href="/" className="transition-colors hover:text-foreground" />}
+                      >
+                        Bitora
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="max-w-[12rem] truncate sm:max-w-md">{pageTitle}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+                {pageSubtitle && (
+                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 mt-1 font-medium line-clamp-2">
+                    {pageSubtitle}
+                  </p>
+                )}
               </div>
             </div>
           </div>

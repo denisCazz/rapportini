@@ -4,6 +4,12 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import AuthSidePanel from '@/components/auth/AuthSidePanel';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { CheckCircle2 } from 'lucide-react';
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -62,69 +68,71 @@ function ResetPasswordContent() {
 
   if (!token) return null;
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="h-16 w-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Password aggiornata</h1>
-          <p className="text-gray-600 dark:text-gray-400">Reindirizzamento al login...</p>
+  const inner = success ? (
+    <Card className="w-full max-w-md border-border shadow-xl text-center">
+      <CardHeader>
+        <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15">
+          <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" aria-hidden />
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full border border-gray-200 dark:border-gray-700">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Nuova password</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">Inserisci la nuova password (min. 8 caratteri)</p>
-
+        <CardTitle>Password aggiornata</CardTitle>
+        <CardDescription>Reindirizzamento al login...</CardDescription>
+      </CardHeader>
+    </Card>
+  ) : (
+    <Card className="w-full max-w-md border-border shadow-xl">
+      <CardHeader>
+        <CardTitle className="text-2xl">Nuova password</CardTitle>
+        <CardDescription>Inserisci la nuova password (min. 8 caratteri)</CardDescription>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nuova password</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">Nuova password</Label>
+            <Input
+              id="newPassword"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
               minLength={8}
               disabled={isLoading}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Minimo 8 caratteri"
+              autoComplete="new-password"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Conferma password</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Conferma password</Label>
+            <Input
+              id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
               disabled={isLoading}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Ripeti la password"
+              autoComplete="new-password"
             />
           </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-semibold"
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Salvataggio...' : 'Imposta password'}
-          </button>
+          </Button>
         </form>
-
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/login" className="text-primary-600 dark:text-primary-400 hover:underline">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          <Link href="/login" className="text-primary hover:underline font-medium">
             Torna al login
           </Link>
         </p>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="relative min-h-screen flex overflow-hidden bg-background">
+      <AuthSidePanel />
+      <div className="relative flex flex-1 items-center justify-center p-6">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background via-background to-primary/5" />
+        <div className="relative z-10 w-full flex justify-center">{inner}</div>
       </div>
     </div>
   );
@@ -132,11 +140,16 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="relative min-h-screen flex overflow-hidden bg-background">
+          <AuthSidePanel />
+          <div className="flex flex-1 items-center justify-center p-6">
+            <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        </div>
+      }
+    >
       <ResetPasswordContent />
     </Suspense>
   );

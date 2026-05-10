@@ -108,19 +108,13 @@ export default function RapportiniSearchPage() {
         </div>
       )}
 
-      {loading ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento rapportini...</p>
-        </div>
-      ) : (
-        <RapportiniList
-          rapportini={rapportini}
-          onDelete={handleDelete}
-          onEdit={isOperatore ? handleEdit : undefined}
-          settings={settings}
-        />
-      )}
+      <RapportiniList
+        rapportini={rapportini}
+        loading={loading}
+        onDelete={handleDelete}
+        onEdit={isOperatore ? handleEdit : undefined}
+        settings={settings}
+      />
     </SidebarLayout>
   );
 }

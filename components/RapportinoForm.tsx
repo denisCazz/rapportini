@@ -1,13 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Rapportino, Operatore, Cliente, Intervento } from '@/types';
+import { Rapportino, Cliente } from '@/types';
 import { format } from 'date-fns';
 import { auth } from '@/lib/auth';
 import SignaturePad from '@/components/SignaturePad';
 import RapportinoStepIndicator from '@/components/rapportino/RapportinoStepIndicator';
 import { fetchWithAuth, parseResponseBody, getApiErrorMessage } from '@/lib/api';
+import { Card } from '@/components/ui/card';
+import {
+  getDefaultRapportinoFormValues,
+  rapportinoFormValuesSchema,
+  rapportinoStep1Schema,
+  rapportinoStep2Schema,
+  rapportinoStep3Schema,
+  firstIssueMessage,
+  type RapportinoFormValues,
+} from '@/lib/validators/rapportino-form';
 
 interface RapportinoFormProps {
   initialRapportino?: Rapportino;
@@ -25,20 +36,24 @@ const DEFAULT_TIPI_INTERVENTO = [
 
 export default function RapportinoForm({ initialRapportino, onSave, onCancel }: RapportinoFormProps) {
   const [step, setStep] = useState(1);
-  const [operatore, setOperatore] = useState<Operatore>(initialRapportino?.operatore ?? {
-    nome: '',
-    cognome: '',
-    telefono: '',
-    email: '',
-    qualifica: '',
+  const { register, watch, setValue, getValues, reset, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
+    defaultValues: getDefaultRapportinoFormValues(initialRapportino),
   });
-  
+
+  const operatore = watch('operatore');
+  const cliente = watch('cliente');
+  const intervento = watch('intervento');
+
+  useEffect(() => {
+    reset(getDefaultRapportinoFormValues(initialRapportino));
+  }, [initialRapportino?.id, reset, initialRapportino]);
+
   // Carica i dati operatore dall'utente loggato (solo se non in modalità modifica)
   useEffect(() => {
     if (initialRapportino) return; // In modifica usa i dati del rapportino
     const user = auth.getUser();
     if (user) {
-      setOperatore({
+      setValue('operatore', {
         nome: user.nome || '',
         cognome: user.cognome || '',
         telefono: user.telefono || '',
@@ -47,36 +62,10 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       });
 
       if (user.firma) {
-        setIntervento((prev) => ({ ...prev, firmaOperatore: user.firma || '' }));
+        setValue('intervento.firmaOperatore', user.firma || '');
       }
     }
-  }, [initialRapportino]);
-  const [cliente, setCliente] = useState<Cliente>(initialRapportino?.cliente ?? {
-    nome: '',
-    cognome: '',
-    ragioneSociale: '',
-    indirizzo: '',
-    citta: '',
-    cap: '',
-    telefono: '',
-    email: '',
-    partitaIva: '',
-    codiceFiscale: '',
-  });
-  const [intervento, setIntervento] = useState<Intervento>(initialRapportino?.intervento ?? {
-    data: format(new Date(), 'yyyy-MM-dd'),
-    ora: format(new Date(), 'HH:mm'),
-    tipoStufa: 'pellet',
-    marca: '',
-    modello: '',
-    numeroSerie: '',
-    tipoIntervento: 'Manutenzione',
-    descrizione: '',
-    materialiUtilizzati: '',
-    note: '',
-    firmaOperatore: '',
-    firmaCliente: '',
-  });
+  }, [initialRapportino, setValue]);
   const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
   const [showClientiList, setShowClientiList] = useState(false);
   const [isSearchingClienti, setIsSearchingClienti] = useState(false);
@@ -224,7 +213,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
         setModelli([]);
         setModelloId('');
         if (!initialRapportino) {
-          setIntervento(prev => ({ ...prev, modello: '' }));
+          setValue('intervento.modello', '');
         }
         setMateriali([]);
         setSelectedMateriali([]);
@@ -256,65 +245,74 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     loadMateriali();
   }, [modelloId]);
 
-  const handleSelectCliente = (clienteSelezionato: Cliente) => {
-    setCliente({
-      ...clienteSelezionato,
-      // Mantieni i campi già compilati se non vuoti
-      ragioneSociale: clienteSelezionato.ragioneSociale || cliente.ragioneSociale,
-      email: clienteSelezionato.email || cliente.email,
-      partitaIva: clienteSelezionato.partitaIva || cliente.partitaIva,
-      codiceFiscale: clienteSelezionato.codiceFiscale || cliente.codiceFiscale,
+  const handleSelectCliente = (c: Cliente) => {
+    setValue('cliente', {
+      nome: c.nome,
+      cognome: c.cognome,
+      ragioneSociale: (c.ragioneSociale as string | undefined) || cliente.ragioneSociale || '',
+      indirizzo: c.indirizzo,
+      citta: c.citta,
+      cap: c.cap,
+      telefono: c.telefono,
+      email: (c.email as string | undefined) || cliente.email || '',
+      partitaIva: (c.partitaIva as string | undefined) || cliente.partitaIva || '',
+      codiceFiscale: (c.codiceFiscale as string | undefined) || cliente.codiceFiscale || '',
     });
     setShowClientiList(false);
     setClientiEsistenti([]);
   };
 
   const validateStep = (): boolean => {
+    const v = getValues();
     if (step === 1) {
-      return !!(operatore.nome && operatore.cognome && operatore.telefono && operatore.qualifica);
+      const r = rapportinoStep1Schema.safeParse(v);
+      if (!r.success) toast.error(firstIssueMessage(r.error));
+      return r.success;
     }
     if (step === 2) {
-      return !!(cliente.nome && cliente.cognome && cliente.indirizzo && cliente.citta && cliente.cap && cliente.telefono);
+      const r = rapportinoStep2Schema.safeParse(v);
+      if (!r.success) toast.error(firstIssueMessage(r.error));
+      return r.success;
     }
     if (step === 3) {
-      return !!(
-        intervento.marca
-        && intervento.modello
-        && intervento.tipoIntervento
-        && intervento.descrizione
-        && intervento.firmaOperatore
-        && intervento.firmaCliente
-      );
+      const r = rapportinoStep3Schema.safeParse(v);
+      if (!r.success) toast.error(firstIssueMessage(r.error));
+      return r.success;
     }
     return false;
   };
 
-  const handleSubmit = () => {
-    if (!validateStep()) {
-      toast.error('Compila tutti i campi obbligatori');
-      return;
-    }
-
-    // Combina materiali selezionati con materiali manuali
+  const onSaveValid = (values: RapportinoFormValues) => {
     const materialiSelezionati = selectedMateriali
-      .map(id => {
-        const materiale = materiali.find(m => m.id === id);
+      .map((id) => {
+        const materiale = materiali.find((m) => m.id === id);
         return materiale ? materiale.nome : null;
       })
       .filter(Boolean)
       .join(', ');
-    
-    const materialiFinali = [
-      materialiSelezionati,
-      intervento.materialiUtilizzati || ''
-    ].filter(Boolean).join('; ');
+
+    const materialiFinali = [materialiSelezionati, values.intervento.materialiUtilizzati || '']
+      .filter(Boolean)
+      .join('; ');
+
+    const fullCheck = rapportinoFormValuesSchema.safeParse({
+      ...values,
+      intervento: {
+        ...values.intervento,
+        materialiUtilizzati: materialiFinali || values.intervento.materialiUtilizzati,
+      },
+    });
+    if (!fullCheck.success) {
+      toast.error(firstIssueMessage(fullCheck.error));
+      return;
+    }
 
     const rapportino: Rapportino = {
       id: initialRapportino?.id ?? `rapp_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-      operatore,
-      cliente,
+      operatore: fullCheck.data.operatore,
+      cliente: fullCheck.data.cliente,
       intervento: {
-        ...intervento,
+        ...fullCheck.data.intervento,
         materialiUtilizzati: materialiFinali || undefined,
       },
       dataCreazione: initialRapportino?.dataCreazione ?? new Date().toISOString(),
@@ -323,8 +321,16 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     onSave(rapportino);
   };
 
+  const handleConfirmSave = () => {
+    if (!validateStep()) {
+      toast.error('Compila tutti i campi obbligatori');
+      return;
+    }
+    submitWithRhf(onSaveValid)();
+  };
+
   return (
-    <div className="glass-card rounded-3xl shadow-2xl border border-surface-200 dark:border-surface-700 p-6 sm:p-8 mb-8 animate-fade-in-up">
+    <Card className="rounded-3xl shadow-2xl border border-surface-200 dark:border-surface-700 p-6 sm:p-8 mb-8 animate-fade-in-up bg-card/95 backdrop-blur-sm">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -342,13 +348,6 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
           </button>
         </div>
         <RapportinoStepIndicator step={step} />
-        <div className="flex gap-2 text-xs text-surface-500 dark:text-surface-400 font-medium mt-4">
-          <span className={step === 1 ? 'font-bold text-primary-600 dark:text-primary-400' : ''}>1. Operatore</span>
-          <span>•</span>
-          <span className={step === 2 ? 'font-bold text-primary-600 dark:text-primary-400' : ''}>2. Cliente</span>
-          <span>•</span>
-          <span className={step === 3 ? 'font-bold text-primary-600 dark:text-primary-400' : ''}>3. Intervento</span>
-        </div>
       </div>
 
       {step === 1 && (
@@ -371,8 +370,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <input
                 type="text"
-                value={operatore.nome}
-                onChange={(e) => setOperatore({ ...operatore, nome: e.target.value })}
+                {...register('operatore.nome')}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -383,8 +381,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <input
                 type="text"
-                value={operatore.cognome}
-                onChange={(e) => setOperatore({ ...operatore, cognome: e.target.value })}
+                {...register('operatore.cognome')}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -395,8 +392,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <input
                 type="tel"
-                value={operatore.telefono}
-                onChange={(e) => setOperatore({ ...operatore, telefono: e.target.value })}
+                {...register('operatore.telefono')}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -407,8 +403,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <input
                 type="email"
-                value={operatore.email}
-                onChange={(e) => setOperatore({ ...operatore, email: e.target.value })}
+                {...register('operatore.email')}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
               />
             </div>
@@ -418,8 +413,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <input
                 type="text"
-                value={operatore.qualifica}
-                onChange={(e) => setOperatore({ ...operatore, qualifica: e.target.value })}
+                {...register('operatore.qualifica')}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 placeholder="Es. Tecnico specializzato"
                 required
@@ -451,7 +445,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.nome}
                 onChange={(e) => {
-                  setCliente({ ...cliente, nome: e.target.value });
+                  setValue('cliente.nome', e.target.value);
                   setShowClientiList(true);
                 }}
                 onFocus={() => {
@@ -476,7 +470,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.cognome}
                 onChange={(e) => {
-                  setCliente({ ...cliente, cognome: e.target.value });
+                  setValue('cliente.cognome', e.target.value);
                   setShowClientiList(true);
                 }}
                 onFocus={() => {
@@ -556,7 +550,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 value={cliente.ragioneSociale}
-                onChange={(e) => setCliente({ ...cliente, ragioneSociale: e.target.value })}
+                onChange={(e) => setValue('cliente.ragioneSociale', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
               />
             </div>
@@ -567,7 +561,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 value={cliente.indirizzo}
-                onChange={(e) => setCliente({ ...cliente, indirizzo: e.target.value })}
+                onChange={(e) => setValue('cliente.indirizzo', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -579,7 +573,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 value={cliente.citta}
-                onChange={(e) => setCliente({ ...cliente, citta: e.target.value })}
+                onChange={(e) => setValue('cliente.citta', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -591,7 +585,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 value={cliente.cap}
-                onChange={(e) => setCliente({ ...cliente, cap: e.target.value })}
+                onChange={(e) => setValue('cliente.cap', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -603,7 +597,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="tel"
                 value={cliente.telefono}
-                onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })}
+                onChange={(e) => setValue('cliente.telefono', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -615,7 +609,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="email"
                 value={cliente.email}
-                onChange={(e) => setCliente({ ...cliente, email: e.target.value })}
+                onChange={(e) => setValue('cliente.email', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
               />
             </div>
@@ -626,7 +620,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 value={cliente.partitaIva}
-                onChange={(e) => setCliente({ ...cliente, partitaIva: e.target.value })}
+                onChange={(e) => setValue('cliente.partitaIva', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
               />
             </div>
@@ -637,7 +631,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 value={cliente.codiceFiscale}
-                onChange={(e) => setCliente({ ...cliente, codiceFiscale: e.target.value })}
+                onChange={(e) => setValue('cliente.codiceFiscale', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
               />
             </div>
@@ -666,7 +660,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="date"
                 value={intervento.data}
-                onChange={(e) => setIntervento({ ...intervento, data: e.target.value })}
+                onChange={(e) => setValue('intervento.data', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -678,7 +672,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="time"
                 value={intervento.ora}
-                onChange={(e) => setIntervento({ ...intervento, ora: e.target.value })}
+                onChange={(e) => setValue('intervento.ora', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                 required
               />
@@ -689,7 +683,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <select
                 value={intervento.tipoStufa}
-                onChange={(e) => setIntervento({ ...intervento, tipoStufa: e.target.value as 'pellet' | 'legno' })}
+                onChange={(e) => setValue('intervento.tipoStufa', e.target.value as 'pellet' | 'legno')}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm transition-all"
                 required
               >
@@ -714,7 +708,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                         } else {
                           setMarcaId(selectedId);
                           const selectedMarca = marche.find(m => m.id === selectedId);
-                          setIntervento({ ...intervento, marca: selectedMarca?.nome || '' });
+                          setValue('intervento.marca', selectedMarca?.nome || '');
                         }
                       }}
                       className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm transition-all"
@@ -736,7 +730,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     <input
                       type="text"
                       value={intervento.marca}
-                      onChange={(e) => setIntervento({ ...intervento, marca: e.target.value })}
+                      onChange={(e) => setValue('intervento.marca', e.target.value)}
                       placeholder="Inserisci nuova marca"
                       className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                       required
@@ -763,7 +757,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                               if (newMarca) {
                                 setMarche([...marche, newMarca]);
                                 setMarcaId(newMarca.id);
-                                setIntervento({ ...intervento, marca: newMarca.nome });
+                                setValue('intervento.marca', newMarca.nome);
                                 setShowMarcaInput(false);
                               }
                             }
@@ -781,7 +775,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                       type="button"
                       onClick={() => {
                         setShowMarcaInput(false);
-                        setIntervento({ ...intervento, marca: '' });
+                        setValue('intervento.marca', '');
                       }}
                       className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
                     >
@@ -808,7 +802,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                         } else {
                           setModelloId(selectedId);
                           const selectedModello = modelli.find(m => m.id === selectedId);
-                          setIntervento({ ...intervento, modello: selectedModello?.nome || '' });
+                          setValue('intervento.modello', selectedModello?.nome || '');
                         }
                       }}
                       disabled={!marcaId}
@@ -833,7 +827,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     <input
                       type="text"
                       value={intervento.modello}
-                      onChange={(e) => setIntervento({ ...intervento, modello: e.target.value })}
+                      onChange={(e) => setValue('intervento.modello', e.target.value)}
                       placeholder={marcaId ? 'Inserisci nuovo modello' : 'Modello (marca non in catalogo)'}
                       className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                       required
@@ -861,7 +855,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                               if (newModello) {
                                 setModelli([...modelli, newModello]);
                                 setModelloId(newModello.id);
-                                setIntervento({ ...intervento, modello: newModello.nome });
+                                setValue('intervento.modello', newModello.nome);
                                 setShowModelloInput(false);
                               }
                             }
@@ -881,7 +875,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                       type="button"
                       onClick={() => {
                         setShowModelloInput(false);
-                        setIntervento({ ...intervento, modello: '' });
+                        setValue('intervento.modello', '');
                       }}
                       className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
                     >
@@ -899,7 +893,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 value={intervento.numeroSerie}
-                onChange={(e) => setIntervento({ ...intervento, numeroSerie: e.target.value })}
+                onChange={(e) => setValue('intervento.numeroSerie', e.target.value)}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
               />
             </div>
@@ -910,7 +904,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <div className="space-y-3">
                 <select
                   value={intervento.tipoIntervento}
-                  onChange={(e) => setIntervento({ ...intervento, tipoIntervento: e.target.value })}
+                  onChange={(e) => setValue('intervento.tipoIntervento', e.target.value)}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm transition-all"
                   required
                 >
@@ -952,7 +946,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                           setTipiIntervento((prev) => [...prev, nuovaTipologia]);
                         }
 
-                        setIntervento({ ...intervento, tipoIntervento: nuovaTipologia });
+                        setValue('intervento.tipoIntervento', nuovaTipologia);
                         setNewTipoIntervento('');
                         setShowTipoInterventoInput(false);
                       }}
@@ -980,7 +974,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <textarea
                 value={intervento.descrizione}
-                onChange={(e) => setIntervento({ ...intervento, descrizione: e.target.value })}
+                onChange={(e) => setValue('intervento.descrizione', e.target.value)}
                 rows={4}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all resize-none"
                 required
@@ -1115,7 +1109,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                   </label>
                   <textarea
                     value={intervento.materialiUtilizzati || ''}
-                    onChange={(e) => setIntervento({ ...intervento, materialiUtilizzati: e.target.value })}
+                    onChange={(e) => setValue('intervento.materialiUtilizzati', e.target.value)}
                     placeholder="Inserisci materiali aggiuntivi non presenti nella lista..."
                     rows={2}
                     className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm placeholder-surface-400 dark:placeholder-surface-500 text-sm"
@@ -1129,7 +1123,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               </label>
               <textarea
                 value={intervento.note}
-                onChange={(e) => setIntervento({ ...intervento, note: e.target.value })}
+                onChange={(e) => setValue('intervento.note', e.target.value)}
                 placeholder="Inserisci eventuali note aggiuntive..."
                 rows={3}
                 className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm placeholder-surface-400 dark:placeholder-surface-500"
@@ -1149,13 +1143,13 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     label="Firma Operatore"
                     value={intervento.firmaOperatore}
                     required
-                    onChange={(firmaOperatore) => setIntervento({ ...intervento, firmaOperatore })}
+                    onChange={(firmaOperatore) => setValue('intervento.firmaOperatore', firmaOperatore)}
                   />
                   <SignaturePad
                     label="Firma Cliente"
                     value={intervento.firmaCliente}
                     required
-                    onChange={(firmaCliente) => setIntervento({ ...intervento, firmaCliente })}
+                    onChange={(firmaCliente) => setValue('intervento.firmaCliente', firmaCliente)}
                   />
                 </div>
                 <p className="mt-4 text-xs text-surface-600 dark:text-surface-400 flex items-center gap-1.5">
@@ -1194,7 +1188,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             </button>
           ) : (
             <button
-              onClick={handleSubmit}
+              onClick={handleConfirmSave}
               disabled={!validateStep()}
               className="w-full sm:w-auto justify-center px-8 py-4 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-glow-emerald flex items-center gap-2"
             >
@@ -1205,6 +1199,6 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             </button>
           )}
       </div>
-    </div>
+    </Card>
   );
 }

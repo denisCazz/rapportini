@@ -3,33 +3,34 @@
  * Imposta APP_ENV=TEST o APP_ENV=PROD per commutare tra i due database.
  */
 
-export type AppEnv = 'TEST' | 'PROD';
+import {
+  buildPostgresUrlFromParts,
+  getAppEnvFromEnv,
+  resolveDatabaseUrl,
+  type AppEnvKind,
+} from '@/lib/database-url';
+
+export type AppEnv = AppEnvKind;
 
 const rawEnv = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'PROD';
 export const APP_ENV: AppEnv = rawEnv === 'TEST' ? 'TEST' : 'PROD';
 
-function getSupabaseConfig() {
-  if (APP_ENV === 'TEST') {
-    return {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL_TEST || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_TEST || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-      serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY_TEST || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    };
-  }
-  // PROD
-  return {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL_PROD || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY_PROD || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  };
+/** @deprecated Usa `buildPostgresUrlFromParts` da `@/lib/database-url`. */
+export function buildPostgresUrlFromEnv(): string {
+  return buildPostgresUrlFromParts(process.env, APP_ENV);
 }
 
-export const supabaseConfig = getSupabaseConfig();
+/** URL Postgres per Prisma (runtime API): override URL o campi POSTGRES_* / POSTGRES_TEST_*. */
+export function getDatabaseUrl(): string {
+  return resolveDatabaseUrl(process.env);
+}
+
+export const databaseUrl = getDatabaseUrl();
 
 export function isTestEnv(): boolean {
-  return APP_ENV === 'TEST';
+  return getAppEnvFromEnv(process.env) === 'TEST';
 }
 
 export function isProdEnv(): boolean {
-  return APP_ENV === 'PROD';
+  return getAppEnvFromEnv(process.env) === 'PROD';
 }

@@ -4,15 +4,19 @@ import { useState } from 'react';
 import { Rapportino, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
 import RapportinoDetail from './RapportinoDetail';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface RapportiniListProps {
   rapportini: Rapportino[];
+  loading?: boolean;
   onDelete: (id: string) => void;
   onEdit?: (rapportino: Rapportino) => void;
   settings: AziendaSettings;
 }
 
-export default function RapportiniList({ rapportini, onDelete, onEdit, settings }: RapportiniListProps) {
+export default function RapportiniList({ rapportini, loading = false, onDelete, onEdit, settings }: RapportiniListProps) {
   const [selectedRapportino, setSelectedRapportino] = useState<Rapportino | null>(null);
   const [filter, setFilter] = useState<'all' | 'pellet' | 'legno'>('all');
 
@@ -27,7 +31,46 @@ export default function RapportiniList({ rapportini, onDelete, onEdit, settings 
     }
   };
 
-  if (rapportini.length === 0) {
+  if (loading && rapportini.length === 0) {
+    return (
+      <div className="rounded-3xl border border-border bg-card/80 p-6 shadow-sm">
+        <div className="mb-4 space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Intervento</TableHead>
+              <TableHead className="text-right">Azioni</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-40" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-56" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Skeleton className="ml-auto h-8 w-24" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
+  if (!loading && rapportini.length === 0) {
     return (
       <div className="glass-card rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
         <div className="w-20 h-20 bg-surface-100 dark:bg-surface-800 rounded-full flex items-center justify-center mb-6 shadow-inner">
@@ -53,7 +96,12 @@ export default function RapportiniList({ rapportini, onDelete, onEdit, settings 
 
   return (
     <>
-      <div className="bg-white/50 dark:bg-surface-900/50 rounded-3xl shadow-sm border border-surface-200 dark:border-surface-800 p-4 sm:p-6 mb-6 backdrop-blur-sm">
+      <div
+        className={cn(
+          'bg-white/50 dark:bg-surface-900/50 rounded-3xl shadow-sm border border-surface-200 dark:border-surface-800 p-4 sm:p-6 mb-6 backdrop-blur-sm transition-opacity',
+          loading && rapportini.length > 0 && 'opacity-60 pointer-events-none'
+        )}
+      >
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold text-surface-900 dark:text-white mb-1 tracking-tight">

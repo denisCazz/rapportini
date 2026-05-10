@@ -47,18 +47,18 @@ interface StatisticsChartsProps {
 
 // Palette con colori ad alto contrasto
 const CHART_COLORS = {
-  pellet: '#ef4444',    // Rosso vivo
-  legno: '#22c55e',     // Verde brillante
-  primary: '#3b82f6',   // Blu
-  secondary: '#a855f7', // Viola
-  accent: '#f59e0b',    // Ambra
-  teal: '#14b8a6',      // Teal
-  pink: '#ec4899',      // Rosa
-  indigo: '#6366f1',    // Indigo
+  pellet: '#ea580c', // ember
+  legno: '#92400e', // wood
+  primary: '#c2410c',
+  secondary: '#b45309',
+  accent: '#f97316',
+  teal: '#78716c',
+  pink: '#dc2626',
+  indigo: '#7c2d12',
 };
 
 // Colori per barre multiple (alto contrasto)
-const BAR_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#6366f1'];
+const BAR_COLORS = ['#ea580c', '#c2410c', '#92400e', '#f97316', '#fb923c', '#9a3412', '#78716c', '#431407'];
 
 export default function StatisticsCharts({ data }: StatisticsChartsProps) {
   // Dati per grafico a torta tipo stufa

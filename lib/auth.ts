@@ -14,6 +14,8 @@ export interface User {
   email?: string;
   qualifica?: string;
   firma?: string;
+  /** True finché non si cambia password (seed / policy) */
+  must_change_password?: boolean;
 }
 
 // Helper per refresh automatico del token
@@ -87,8 +89,12 @@ export const auth = {
 
       if (data.success && data.user) {
         if (typeof window !== 'undefined') {
+          const userPayload: User = {
+            ...data.user,
+            must_change_password: Boolean(data.user.must_change_password),
+          };
           localStorage.setItem(STORAGE_KEY_AUTH, 'authenticated');
-          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user));
+          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(userPayload));
           // Salva anche i token per retrocompatibilità
           if (data.accessToken) {
             localStorage.setItem(STORAGE_KEY_ACCESS_TOKEN, data.accessToken);
@@ -97,7 +103,13 @@ export const auth = {
             localStorage.setItem(STORAGE_KEY_REFRESH_TOKEN, data.refreshToken);
           }
         }
-        return { success: true, user: data.user };
+        return {
+          success: true,
+          user: {
+            ...data.user,
+            must_change_password: Boolean(data.user.must_change_password),
+          } as User,
+        };
       }
 
       return { success: false, error: 'Errore durante il login' };
