@@ -1,10 +1,14 @@
 /**
  * Seed sul database indicato da .env (stessa risoluzione URL di `npm run db:push`).
  * Esegui dopo `db:push` o `migrate deploy`.
+ *
+ * Crea organizzazione + utente admin nel DB (login solo da tabella `utenti`).
  */
+import { randomBytes } from 'node:crypto';
 import { config } from 'dotenv';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { resolveDatabaseUrl } from '../lib/database-url';
 
@@ -19,6 +23,59 @@ if (!process.env.DATABASE_URL?.trim()) {
 }
 
 const prisma = new PrismaClient();
+
+async function seedBootstrapAdmin(orgId: string) {
+  const username = (process.env.SEED_ADMIN_USERNAME || 'admin').trim();
+  const explicitPwd = process.env.SEED_ADMIN_PASSWORD?.trim();
+
+  const existing = await prisma.utenti.findUnique({
+    where: { org_id_username: { org_id: orgId, username } },
+  });
+
+  if (existing) {
+    if (explicitPwd) {
+      const password_hash = await bcrypt.hash(explicitPwd, 12);
+      await prisma.utenti.update({
+        where: { org_id_username: { org_id: orgId, username } },
+        data: {
+          password_hash,
+          ruolo: 'admin',
+          attivo: true,
+          must_change_password: false,
+        },
+      });
+      console.log(`Seed: password admin "${username}" aggiornata.`);
+    } else {
+      console.log(
+        `Seed: utente admin "${username}" già presente (imposta SEED_ADMIN_PASSWORD nel .env solo per questo comando se vuoi resettare la password).`
+      );
+    }
+    return;
+  }
+
+  const password = explicitPwd || `${randomBytes(18).toString('base64url')}aA1!`;
+  const password_hash = await bcrypt.hash(password, 12);
+
+  await prisma.utenti.create({
+    data: {
+      org_id: orgId,
+      username,
+      password_hash,
+      ruolo: 'admin',
+      nome: 'Amministratore',
+      cognome: 'Sistema',
+      attivo: true,
+      must_change_password: !explicitPwd,
+    },
+  });
+
+  if (explicitPwd) {
+    console.log(`Seed: creato admin "${username}" (org "${orgId}").`);
+  } else {
+    console.log(`Seed: creato admin "${username}" (org "${orgId}").`);
+    console.log(`      Password iniziale (copiala ora, non viene ripetuta): ${password}`);
+  }
+}
 
 async function main() {
   const orgId = (
@@ -42,6 +99,8 @@ async function main() {
   });
 
   console.log(`Seed: organizzazione "${orgId}" ok.`);
+
+  await seedBootstrapAdmin(orgId);
 }
 
 main()

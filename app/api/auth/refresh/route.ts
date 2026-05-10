@@ -3,7 +3,6 @@ import { verifyToken, createTokenPair } from '@/lib/jwt';
 import { prisma } from '@/lib/db';
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-options';
-import { getSuperUserJwtUserId, isSuperUserRefreshPayload, superUserDisplayProfile } from '@/lib/super-user';
 
 // POST - Refresh token
 export async function POST(request: NextRequest) {
@@ -24,40 +23,6 @@ export async function POST(request: NextRequest) {
 
     if (!orgId) {
       return NextResponse.json({ error: 'Organizzazione non configurata per il refresh token' }, { status: 401 });
-    }
-
-    if (isSuperUserRefreshPayload(payload)) {
-      const profile = superUserDisplayProfile();
-      const { accessToken, refreshToken: newRefreshToken } = await createTokenPair({
-        id: getSuperUserJwtUserId(),
-        username: (payload.username || process.env.SUPER_USER_USERNAME || '').trim(),
-        ruolo: 'admin',
-        org_id: orgId,
-        must_change_password: false,
-      });
-
-      const response = NextResponse.json({
-        success: true,
-        accessToken,
-        refreshToken: newRefreshToken,
-        user: {
-          id: getSuperUserJwtUserId(),
-          username: (process.env.SUPER_USER_USERNAME || '').trim(),
-          org_id: orgId,
-          ruolo: 'admin',
-          nome: profile.nome,
-          cognome: profile.cognome,
-          telefono: '',
-          email: '',
-          qualifica: '',
-          firma: '',
-          must_change_password: false,
-        },
-      });
-
-      response.cookies.set('access_token', accessToken, authAccessCookieOptions(15 * 60));
-      response.cookies.set('refresh_token', newRefreshToken, authRefreshCookieOptions(7 * 24 * 60 * 60));
-      return response;
     }
 
     const utente = await prisma.utenti.findFirst({

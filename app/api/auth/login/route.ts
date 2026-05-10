@@ -7,13 +7,6 @@ import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } f
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-options';
 import { writeAuditLog } from '@/lib/audit-log';
-import {
-  isSuperUserConfigured,
-  resolveSuperUserOrgId,
-  superUserDisplayProfile,
-  verifySuperUserCredentials,
-  getSuperUserJwtUserId,
-} from '@/lib/super-user';
 
 const userLoginSelect = {
   id: true,
@@ -71,56 +64,6 @@ export async function POST(request: NextRequest) {
     )
       .toString()
       .trim();
-
-    if (isSuperUserConfigured() && (await verifySuperUserCredentials(username, password))) {
-      const resolvedOrgId = resolveSuperUserOrgId(requestedOrgId);
-      const profile = superUserDisplayProfile();
-      const envUser = (process.env.SUPER_USER_USERNAME || '').trim();
-
-      const { accessToken, refreshToken } = await createTokenPair({
-        id: getSuperUserJwtUserId(),
-        username: envUser,
-        org_id: resolvedOrgId,
-        ruolo: 'admin',
-        must_change_password: false,
-      });
-
-      const userData = {
-        id: getSuperUserJwtUserId(),
-        username: envUser,
-        org_id: resolvedOrgId,
-        ruolo: 'admin' as const,
-        nome: profile.nome,
-        cognome: profile.cognome,
-        telefono: '',
-        email: '',
-        qualifica: '',
-        firma: '',
-        must_change_password: false,
-      };
-
-      const response = NextResponse.json({
-        user: userData,
-        success: true,
-        accessToken,
-        refreshToken,
-      });
-
-      response.cookies.set('access_token', accessToken, authAccessCookieOptions(15 * 60));
-      response.cookies.set('refresh_token', refreshToken, authRefreshCookieOptions(7 * 24 * 60 * 60));
-      response.headers.set('X-RateLimit-Remaining', String(rateLimitResult.remaining));
-      response.headers.set('X-RateLimit-Reset', String(rateLimitResult.resetTime));
-
-      void writeAuditLog({
-        org_id: resolvedOrgId,
-        user_id: getSuperUserJwtUserId(),
-        action: 'login_success_super',
-        resource: 'session',
-        ip: clientIP,
-      });
-
-      return response;
-    }
 
     if (!requestedOrgId) {
       return NextResponse.json(
