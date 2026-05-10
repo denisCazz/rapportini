@@ -1,5 +1,19 @@
 import bcrypt from 'bcryptjs';
 
+/**
+ * Alcuni file .env / Docker Compose salvano `$$` all’inizio dell’hash (escape del `$`);
+ * in dotenv Node resta `$$2a$...` e la validazione bcrypt falliva.
+ */
+export function normalizeSuperUserPasswordHash(raw: string): string {
+  const h = raw.trim();
+  if (/^\$\$2[abxy]\$\d{1,2}\$/.test(h)) return h.slice(1);
+  return h;
+}
+
+function resolvedSuperUserPasswordHash(): string {
+  return normalizeSuperUserPasswordHash(process.env.SUPER_USER_PASSWORD_HASH || '');
+}
+
 /** UUID fisso nel JWT per il super user (nessuna riga obbligatoria in `utenti`). */
 export function getSuperUserJwtUserId(): string {
   return (process.env.SUPER_USER_JWT_USER_ID || '00000000-0000-4000-8000-000000000001').trim();
@@ -7,7 +21,7 @@ export function getSuperUserJwtUserId(): string {
 
 export function isSuperUserConfigured(): boolean {
   const u = (process.env.SUPER_USER_USERNAME || '').trim();
-  const h = (process.env.SUPER_USER_PASSWORD_HASH || '').trim();
+  const h = resolvedSuperUserPasswordHash();
   return Boolean(u && h && /^\$2[abxy]\$/.test(h));
 }
 
@@ -16,7 +30,7 @@ export async function verifySuperUserCredentials(username: string, password: str
   const envUser = (process.env.SUPER_USER_USERNAME || '').trim();
   if (!envUser) return false;
   if (username.trim().toLowerCase() !== envUser.toLowerCase()) return false;
-  const hash = (process.env.SUPER_USER_PASSWORD_HASH || '').trim();
+  const hash = resolvedSuperUserPasswordHash();
   return bcrypt.compare(password, hash);
 }
 
