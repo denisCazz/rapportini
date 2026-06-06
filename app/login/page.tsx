@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -90,7 +90,7 @@ export default function LoginPage() {
       <AuthSidePanel />
     <div className="relative flex-1 flex items-center justify-center p-4 overflow-hidden">
       {/* Effetto fuoco elegante - calda atmosfera camino */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="login-fire-motion pointer-events-none absolute inset-0 overflow-hidden">
         {/* Base scura con vignette - concentra lo sguardo al centro */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0d0d0d] via-[#120a06] to-[#0a0502]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_0%,rgba(0,0,0,0.3)_100%)]" />

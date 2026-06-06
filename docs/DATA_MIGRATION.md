@@ -1,53 +1,47 @@
-# Migrazione dati Supabase → Postgres VPS
+﻿# Migrazione dati PostgreSQL
 
-## 1. Export da Supabase (schema + dati)
-
-Dal progetto Supabase: **Settings → Database → Connection string** (URI mode, postgres).
+## Nuovo database proprietario
 
 ```bash
-export OLD_PG="postgresql://postgres.[ref]:[PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"
-pg_dump "$OLD_PG" --no-owner --no-acl -Fc -f bitora.dump
+# .env
+POSTGRES_HOST=212.227.193.249
+POSTGRES_PORT=60001
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=***
+POSTGRES_DB=rapportini_eva
+
+npm run db:bootstrap
 ```
 
-Oppure solo dati (se schema già applicato con `supabase/schema.sql` + migrazioni):
+## Export da database esistente
 
 ```bash
-pg_dump "$OLD_PG" --data-only --no-owner --no-acl -Fc -f bitora-data.dump
+pg_dump "postgresql://user:pass@host:port/dbname" --no-owner --no-acl -Fc -f backup.dump
 ```
 
-## 2. Import sul VPS
+## Import su nuovo server
 
 ```bash
-export NEW_PG="postgresql://bitora:PASSWORD@localhost:5432/bitora"
-pg_restore -d "$NEW_PG" --no-owner --no-acl --clean --if-exists bitora.dump
+pg_restore -d "postgresql://postgres:PASS@212.227.193.249:60001/rapportini_eva" \
+  --no-owner --no-acl --clean --if-exists backup.dump
 ```
 
-## 3. Verifica conteggi
+## Verifica conteggi
 
 ```bash
-psql "$NEW_PG" -c "SELECT 'utenti' AS t, COUNT(*) FROM utenti UNION ALL SELECT 'clienti', COUNT(*) FROM clienti UNION ALL SELECT 'rapportini', COUNT(*) FROM rapportini;"
+psql "$DATABASE_URL" -c "SELECT 'utenti' AS t, COUNT(*) FROM utenti UNION ALL SELECT 'clienti', COUNT(*) FROM clienti UNION ALL SELECT 'rapportini', COUNT(*) FROM rapportini;"
 ```
 
-Confronta con gli stessi `COUNT` sul DB Supabase prima del cutover.
-
-## 4. Prisma sul nuovo DB
-
-Con **URL esplicito**:
+## Prisma dopo import
 
 ```bash
-DATABASE_URL="$NEW_PG" npx prisma migrate deploy
-DATABASE_URL="$NEW_PG" npx prisma generate
+npm run db:generate
+npm run db:migrate
 ```
 
-Oppure nel repo, con **`POSTGRES_*` nel `.env`** (vedi `.env.example`) senza `DATABASE_URL`:
+## Cutover app
 
-```bash
-npm run db:migrate    # prisma migrate deploy
-npm run db:generate # prisma generate
-# solo dev/staging se accetti push schema:
-# npm run db:push
-```
-
-## 5. Variabili app
-
-Imposta **`POSTGRES_HOST`**, **`POSTGRES_PORT`**, **`POSTGRES_USER`**, **`POSTGRES_PASSWORD`**, **`POSTGRES_DB`**, **`POSTGRES_SCHEMA`** nel `.env` (l’app compone l’URL), oppure un override **`DATABASE_URL`** / **`DATABASE_URL_PROD`**. In ogni caso **`JWT_SECRET`** (≥32 caratteri).
+1. Aggiorna `POSTGRES_*` in `.env` produzione
+2. Riavvia app / redeploy
+3. Verifica `GET /api/health`
+4. Test login admin

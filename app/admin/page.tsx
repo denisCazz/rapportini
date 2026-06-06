@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,8 @@ import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import SidebarLayout from '@/components/SidebarLayout';
+import { Skeleton } from '@/components/ui/skeleton';
+import ErrorBanner from '@/components/ui/ErrorBanner';
 import RapportinoDetail from '@/components/RapportinoDetail';
 import { AziendaSettings, Rapportino } from '@/types';
 import { exportStatistiche } from '@/lib/exportData';
@@ -298,27 +300,19 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-red-800 dark:text-red-200">{error}</p>
-              <button
-                onClick={loadStatistics}
-                className="ml-auto text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline text-sm"
-              >
-                Riprova
-              </button>
-            </div>
-          </div>
-        )}
+        {error && <ErrorBanner message={error} onRetry={loadStatistics} />}
 
         {loading ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento statistiche...</p>
+          <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <Skeleton className="h-16 w-16 shrink-0 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-4 w-full max-w-md" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredStatistiche.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">

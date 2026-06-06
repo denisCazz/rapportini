@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,7 @@ import { storage } from '@/lib/storage';
 import SidebarLayout from '@/components/SidebarLayout';
 import RapportiniList from '@/components/RapportiniList';
 import RapportiniFilters, { FilterValues } from '@/components/RapportiniFilters';
+import ErrorBanner from '@/components/ui/ErrorBanner';
 
 export default function RapportiniSearchPage() {
   const router = useRouter();
@@ -94,19 +95,7 @@ export default function RapportiniSearchPage() {
     >
       <RapportiniFilters onFilterChange={handleFilterChange} initialFilters={filters} />
 
-      {error && (
-        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-red-800 dark:text-red-200">{error}</p>
-            <button onClick={() => loadRapportini(filters)} className="ml-auto text-red-600 dark:text-red-400 hover:underline text-sm">
-              Riprova
-            </button>
-          </div>
-        </div>
-      )}
+      {error && <ErrorBanner message={error} onRetry={() => loadRapportini(filters)} />}
 
       <RapportiniList
         rapportini={rapportini}
@@ -114,6 +103,7 @@ export default function RapportiniSearchPage() {
         onDelete={handleDelete}
         onEdit={isOperatore ? handleEdit : undefined}
         settings={settings}
+        showCreateAction={isOperatore}
       />
     </SidebarLayout>
   );

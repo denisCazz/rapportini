@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { createTokenPair } from '@/lib/jwt';
@@ -173,6 +173,20 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Errore durante il login';
     if (message.includes('JWT_SECRET')) {
       return NextResponse.json({ error: 'Configurazione server incompleta' }, { status: 503 });
+    }
+    const isDbError =
+      message.includes("Can't reach database") ||
+      message.includes('P1001') ||
+      message.includes('ECONNREFUSED') ||
+      message.includes('connection');
+    if (isDbError) {
+      return NextResponse.json(
+        {
+          error:
+            'Database non raggiungibile. Verifica POSTGRES_* in .env e che il server sia attivo.',
+        },
+        { status: 503 }
+      );
     }
     return NextResponse.json(
       { error: process.env.NODE_ENV === 'development' ? message : 'Errore durante il login' },

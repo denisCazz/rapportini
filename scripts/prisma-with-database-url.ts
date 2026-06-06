@@ -1,5 +1,4 @@
-#!/usr/bin/env npx tsx
-/**
+﻿/**
  * Carica .env / .env.local, imposta DATABASE_URL (da variabili separate o override),
  * poi esegue `npx prisma …` (db push, migrate deploy, generate, db seed, …).
  */
@@ -30,5 +29,14 @@ if (prismaArgs.length === 0) {
   process.exit(1);
 }
 
-const r = spawnSync('npx', ['prisma', ...prismaArgs], { cwd: root, stdio: 'inherit', env: process.env });
+const r = spawnSync('npx', ['prisma', ...prismaArgs], {
+  cwd: root,
+  stdio: 'inherit',
+  env: process.env,
+  shell: process.platform === 'win32',
+});
+if (r.error) {
+  console.error('Errore esecuzione prisma:', r.error.message);
+  process.exit(1);
+}
 process.exit(r.status ?? 1);

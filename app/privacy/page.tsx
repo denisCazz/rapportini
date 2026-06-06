@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">8. Trasferimento dati</h2>
             <p>
-              I dati sono ospitati su infrastrutture cloud (Supabase) conformi al GDPR. I trasferimenti verso paesi extra-UE sono regolati da clausole contrattuali standard o decisioni di adeguatezza.
+              I dati sono ospitati su database PostgreSQL su infrastruttura dedicata conforme al GDPR. I trasferimenti verso paesi extra-UE sono regolati da clausole contrattuali standard o decisioni di adeguatezza.
             </p>
           </section>
         </div>

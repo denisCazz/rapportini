@@ -11,6 +11,8 @@
     "db:migrate": "npx tsx scripts/prisma-with-database-url.ts migrate deploy",
     "db:studio": "npx tsx scripts/prisma-with-database-url.ts studio",
     "db:seed": "npx tsx scripts/prisma-with-database-url.ts db seed",
+    "db:bootstrap": "npx tsx scripts/bootstrap-db.ts",
+    "db:create": "npx tsx scripts/create-database.ts",
     "hash-passwords": "npx tsx scripts/hash-passwords.ts",
     "lint": "next lint",
     "test": "vitest",

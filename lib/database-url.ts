@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Costruzione DATABASE_URL da variabili d’ambiente (runtime Next + script Prisma/seed).
  * Mantieni allineato con .env.example (POSTGRES_* / POSTGRES_TEST_*).
  */
@@ -40,6 +40,12 @@ export function buildPostgresUrlFromParts(env: NodeJS.ProcessEnv = process.env, 
   const p = encodeURIComponent(password);
   let url = `postgresql://${u}:${p}@${host}:${port}/${database}?schema=${encodeURIComponent(schema)}`;
   if (sslmode) url += `&sslmode=${encodeURIComponent(sslmode)}`;
+  const connectionLimit = (env.POSTGRES_CONNECTION_LIMIT || '').trim();
+  if (connectionLimit) {
+    url += `&connection_limit=${encodeURIComponent(connectionLimit)}`;
+  } else if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== 'postgres') {
+    url += '&connection_limit=10';
+  }
   return url;
 }
 

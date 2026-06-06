@@ -1,7 +1,20 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { parseResponseBody, fetchWithAuth } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Filter, ChevronDown, X, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface FilterValues {
   tipoStufa?: 'pellet' | 'legno';
@@ -45,13 +58,13 @@ export default function RapportiniFilters({ onFilterChange, initialFilters = {} 
     if (marcaObj) {
       fetchWithAuth(`/api/modelli?marca_id=${encodeURIComponent(marcaObj.id)}`)
         .then(async (res) => {
-          const data = await parseResponseBody<any[]>(res);
+          const data = await parseResponseBody<Array<{ nome: string }>>(res);
           if (!res.ok) {
             console.error('Errore caricamento modelli:', data);
             return;
           }
           if (Array.isArray(data)) {
-            setModelli(data.map((m: any) => m.nome));
+            setModelli(data.map((m) => m.nome));
           }
         })
         .catch(console.error);
@@ -62,12 +75,11 @@ export default function RapportiniFilters({ onFilterChange, initialFilters = {} 
 
   const handleChange = (key: keyof FilterValues, value: string | undefined) => {
     const newFilters = { ...filters, [key]: value || undefined };
-    
-    // Reset modello se cambia la marca
+
     if (key === 'marca') {
       newFilters.modello = undefined;
     }
-    
+
     setFilters(newFilters);
     onFilterChange(newFilters);
   };
@@ -77,149 +89,134 @@ export default function RapportiniFilters({ onFilterChange, initialFilters = {} 
     onFilterChange({});
   };
 
-  const activeFiltersCount = Object.values(filters).filter(v => v).length;
+  const activeFiltersCount = Object.values(filters).filter((v) => v).length;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6">
-      {/* Header con toggle */}
+    <div className="mb-6 rounded-xl border border-border bg-card shadow-sm">
       <button
+        type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left"
+        className="flex w-full items-center justify-between px-6 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+        aria-expanded={isExpanded}
       >
         <div className="flex items-center gap-3">
-          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          <span className="font-medium text-gray-900 dark:text-white">Filtri Avanzati</span>
+          <Filter className="h-5 w-5 text-muted-foreground" aria-hidden />
+          <span className="font-medium text-foreground">Filtri avanzati</span>
           {activeFiltersCount > 0 && (
-            <span className="px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200 text-xs font-medium rounded-full">
+            <Badge variant="secondary" className="font-semibold">
               {activeFiltersCount} attivi
-            </span>
+            </Badge>
           )}
         </div>
-        <svg
-          className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <ChevronDown
+          className={cn('h-5 w-5 text-muted-foreground transition-transform', isExpanded && 'rotate-180')}
+          aria-hidden
+        />
       </button>
 
-      {/* Filtri */}
       {isExpanded && (
-        <div className="px-6 pb-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 pt-4">
-            {/* Ricerca testuale */}
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Ricerca
-              </label>
+        <div className="border-t border-border px-6 pb-6">
+          <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="lg:col-span-2 space-y-1.5">
+              <Label htmlFor="filter-search">Ricerca</Label>
               <div className="relative">
-                <input
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <Input
+                  id="filter-search"
                   type="text"
                   placeholder="Cerca per descrizione, note..."
                   value={filters.search || ''}
                   onChange={(e) => handleChange('search', e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                  className="pl-9"
                 />
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
               </div>
             </div>
 
-            {/* Tipo Stufa */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Tipo Stufa
-              </label>
-              <select
-                value={filters.tipoStufa || ''}
-                onChange={(e) => handleChange('tipoStufa', e.target.value as 'pellet' | 'legno' | undefined)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+            <div className="space-y-1.5">
+              <Label>Tipo stufa</Label>
+              <Select
+                value={filters.tipoStufa || 'all'}
+                onValueChange={(v) => handleChange('tipoStufa', !v || v === 'all' ? undefined : v)}
               >
-                <option value="">Tutti</option>
-                <option value="pellet">Pellet</option>
-                <option value="legno">Legno</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Tutti" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti</SelectItem>
+                  <SelectItem value="pellet">Pellet</SelectItem>
+                  <SelectItem value="legno">Legno</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Data Inizio */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Data Da
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="filter-data-inizio">Data da</Label>
+              <Input
+                id="filter-data-inizio"
                 type="date"
                 value={filters.dataInizio || ''}
                 onChange={(e) => handleChange('dataInizio', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
-            {/* Data Fine */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Data A
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="filter-data-fine">Data a</Label>
+              <Input
+                id="filter-data-fine"
                 type="date"
                 value={filters.dataFine || ''}
                 onChange={(e) => handleChange('dataFine', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
-            {/* Marca */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Marca
-              </label>
-              <select
-                value={filters.marca || ''}
-                onChange={(e) => handleChange('marca', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+            <div className="space-y-1.5">
+              <Label>Marca</Label>
+              <Select
+                value={filters.marca || 'all'}
+                onValueChange={(v) => handleChange('marca', !v || v === 'all' ? undefined : v)}
               >
-                <option value="">Tutte</option>
-                {marche.map((m) => (
-                  <option key={m.id} value={m.nome}>{m.nome}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Tutte" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutte</SelectItem>
+                  {marche.map((m) => (
+                    <SelectItem key={m.id} value={m.nome}>
+                      {m.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Modello */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Modello
-              </label>
-              <select
-                value={filters.modello || ''}
-                onChange={(e) => handleChange('modello', e.target.value)}
+            <div className="space-y-1.5">
+              <Label>Modello</Label>
+              <Select
+                value={filters.modello || 'all'}
+                onValueChange={(v) => handleChange('modello', !v || v === 'all' ? undefined : v)}
                 disabled={!filters.marca}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
               >
-                <option value="">Tutti</option>
-                {modelli.map((modello) => (
-                  <option key={modello} value={modello}>{modello}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Tutti" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti</SelectItem>
+                  {modelli.map((modello) => (
+                    <SelectItem key={modello} value={modello}>
+                      {modello}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Pulsante Reset */}
           {activeFiltersCount > 0 && (
             <div className="mt-4 flex justify-end">
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Resetta Filtri
-              </button>
+              <Button type="button" variant="ghost" size="sm" onClick={handleReset}>
+                <X className="h-4 w-4" aria-hidden />
+                Resetta filtri
+              </Button>
             </div>
           )}
         </div>

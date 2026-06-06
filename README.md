@@ -1,166 +1,120 @@
-# Bitora - Gestione Rapportini Stufe
+﻿# Bitora - Gestione Rapportini Stufe
 
-Sistema professionale per la gestione degli interventi su stufe a pellet e legno, con database Supabase e pannello admin per statistiche.
+Sistema professionale per la gestione degli interventi su stufe a pellet e legno, con PostgreSQL (Prisma) e pannello admin per statistiche.
 
-## 🚀 Funzionalità
+## Funzionalità
 
-- ✅ Gestione completa rapportini di intervento
-- ✅ Database Supabase per persistenza dati
-- ✅ Pannello admin con statistiche raggruppate per cliente
-- ✅ UI/UX moderna e professionale
-- ✅ Dark mode
-- ✅ Esportazione PDF
-- ✅ Ricerca e filtri avanzati
+- Gestione completa rapportini di intervento
+- PostgreSQL via Prisma ORM
+- Pannello admin con statistiche raggruppate per cliente
+- UI/UX moderna, dark mode, PWA
+- Esportazione PDF
+- Ricerca e filtri avanzati
+- Bozze automatiche nel form rapportino
 
-## 📋 Prerequisiti
+## Prerequisiti
 
-- Node.js 18+ 
-- Account Supabase (gratuito)
+- Node.js 18+
+- PostgreSQL 14+ (locale, VPS o cloud)
 
-## 🔧 Installazione
+## Installazione
 
-1. **Clona il repository e installa le dipendenze:**
+1. **Clona e installa:**
 
 ```bash
 npm install
 ```
 
-2. **Configura Supabase:**
+2. **Configura ambiente** — copia `.env.example` in `.env` e compila:
 
-   - Crea un progetto su [Supabase](https://supabase.com)
-   - Vai su Settings > API e copia:
-     - Project URL
-     - Anon/Public Key
-
-3. **Crea il file `.env.local`:**
-
-   - Vedi `.env.example` per il template completo
-   - **Ambienti TEST/PROD**: usa `APP_ENV=TEST` o `APP_ENV=PROD` per commutare tra due database distinti
-   - Variabili per PROD: `*_PROD` (o le variabili senza suffisso per compatibilità)
-   - Variabili per TEST: `*_TEST`
-
-```bash
-APP_ENV=PROD
-NEXT_PUBLIC_APP_ENV=PROD
-NEXT_PUBLIC_SUPABASE_URL_PROD=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY_PROD=your_supabase_service_role_key
+```env
+POSTGRES_HOST=212.227.193.249
+POSTGRES_PORT=60001
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=rapportini_eva
+JWT_SECRET=your-secret-min-32-chars
 ```
 
-4. **Configura il database:**
+3. **Bootstrap database:**
 
-   - Vai su **SQL Editor** in Supabase
-   - Esegui **un solo file**: `supabase/schema.sql`
-   - Crea tutte le tabelle, indici e RLS
-   - 📖 **Guida dettagliata**: Vedi `GUIDA_SUPABASE.md`
+```bash
+npm run db:generate
+npm run db:bootstrap    # push schema + seed admin (se SEED_ADMIN_PASSWORD impostata)
+# oppure manualmente:
+npm run db:push
+npm run db:seed
+```
 
-5. **Avvia l'applicazione:**
+4. **Avvia:**
 
 ```bash
 npm run dev
 ```
 
-L'applicazione sarà disponibile su [http://localhost:3000](http://localhost:3000)
+App su [http://localhost:3000](http://localhost:3000)
 
-## 📁 Struttura del Progetto
+Health check: `GET /api/health`
+
+## Struttura
 
 ```
 rapportini/
-├── app/
-│   ├── api/              # API routes per Supabase
-│   ├── admin/            # Pagina admin con statistiche
-│   ├── login/            # Pagina di login
-│   └── page.tsx          # Homepage
-├── components/           # Componenti React
-├── lib/
-│   ├── api.ts           # Client API
-│   ├── supabase.ts      # Configurazione Supabase
-│   └── ...
-├── supabase/
-│   └── schema.sql       # Schema database
-└── types/               # TypeScript types
+├── app/api/          # API REST (Prisma)
+├── app/admin/        # Dashboard admin
+├── components/       # UI React + shadcn
+├── lib/db.ts         # Prisma client
+├── prisma/           # schema + migrations
+└── supabase/         # SQL DDL/RLS (nome storico)
 ```
 
-## 🗄️ Database Schema
+## Database
 
-Un solo file `supabase/schema.sql` crea tutto:
+Schema Prisma in `prisma/schema.prisma`. Migrazioni in `prisma/migrations/`.
 
-- **utenti** – Autenticazione (admin/operatore)
-- **clienti** – Anagrafica clienti
-- **rapportini** – Interventi con firme
-- **organizzazioni** – Impostazioni azienda
-- **marche, modelli, materiali** – Catalogo stufe
-- **password_reset_tokens** – Recupero password
+Tabelle principali: `utenti`, `clienti`, `rapportini`, `organizzazioni`, `marche`, `modelli`, `materiali`.
 
-## 🎨 Funzionalità UI/UX
+Script SQL aggiuntivi (RLS, trigger): `supabase/schema.sql` e `supabase/migrations/`.
 
-- Design moderno e responsive
-- Animazioni fluide
-- Dark mode integrata
-- Card interattive con hover effects
-- Form multi-step con validazione
-- Statistiche visuali con grafici
+## Autenticazione
 
-## 📊 Pannello Admin
+JWT custom con cookie `access_token` / `refresh_token`.
 
-La pagina admin (`/admin`) è accessibile **solo agli utenti con ruolo admin**.
+Ruoli: **admin** (statistiche, utenti) e **operatore** (rapportini).
 
-Mostra:
+Primo admin: configurare `SEED_ADMIN_USERNAME` e `SEED_ADMIN_PASSWORD` in `.env`, poi `npm run db:seed`.
 
-- Statistiche generali (totale clienti, rapportini, stufe)
-- Raggruppamento per cliente
-- Statistiche dettagliate per ogni cliente:
-  - Numero totale rapportini
-  - Distribuzione pellet/legno
-  - Tipi di intervento più frequenti
-  - Primo e ultimo intervento
-  - Storico completo rapportini
+## Docker
 
-## 🔐 Autenticazione
+**DB esterno** (es. 212.227.193.249): imposta `POSTGRES_*` in `.env` e avvia solo app:
 
-L'autenticazione è gestita tramite database Supabase con due ruoli:
+```bash
+docker compose up app caddy
+```
 
-### Ruoli Utente
+**Postgres locale** (sviluppo):
 
-1. **Admin** - Accesso completo incluso pannello statistiche
-2. **Operatore** - Può solo creare e gestire rapportini
+```bash
+docker compose --profile local-db up
+```
 
-### Credenziali di Default
+## Script utili
 
-Dopo aver eseguito lo schema SQL, sono disponibili due utenti:
+| Script | Descrizione |
+|--------|-------------|
+| `npm run db:push` | Sincronizza schema Prisma |
+| `npm run db:migrate` | Applica migrazioni |
+| `npm run db:seed` | Seed admin/org |
+| `npm run db:bootstrap` | Test connessione + push + seed |
+| `npm run test` | Test unitari (Vitest) |
 
-**Admin:**
-- Username: `admin`
-- Password: `admin123`
-- Accesso: Completo (incluso pannello admin)
+## Tecnologie
 
-**Operatore:**
-- Username: `operatore`
-- Password: `operatore123`
-- Accesso: Solo gestione rapportini
+- Next.js 16, React 19, TypeScript
+- Prisma 5, PostgreSQL
+- Tailwind CSS, shadcn/ui
+- jose (JWT), bcryptjs, jsPDF
 
-⚠️ **IMPORTANTE**: Cambia le password di default dopo il primo accesso in produzione!
+## Licenza
 
-## 📝 Note
-
-- I dati vengono salvati automaticamente in Supabase
-- Gli operatori e clienti vengono creati automaticamente se non esistono
-- I rapportini sono collegati a operatori e clienti tramite relazioni
-
-## 🛠️ Tecnologie Utilizzate
-
-- Next.js 14
-- React 18
-- TypeScript
-- Tailwind CSS
-- Supabase
-- date-fns
-- jsPDF
-
-## 📄 Licenza e Copyright
-
-**Prodotto:** Bitora Software Gestionale Stufe  
-**Produttore:** Bitora.it  
-**Copyright:** © Bitora.it - Tutti i diritti riservati
-
-"Bitora Software Gestionale Stufe" è un prodotto di Bitora.it. Il brand Bitora e il logo sono proprietà di Bitora.it.
+**Prodotto:** Bitora Software Gestionale Stufe — © Bitora.it

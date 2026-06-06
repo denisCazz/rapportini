@@ -1,6 +1,22 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-fire-motion,
+  .login-fire-motion * {
+    animation: none !important;
+  }
+}
 
 body {
   color: rgb(17, 24, 39); /* gray-900 */

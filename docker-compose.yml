@@ -1,7 +1,8 @@
-services:
+﻿services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    profiles: ["local-db"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-bitora}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
@@ -15,13 +16,17 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-bitora}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bitora}?schema=public
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-bitora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-bitora}
+      POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-public}
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-prefer}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET min 32 chars}
       NODE_ENV: production
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://localhost}
       NEXT_PUBLIC_DEFAULT_ORG_ID: ${NEXT_PUBLIC_DEFAULT_ORG_ID:-default}
-    depends_on:
-      - postgres
     networks:
       - internal
       - web

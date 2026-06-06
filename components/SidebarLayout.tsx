@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -301,7 +301,7 @@ export default function SidebarLayout({
               </Button>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-surface-900 dark:text-white break-words tracking-tight leading-tight">
+                  <h1 className="font-heading text-lg sm:text-2xl md:text-3xl font-bold text-surface-900 dark:text-white break-words tracking-tight leading-tight">
                     {pageTitle}
                   </h1>
                   {isTestEnv() && (

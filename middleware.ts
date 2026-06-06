@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { getJwtSecretBytes } from '@/lib/jwt-secret';
@@ -16,6 +16,7 @@ const publicPaths = [
   '/api/auth/reset-password',
   '/api/auth/refresh',
   '/api/auth/logout',
+  '/api/health',
   '/_next',
   '/favicon.ico',
   '/logo.png',

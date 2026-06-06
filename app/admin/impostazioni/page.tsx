@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -7,6 +7,8 @@ import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import SidebarLayout from '@/components/SidebarLayout';
+import PageLoader from '@/components/ui/PageLoader';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AziendaSettings } from '@/types';
 
 export default function ImpostazioniPage() {
@@ -101,7 +103,7 @@ export default function ImpostazioniPage() {
     router.push('/login');
   };
 
-  if (!isAuthenticated || loading) return null;
+  if (!isAuthenticated) return <PageLoader fullScreen message="Verifica accesso…" />;
 
   return (
     <SidebarLayout
@@ -110,6 +112,14 @@ export default function ImpostazioniPage() {
       pageSubtitle="Configura nome, logo e dati dell'organizzazione"
       onLogout={handleLogout}
     >
+      {loading ? (
+        <div className="max-w-2xl space-y-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-2/3" />
+        </div>
+      ) : (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -195,6 +205,7 @@ export default function ImpostazioniPage() {
           </div>
         </form>
       </div>
+      )}
     </SidebarLayout>
   );
 }

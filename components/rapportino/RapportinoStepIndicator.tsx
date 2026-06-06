@@ -1,12 +1,18 @@
-'use client';
+﻿'use client';
 
 interface RapportinoStepIndicatorProps {
   step: number;
+  maxReachableStep?: number;
+  onStepClick?: (step: number) => void;
 }
 
 const LABELS = ['Operatore', 'Cliente', 'Intervento'];
 
-export default function RapportinoStepIndicator({ step }: RapportinoStepIndicatorProps) {
+export default function RapportinoStepIndicator({
+  step,
+  maxReachableStep = step,
+  onStepClick,
+}: RapportinoStepIndicatorProps) {
   return (
     <div className="mb-8">
       <div className="flex items-center gap-2 sm:gap-3">
@@ -17,14 +23,19 @@ export default function RapportinoStepIndicator({ step }: RapportinoStepIndicato
                 s <= step ? 'bg-primary-500 shadow-glow-primary' : 'bg-surface-200 dark:bg-surface-700'
               }`}
             />
-            <div
-              className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-500 ${
+            <button
+              type="button"
+              disabled={!onStepClick || s > maxReachableStep || s === step}
+              onClick={() => onStepClick?.(s)}
+              className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-default ${
                 s < step
                   ? 'bg-primary-500 text-white shadow-glow-primary scale-105'
                   : s === step
                   ? 'bg-primary-500 text-white shadow-glow-primary ring-4 ring-primary-500/30 scale-110'
                   : 'bg-surface-200 dark:bg-surface-700 text-surface-500 dark:text-surface-400'
-              }`}
+              } ${onStepClick && s <= maxReachableStep && s !== step ? 'cursor-pointer hover:scale-105' : ''}`}
+              aria-label={`Vai allo step ${LABELS[s - 1]}`}
+              aria-current={s === step ? 'step' : undefined}
             >
               {s < step ? (
                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,7 +44,7 @@ export default function RapportinoStepIndicator({ step }: RapportinoStepIndicato
               ) : (
                 s
               )}
-            </div>
+            </button>
           </div>
         ))}
       </div>

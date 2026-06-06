@@ -1,11 +1,15 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Rapportino, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
 import RapportinoDetail from './RapportinoDetail';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import EmptyState from '@/components/ui/EmptyState';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface RapportiniListProps {
@@ -14,20 +18,30 @@ interface RapportiniListProps {
   onDelete: (id: string) => void;
   onEdit?: (rapportino: Rapportino) => void;
   settings: AziendaSettings;
+  showCreateAction?: boolean;
 }
 
-export default function RapportiniList({ rapportini, loading = false, onDelete, onEdit, settings }: RapportiniListProps) {
+export default function RapportiniList({
+  rapportini,
+  loading = false,
+  onDelete,
+  onEdit,
+  settings,
+  showCreateAction = false,
+}: RapportiniListProps) {
   const [selectedRapportino, setSelectedRapportino] = useState<Rapportino | null>(null);
   const [filter, setFilter] = useState<'all' | 'pellet' | 'legno'>('all');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const filteredRapportini = rapportini.filter((r) => {
     if (filter === 'all') return true;
     return r.intervento.tipoStufa === filter;
   });
 
-  const handleDelete = (id: string) => {
-    if (confirm('Sei sicuro di voler eliminare questo rapportino?')) {
-      onDelete(id);
+  const handleDeleteConfirm = () => {
+    if (deleteTargetId) {
+      onDelete(deleteTargetId);
+      setDeleteTargetId(null);
     }
   };
 
@@ -72,25 +86,19 @@ export default function RapportiniList({ rapportini, loading = false, onDelete, 
 
   if (!loading && rapportini.length === 0) {
     return (
-      <div className="glass-card rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
-        <div className="w-20 h-20 bg-surface-100 dark:bg-surface-800 rounded-full flex items-center justify-center mb-6 shadow-inner">
-          <svg
-            className="h-10 w-10 text-surface-400 dark:text-surface-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-        </div>
-        <h3 className="text-2xl font-bold text-surface-900 dark:text-white mb-2 tracking-tight">Nessun rapportino presente</h3>
-        <p className="text-surface-500 dark:text-surface-400 font-medium">Crea il tuo primo rapportino per iniziare</p>
-      </div>
+      <EmptyState
+        title="Nessun rapportino presente"
+        description="Crea il tuo primo rapportino per iniziare"
+        action={
+          showCreateAction ? (
+            <Link href="/rapportini/nuovo">
+              <Button size="lg" className="rounded-2xl">
+                Nuovo rapportino
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 
@@ -236,8 +244,9 @@ export default function RapportiniList({ rapportini, loading = false, onDelete, 
                         </button>
                       )}
                       <button
-                        onClick={() => handleDelete(rapportino.id)}
+                        onClick={() => setDeleteTargetId(rapportino.id)}
                         className="flex-1 sm:flex-none min-w-[110px] px-4 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-all text-sm font-bold flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+                        aria-label={`Elimina rapportino di ${rapportino.cliente.nome} ${rapportino.cliente.cognome}`}
                       >
                         <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -261,6 +270,16 @@ export default function RapportiniList({ rapportini, loading = false, onDelete, 
           onEdit={onEdit ? () => { onEdit(selectedRapportino); setSelectedRapportino(null); } : undefined}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => !open && setDeleteTargetId(null)}
+        title="Elimina rapportino"
+        description="Sei sicuro di voler eliminare questo rapportino? L'operazione non può essere annullata."
+        confirmLabel="Elimina"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
     </>
   );
 }

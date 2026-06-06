@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,6 +11,8 @@ import { api } from '@/lib/api';
 import RapportiniList from '@/components/RapportiniList';
 import SidebarLayout from '@/components/SidebarLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import ErrorBanner from '@/components/ui/ErrorBanner';
 import { Flame, Trees, FileText } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
@@ -113,30 +115,27 @@ export default function Home() {
         onLogout={handleLogout}
         onExportPDF={handleExportPDFs}
       >
-        {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-red-800 dark:text-red-200">{error}</p>
-              <button
-                onClick={loadRapportini}
-                className="ml-auto text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline text-sm"
-              >
-                Riprova
-              </button>
-            </div>
-          </div>
-        )}
+        {error && <ErrorBanner message={error} onRetry={loadRapportini} />}
 
         {loading ? (
-          <div className="glass-card rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
-            <div className="relative w-16 h-16 mb-6">
-              <div className="absolute inset-0 border-4 border-primary-200 dark:border-primary-900 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-primary-500 rounded-full border-t-transparent animate-spin"></div>
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-4 w-32" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-9 w-16" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <p className="text-lg font-medium text-surface-600 dark:text-surface-300">Caricamento rapportini in corso...</p>
+            <Card>
+              <CardContent className="pt-6">
+                <Skeleton className="mx-auto h-[200px] w-full max-w-xs rounded-full" />
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <div className="space-y-6">
@@ -219,6 +218,7 @@ export default function Home() {
                 onDelete={handleDeleteRapportino}
                 onEdit={isOperatore ? (r) => router.push(`/rapportini/modifica/${r.id}`) : undefined}
                 settings={settings}
+                showCreateAction={isOperatore}
               />
             </div>
           </div>

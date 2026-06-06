@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Rapportino, Cliente } from '@/types';
@@ -19,6 +19,7 @@ import {
   firstIssueMessage,
   type RapportinoFormValues,
 } from '@/lib/validators/rapportino-form';
+import { saveDraft, getDraft, deleteDraft, debounce } from '@/lib/drafts';
 
 interface RapportinoFormProps {
   initialRapportino?: Rapportino;
@@ -34,8 +35,13 @@ const DEFAULT_TIPI_INTERVENTO = [
   'Controllo',
 ];
 
+const NEW_RAPPORTINO_DRAFT_KEY = 'rapportino_new';
+
 export default function RapportinoForm({ initialRapportino, onSave, onCancel }: RapportinoFormProps) {
   const [step, setStep] = useState(1);
+  const [maxReachableStep, setMaxReachableStep] = useState(1);
+  const draftIdRef = useRef(initialRapportino ? `edit_${initialRapportino.id}` : NEW_RAPPORTINO_DRAFT_KEY);
+  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraft> | null>(null);
   const { register, watch, setValue, getValues, reset, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
     defaultValues: getDefaultRapportinoFormValues(initialRapportino),
   });
@@ -89,6 +95,55 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     if (typeof window === 'undefined') return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
+
+  useEffect(() => {
+    if (initialRapportino) return;
+    const existing = getDraft(NEW_RAPPORTINO_DRAFT_KEY);
+    if (existing) setPendingDraft(existing);
+  }, [initialRapportino]);
+
+  const persistDraft = useMemo(
+    () =>
+      debounce(() => {
+        if (initialRapportino) return;
+        saveDraft(draftIdRef.current, getValues(), step);
+      }, 2000),
+    [initialRapportino, getValues, step]
+  );
+
+  useEffect(() => {
+    if (initialRapportino) return;
+    const sub = watch(() => persistDraft());
+    return () => sub.unsubscribe();
+  }, [watch, persistDraft, initialRapportino]);
+
+  useEffect(() => {
+    if (initialRapportino) return;
+    saveDraft(draftIdRef.current, getValues(), step);
+  }, [step, initialRapportino, getValues]);
+
+  const goToStep = useCallback(
+    (target: number) => {
+      if (target < step || target <= maxReachableStep) {
+        setStep(target);
+      }
+    },
+    [step, maxReachableStep]
+  );
+
+  const resumeDraft = () => {
+    if (!pendingDraft) return;
+    reset(pendingDraft.data as RapportinoFormValues);
+    setStep(pendingDraft.step || 1);
+    setMaxReachableStep(Math.max(pendingDraft.step || 1, maxReachableStep));
+    setPendingDraft(null);
+    toast.success('Bozza ripristinata');
+  };
+
+  const discardDraft = () => {
+    deleteDraft(NEW_RAPPORTINO_DRAFT_KEY);
+    setPendingDraft(null);
+  };
 
   // Cerca clienti esistenti quando nome e cognome sono inseriti
   useEffect(() => {
@@ -318,6 +373,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       dataCreazione: initialRapportino?.dataCreazione ?? new Date().toISOString(),
     };
 
+    deleteDraft(draftIdRef.current);
     onSave(rapportino);
   };
 
@@ -326,7 +382,22 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       toast.error('Compila tutti i campi obbligatori');
       return;
     }
-    submitWithRhf(onSaveValid)();
+    const toastId = toast.loading('Salvataggio rapportino…');
+    submitWithRhf((values) => {
+      try {
+        onSaveValid(values);
+        toast.success('Rapportino salvato', { id: toastId });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Errore nel salvataggio', { id: toastId });
+      }
+    })();
+  };
+
+  const handleNextStep = () => {
+    if (!validateStep()) return;
+    const next = step + 1;
+    setStep(next);
+    setMaxReachableStep((prev) => Math.max(prev, next));
   };
 
   return (
@@ -347,8 +418,36 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             </svg>
           </button>
         </div>
-        <RapportinoStepIndicator step={step} />
+        <RapportinoStepIndicator
+          step={step}
+          maxReachableStep={maxReachableStep}
+          onStepClick={goToStep}
+        />
       </div>
+
+      {!initialRapportino && pendingDraft && (
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+            Hai una bozza salvata. Vuoi riprendere da dove avevi lasciato?
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={resumeDraft}
+              className="rounded-xl bg-primary-500 px-4 py-2 text-sm font-bold text-white hover:bg-primary-600"
+            >
+              Riprendi
+            </button>
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="rounded-xl border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 dark:border-amber-700 dark:text-amber-100"
+            >
+              Scarta
+            </button>
+          </div>
+        </div>
+      )}
 
       {step === 1 && (
         <div className="space-y-6 animate-fade-in-up">
@@ -1164,40 +1263,45 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
         </div>
       )}
 
-      <div className="flex flex-col-reverse sm:flex-row gap-4 sm:justify-between mt-10 pt-8 border-t border-surface-200 dark:border-surface-700">
+      <div className="h-24 sm:h-0" aria-hidden />
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-surface-200 bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md dark:border-surface-700 sm:static sm:mt-10 sm:border-t sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        <div className="mx-auto flex max-w-4xl flex-col-reverse gap-3 sm:flex-row sm:justify-between">
           <button
+            type="button"
             onClick={() => step > 1 && setStep(step - 1)}
             disabled={step === 1}
-            className="w-full sm:w-auto justify-center px-8 py-4 border-2 border-surface-200 dark:border-surface-700 rounded-2xl hover:bg-surface-50 dark:hover:bg-surface-800/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-surface-700 dark:text-surface-300 font-medium flex items-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-surface-200 px-8 py-4 font-medium text-surface-700 transition-all hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800/50 sm:w-auto"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Indietro
           </button>
           {step < 3 ? (
             <button
-              onClick={() => validateStep() && setStep(step + 1)}
-              disabled={!validateStep()}
-              className="w-full sm:w-auto justify-center px-8 py-4 bg-primary-500 text-white rounded-2xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-glow-primary flex items-center gap-2"
+              type="button"
+              onClick={handleNextStep}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary-500 px-8 py-4 font-medium text-white shadow-glow-primary transition-all hover:bg-primary-600 sm:w-auto"
             >
               Avanti
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>
           ) : (
             <button
+              type="button"
               onClick={handleConfirmSave}
-              disabled={!validateStep()}
-              className="w-full sm:w-auto justify-center px-8 py-4 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-glow-emerald flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-8 py-4 font-medium text-white shadow-glow-emerald transition-all hover:bg-emerald-600 sm:w-auto"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Salva Rapportino
             </button>
           )}
+        </div>
       </div>
     </Card>
   );
