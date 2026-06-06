@@ -42,6 +42,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
   const [maxReachableStep, setMaxReachableStep] = useState(1);
   const draftIdRef = useRef(initialRapportino ? `edit_${initialRapportino.id}` : NEW_RAPPORTINO_DRAFT_KEY);
   const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraft> | null>(null);
+  const [operatoreFirmaFromProfile, setOperatoreFirmaFromProfile] = useState(false);
   const { register, watch, setValue, getValues, reset, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
     defaultValues: getDefaultRapportinoFormValues(initialRapportino),
   });
@@ -54,11 +55,25 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     reset(getDefaultRapportinoFormValues(initialRapportino));
   }, [initialRapportino?.id, reset, initialRapportino]);
 
-  // Carica i dati operatore dall'utente loggato (solo se non in modalità modifica)
+  // Carica dati operatore + firma salvata (profilo / API)
   useEffect(() => {
-    if (initialRapportino) return; // In modifica usa i dati del rapportino
-    const user = auth.getUser();
-    if (user) {
+    if (initialRapportino) return;
+
+    let cancelled = false;
+
+    const applyOperatoreFirma = (firma: string) => {
+      if (!firma || cancelled) return;
+      const current = getValues('intervento.firmaOperatore');
+      if (!current?.trim()) {
+        setValue('intervento.firmaOperatore', firma, { shouldDirty: false });
+        setOperatoreFirmaFromProfile(true);
+      }
+    };
+
+    const load = async () => {
+      const user = auth.getUser();
+      if (!user) return;
+
       setValue('operatore', {
         nome: user.nome || '',
         cognome: user.cognome || '',
@@ -68,10 +83,35 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       });
 
       if (user.firma) {
-        setValue('intervento.firmaOperatore', user.firma || '');
+        applyOperatoreFirma(user.firma);
       }
-    }
-  }, [initialRapportino, setValue]);
+
+      try {
+        const response = await fetchWithAuth(`/api/users/${user.id}`);
+        const profile = await parseResponseBody<{
+          firma?: string | null;
+          nome?: string;
+          cognome?: string;
+          telefono?: string | null;
+          email?: string | null;
+          qualifica?: string | null;
+        }>(response);
+        if (cancelled || !response.ok || !profile) return;
+
+        if (profile.firma) {
+          applyOperatoreFirma(profile.firma);
+          auth.updateUser({ ...user, firma: profile.firma });
+        }
+      } catch {
+        // Profilo locale sufficiente se API non disponibile
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialRapportino, setValue, getValues]);
   const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
   const [showClientiList, setShowClientiList] = useState(false);
   const [isSearchingClienti, setIsSearchingClienti] = useState(false);
@@ -131,9 +171,29 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     [step, maxReachableStep]
   );
 
-  const resumeDraft = () => {
+  const resumeDraft = async () => {
     if (!pendingDraft) return;
-    reset(pendingDraft.data as RapportinoFormValues);
+    const draftData = { ...(pendingDraft.data as RapportinoFormValues) };
+    const user = auth.getUser();
+
+    if (user && !draftData.intervento?.firmaOperatore?.trim()) {
+      let firma = user.firma || '';
+      if (!firma) {
+        try {
+          const response = await fetchWithAuth(`/api/users/${user.id}`);
+          const profile = await parseResponseBody<{ firma?: string | null }>(response);
+          if (response.ok && profile?.firma) firma = profile.firma;
+        } catch {
+          /* ignore */
+        }
+      }
+      if (firma) {
+        draftData.intervento = { ...draftData.intervento, firmaOperatore: firma };
+        setOperatoreFirmaFromProfile(true);
+      }
+    }
+
+    reset(draftData);
     setStep(pendingDraft.step || 1);
     setMaxReachableStep(Math.max(pendingDraft.step || 1, maxReachableStep));
     setPendingDraft(null);
@@ -1229,8 +1289,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               />
             </div>
 
-            <div className="md:col-span-2 mt-4">
-              <div className="rounded-3xl border border-surface-200 dark:border-surface-700 bg-white/30 dark:bg-surface-800/30 backdrop-blur-md p-6">
+            <div className="md:col-span-2 mt-4 pb-28 sm:pb-0">
+              <div className="relative z-10 rounded-3xl border border-surface-200 dark:border-surface-700 bg-white/30 dark:bg-surface-800/30 backdrop-blur-md p-6">
                 <h4 className="text-base font-semibold text-surface-900 dark:text-white mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1242,7 +1302,15 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     label="Firma Operatore"
                     value={intervento.firmaOperatore}
                     required
-                    onChange={(firmaOperatore) => setValue('intervento.firmaOperatore', firmaOperatore)}
+                    helperText={
+                      operatoreFirmaFromProfile && intervento.firmaOperatore
+                        ? 'Firma del profilo caricata automaticamente. Puoi modificarla se necessario.'
+                        : undefined
+                    }
+                    onChange={(firmaOperatore) => {
+                      setOperatoreFirmaFromProfile(false);
+                      setValue('intervento.firmaOperatore', firmaOperatore);
+                    }}
                   />
                   <SignaturePad
                     label="Firma Cliente"

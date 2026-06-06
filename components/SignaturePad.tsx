@@ -1,15 +1,24 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface SignaturePadProps {
   label: string;
   value?: string;
   required?: boolean;
   onChange: (value: string) => void;
+  /** Messaggio sotto l'anteprima (es. firma caricata dal profilo) */
+  helperText?: string;
 }
 
-export default function SignaturePad({ label, value, required = false, onChange }: SignaturePadProps) {
+export default function SignaturePad({
+  label,
+  value,
+  required = false,
+  onChange,
+  helperText,
+}: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isDrawingRef = useRef(false);
@@ -198,6 +207,9 @@ export default function SignaturePad({ label, value, required = false, onChange 
           </div>
         )}
       </div>
+      {helperText && value && (
+        <p className="mt-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">{helperText}</p>
+      )}
       {value && (
         <div className="mt-1.5 flex justify-end gap-2">
           <button type="button" onClick={() => setIsOpen(true)} className="text-xs text-primary-500 hover:text-primary-600 font-medium">Modifica</button>
@@ -205,17 +217,23 @@ export default function SignaturePad({ label, value, required = false, onChange 
         </div>
       )}
 
-      {/* --- Firma overlay --- */}
-      {isOpen && (
-        <>
-          {/* Backdrop desktop */}
-          <div className="hidden sm:block fixed inset-0 bg-black/40" style={{ zIndex: 99998 }} onClick={cancel} />
+      {/* Overlay in portal — sopra sidebar, sticky footer, ecc. */}
+      {isOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px]"
+              onClick={cancel}
+              aria-hidden
+            />
 
-          {/* Card */}
-          <div
-            className="fixed top-0 left-0 w-full h-full sm:top-1/2 sm:left-1/2 sm:w-[min(36rem,calc(100%-3rem))] sm:h-auto sm:max-h-[80vh] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl bg-white dark:bg-surface-900 sm:shadow-2xl flex flex-col"
-            style={{ zIndex: 99999 }}
-          >
+            <div
+              className="fixed inset-0 z-[201] flex flex-col bg-white dark:bg-surface-900 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[min(85vh,40rem)] sm:w-[min(36rem,calc(100%-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-label={label}
+            >
             {/* Header */}
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-700">
               <span className="text-sm font-bold text-surface-800 dark:text-surface-100">{label}</span>
@@ -258,8 +276,9 @@ export default function SignaturePad({ label, value, required = false, onChange 
               </button>
             </div>
           </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </div>
   );
 }
