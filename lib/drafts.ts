@@ -6,11 +6,37 @@ const DELETED_KEY = 'rapportino_deleted';
 const MAX_DELETED_ITEMS = 10;
 const DELETED_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 ore
 
+export interface RapportinoDraftUiState {
+  marcaId?: string;
+  modelloId?: string;
+  selectedMateriali?: string[];
+  showMarcaInput?: boolean;
+  showModelloInput?: boolean;
+}
+
+/** Payload bozza rapportino: form values + stato UI (marca/modello/materiali) */
+export interface RapportinoDraftPayload {
+  form: Record<string, unknown>;
+  ui?: RapportinoDraftUiState;
+}
+
 export interface Draft {
   id: string;
-  data: any;
+  data: RapportinoDraftPayload | Record<string, unknown>;
   timestamp: number;
   step: number;
+}
+
+/** Normalizza bozze vecchie (solo form values) e nuove (form + ui) */
+export function parseRapportinoDraftPayload(data: unknown): RapportinoDraftPayload {
+  if (data && typeof data === 'object' && 'form' in data) {
+    const payload = data as RapportinoDraftPayload;
+    return { form: payload.form ?? {}, ui: payload.ui };
+  }
+  if (data && typeof data === 'object' && 'operatore' in data) {
+    return { form: data as Record<string, unknown> };
+  }
+  return { form: {} };
 }
 
 export interface DeletedItem {

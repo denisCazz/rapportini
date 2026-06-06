@@ -19,7 +19,14 @@ import {
   firstIssueMessage,
   type RapportinoFormValues,
 } from '@/lib/validators/rapportino-form';
-import { saveDraft, getDraft, deleteDraft, debounce } from '@/lib/drafts';
+import {
+  saveDraft,
+  getDraft,
+  deleteDraft,
+  debounce,
+  parseRapportinoDraftPayload,
+  type RapportinoDraftUiState,
+} from '@/lib/drafts';
 
 interface RapportinoFormProps {
   initialRapportino?: Rapportino;
@@ -37,12 +44,54 @@ const DEFAULT_TIPI_INTERVENTO = [
 
 const NEW_RAPPORTINO_DRAFT_KEY = 'rapportino_new';
 
+/** Altezza footer fisso mobile: 2 pulsanti impilati + padding + safe area */
+const MOBILE_FOOTER_OFFSET = 'calc(11rem + env(safe-area-inset-bottom, 0px))';
+
+function syncMarcaModelloFromNames(
+  marcaNome: string | undefined,
+  modelloNome: string | undefined,
+  marche: Array<{ id: string; nome: string }>,
+  modelli: Array<{ id: string; nome: string; marca_id: string }>
+): RapportinoDraftUiState {
+  const ui: RapportinoDraftUiState = {};
+  if (!marcaNome?.trim()) return ui;
+
+  const foundMarca = marche.find((m) => m.nome.toLowerCase() === marcaNome.trim().toLowerCase());
+  if (foundMarca) {
+    ui.marcaId = foundMarca.id;
+    ui.showMarcaInput = false;
+    if (modelloNome?.trim()) {
+      const foundModello = modelli.find(
+        (m) => m.marca_id === foundMarca.id && m.nome.toLowerCase() === modelloNome.trim().toLowerCase()
+      );
+      if (foundModello) {
+        ui.modelloId = foundModello.id;
+        ui.showModelloInput = false;
+      } else {
+        ui.showModelloInput = true;
+      }
+    }
+  } else {
+    ui.showMarcaInput = true;
+    if (modelloNome?.trim()) ui.showModelloInput = true;
+  }
+  return ui;
+}
+
 export default function RapportinoForm({ initialRapportino, onSave, onCancel }: RapportinoFormProps) {
   const [step, setStep] = useState(1);
   const [maxReachableStep, setMaxReachableStep] = useState(1);
   const draftIdRef = useRef(initialRapportino ? `edit_${initialRapportino.id}` : NEW_RAPPORTINO_DRAFT_KEY);
   const clientiListRef = useRef<HTMLDivElement | null>(null);
-  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraft> | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraft> | null>(() => {
+    if (initialRapportino || typeof window === 'undefined') return null;
+    return getDraft(NEW_RAPPORTINO_DRAFT_KEY);
+  });
+  const [draftResolved, setDraftResolved] = useState(() => {
+    if (initialRapportino) return true;
+    if (typeof window === 'undefined') return true;
+    return !getDraft(NEW_RAPPORTINO_DRAFT_KEY);
+  });
   const [operatoreFirmaFromProfile, setOperatoreFirmaFromProfile] = useState(false);
   const { register, watch, setValue, getValues, reset, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
     defaultValues: getDefaultRapportinoFormValues(initialRapportino),
@@ -56,9 +105,9 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     reset(getDefaultRapportinoFormValues(initialRapportino));
   }, [initialRapportino?.id, reset, initialRapportino]);
 
-  // Carica dati operatore + firma salvata (profilo / API)
+  // Carica dati operatore + firma salvata (profilo / API) — solo se non c'è bozza in sospeso
   useEffect(() => {
-    if (initialRapportino) return;
+    if (initialRapportino || !draftResolved) return;
 
     let cancelled = false;
 
@@ -112,7 +161,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     return () => {
       cancelled = true;
     };
-  }, [initialRapportino, setValue, getValues]);
+  }, [initialRapportino, draftResolved, setValue, getValues]);
   const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
   const [showClientiList, setShowClientiList] = useState(false);
   const [isSearchingClienti, setIsSearchingClienti] = useState(false);
@@ -137,31 +186,39 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
-  useEffect(() => {
-    if (initialRapportino) return;
-    const existing = getDraft(NEW_RAPPORTINO_DRAFT_KEY);
-    if (existing) setPendingDraft(existing);
-  }, [initialRapportino]);
+  const buildDraftPayload = useCallback(
+    () => ({
+      form: getValues(),
+      ui: {
+        marcaId: marcaId || undefined,
+        modelloId: modelloId || undefined,
+        selectedMateriali,
+        showMarcaInput,
+        showModelloInput,
+      } satisfies RapportinoDraftUiState,
+    }),
+    [getValues, marcaId, modelloId, selectedMateriali, showMarcaInput, showModelloInput]
+  );
 
   const persistDraft = useMemo(
     () =>
       debounce(() => {
-        if (initialRapportino) return;
-        saveDraft(draftIdRef.current, getValues(), step);
+        if (initialRapportino || !draftResolved) return;
+        saveDraft(draftIdRef.current, buildDraftPayload(), step);
       }, 2000),
-    [initialRapportino, getValues, step]
+    [initialRapportino, draftResolved, buildDraftPayload, step]
   );
 
   useEffect(() => {
-    if (initialRapportino) return;
+    if (initialRapportino || !draftResolved) return;
     const sub = watch(() => persistDraft());
     return () => sub.unsubscribe();
-  }, [watch, persistDraft, initialRapportino]);
+  }, [watch, persistDraft, initialRapportino, draftResolved]);
 
   useEffect(() => {
-    if (initialRapportino) return;
-    saveDraft(draftIdRef.current, getValues(), step);
-  }, [step, initialRapportino, getValues]);
+    if (initialRapportino || !draftResolved) return;
+    saveDraft(draftIdRef.current, buildDraftPayload(), step);
+  }, [step, initialRapportino, draftResolved, buildDraftPayload]);
 
   const goToStep = useCallback(
     (target: number) => {
@@ -172,38 +229,63 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     [step, maxReachableStep]
   );
 
+  const applyDraftUiState = useCallback((ui?: RapportinoDraftUiState) => {
+    if (!ui) return;
+    if (ui.marcaId) setMarcaId(ui.marcaId);
+    if (ui.modelloId) setModelloId(ui.modelloId);
+    if (ui.selectedMateriali) setSelectedMateriali(ui.selectedMateriali);
+    if (ui.showMarcaInput != null) setShowMarcaInput(ui.showMarcaInput);
+    if (ui.showModelloInput != null) setShowModelloInput(ui.showModelloInput);
+  }, []);
+
   const resumeDraft = async () => {
     if (!pendingDraft) return;
-    const draftData = { ...(pendingDraft.data as RapportinoFormValues) };
-    const user = auth.getUser();
 
-    if (user && !draftData.intervento?.firmaOperatore?.trim()) {
-      let firma = user.firma || '';
-      if (!firma) {
-        try {
-          const response = await fetchWithAuth(`/api/users/${user.id}`);
-          const profile = await parseResponseBody<{ firma?: string | null }>(response);
-          if (response.ok && profile?.firma) firma = profile.firma;
-        } catch {
-          /* ignore */
-        }
-      }
-      if (firma) {
-        draftData.intervento = { ...draftData.intervento, firmaOperatore: firma };
-        setOperatoreFirmaFromProfile(true);
-      }
-    }
+    const { form: rawForm, ui } = parseRapportinoDraftPayload(pendingDraft.data);
+    const defaults = getDefaultRapportinoFormValues();
+    const draftData: RapportinoFormValues = {
+      operatore: { ...defaults.operatore, ...(rawForm.operatore as RapportinoFormValues['operatore'] | undefined) },
+      cliente: { ...defaults.cliente, ...(rawForm.cliente as RapportinoFormValues['cliente'] | undefined) },
+      intervento: { ...defaults.intervento, ...(rawForm.intervento as RapportinoFormValues['intervento'] | undefined) },
+    };
+
+    const draftStep = Math.min(Math.max(pendingDraft.step || 1, 1), 3);
 
     reset(draftData);
-    setStep(pendingDraft.step || 1);
-    setMaxReachableStep(Math.max(pendingDraft.step || 1, maxReachableStep));
+    setStep(draftStep);
+    setMaxReachableStep(draftStep);
+    applyDraftUiState(ui);
+
+    // Bozze vecchie senza ui: ripristina marca/modello dai nomi salvati
+    if (!ui?.marcaId && draftData.intervento.marca && marche.length > 0) {
+      const synced = syncMarcaModelloFromNames(
+        draftData.intervento.marca,
+        draftData.intervento.modello,
+        marche,
+        modelli
+      );
+      applyDraftUiState(synced);
+    }
+
+    setOperatoreFirmaFromProfile(false);
     setPendingDraft(null);
-    toast.success('Bozza ripristinata');
+    setDraftResolved(true);
+    toast.success(`Bozza ripristinata — step ${draftStep} di 3`);
   };
 
   const discardDraft = () => {
     deleteDraft(NEW_RAPPORTINO_DRAFT_KEY);
     setPendingDraft(null);
+    setDraftResolved(true);
+    reset(getDefaultRapportinoFormValues());
+    setStep(1);
+    setMaxReachableStep(1);
+    setMarcaId('');
+    setModelloId('');
+    setSelectedMateriali([]);
+    setShowMarcaInput(false);
+    setShowModelloInput(false);
+    toast.message('Bozza scartata');
   };
 
   // Cerca clienti esistenti quando nome e cognome sono inseriti
@@ -285,6 +367,25 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     };
     loadMarche();
   }, []);
+
+  // Dopo ripristino bozza: allinea marca/modello quando il catalogo è caricato
+  useEffect(() => {
+    if (!draftResolved || initialRapportino || pendingDraft || marcaId) return;
+    const marcaNome = getValues('intervento.marca')?.trim();
+    const modelloNome = getValues('intervento.modello')?.trim();
+    if (!marcaNome || marche.length === 0) return;
+    const synced = syncMarcaModelloFromNames(marcaNome, modelloNome, marche, modelli);
+    if (synced.marcaId || synced.showMarcaInput) applyDraftUiState(synced);
+  }, [
+    draftResolved,
+    initialRapportino,
+    pendingDraft,
+    marcaId,
+    marche,
+    modelli,
+    getValues,
+    applyDraftUiState,
+  ]);
 
   // In modifica: preseleziona marca quando marche è caricata
   useEffect(() => {
@@ -497,7 +598,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       {!initialRapportino && pendingDraft && (
         <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-            Hai una bozza salvata. Vuoi riprendere da dove avevi lasciato?
+            Hai una bozza salvata allo step {pendingDraft.step || 1} di 3. Vuoi riprendere da dove avevi lasciato?
           </p>
           <div className="flex gap-2">
             <button
@@ -519,7 +620,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       )}
 
       {step === 1 && (
-        <div className="space-y-6 animate-fade-in-up">
+        <div className="space-y-6 animate-fade-in-up pb-2 sm:pb-0">
           <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
             <div className="shrink-0 p-2.5 sm:p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl shadow-inner">
               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -582,7 +683,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 {...register('operatore.qualifica')}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all scroll-mb-[calc(11rem+env(safe-area-inset-bottom,0px))]"
                 placeholder="Es. Tecnico specializzato"
                 required
               />
@@ -1342,7 +1443,11 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
         </div>
       )}
 
-      <div className="h-28 sm:h-0" aria-hidden />
+      <div
+        className="sm:hidden"
+        style={{ height: MOBILE_FOOTER_OFFSET }}
+        aria-hidden
+      />
 
       <div className="fixed bottom-0 left-0 right-0 z-[45] border-t border-surface-200 bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md dark:border-surface-700 sm:static sm:z-auto sm:mt-10 sm:border-t sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <div className="mx-auto flex max-w-4xl flex-col-reverse gap-3 sm:flex-row sm:justify-between">
