@@ -11,6 +11,7 @@ import {
   removeDeletedItem,
   generateDraftId,
   debounce,
+  parseRapportinoDraftPayload,
 } from '@/lib/drafts';
 
 describe('Drafts System', () => {
@@ -144,6 +145,28 @@ describe('Deleted Items (Undo)', () => {
       expect(items.length).toBe(1);
       expect(items[0].id).toBe('item-2');
     });
+  });
+});
+
+describe('parseRapportinoDraftPayload', () => {
+  it('should parse new payload with form and ui', () => {
+    const payload = {
+      form: { operatore: { nome: 'Mario' } },
+      ui: { marcaId: 'm1', modelloId: 'mod1' },
+    };
+    const parsed = parseRapportinoDraftPayload(payload);
+    expect(parsed.form).toEqual(payload.form);
+    expect(parsed.ui?.marcaId).toBe('m1');
+  });
+
+  it('should parse legacy payload with flat form values', () => {
+    const legacy = {
+      operatore: { nome: 'Luigi', cognome: 'Verdi' },
+      cliente: { nome: 'Cliente' },
+    };
+    const parsed = parseRapportinoDraftPayload(legacy);
+    expect(parsed.form).toEqual(legacy);
+    expect(parsed.ui).toBeUndefined();
   });
 });
 
