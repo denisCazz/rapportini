@@ -211,9 +211,21 @@ export default function SignaturePad({
         <p className="mt-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">{helperText}</p>
       )}
       {value && (
-        <div className="mt-1.5 flex justify-end gap-2">
-          <button type="button" onClick={() => setIsOpen(true)} className="text-xs text-primary-500 hover:text-primary-600 font-medium">Modifica</button>
-          <button type="button" onClick={removeSignature} className="text-xs text-red-500 hover:text-red-600 font-medium">Rimuovi</button>
+        <div className="mt-1.5 flex justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="min-h-11 px-3 text-xs text-primary-500 hover:text-primary-600 font-medium"
+          >
+            Modifica
+          </button>
+          <button
+            type="button"
+            onClick={removeSignature}
+            className="min-h-11 px-3 text-xs text-red-500 hover:text-red-600 font-medium"
+          >
+            Rimuovi
+          </button>
         </div>
       )}
 
@@ -235,14 +247,14 @@ export default function SignaturePad({
               aria-label={label}
             >
             {/* Header */}
-            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-700">
-              <span className="text-sm font-bold text-surface-800 dark:text-surface-100">{label}</span>
-              <div className="flex items-center gap-1.5">
-                <button type="button" onClick={undo} disabled={historyRef.current.length === 0} className="h-7 px-2 text-xs rounded-md border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 disabled:opacity-30 transition-colors flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+            <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-surface-200 dark:border-surface-700">
+              <span className="text-sm font-bold text-surface-800 dark:text-surface-100 truncate">{label}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button type="button" onClick={undo} disabled={historyRef.current.length === 0} className="min-h-9 px-3 text-xs rounded-lg border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 disabled:opacity-30 transition-colors flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
                   Annulla
                 </button>
-                <button type="button" onClick={clearCanvas} className="h-7 px-2 text-xs rounded-md border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 transition-colors">
+                <button type="button" onClick={clearCanvas} className="min-h-9 px-3 text-xs rounded-lg border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 transition-colors">
                   Pulisci
                 </button>
               </div>
