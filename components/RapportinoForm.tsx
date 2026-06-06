@@ -41,6 +41,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
   const [step, setStep] = useState(1);
   const [maxReachableStep, setMaxReachableStep] = useState(1);
   const draftIdRef = useRef(initialRapportino ? `edit_${initialRapportino.id}` : NEW_RAPPORTINO_DRAFT_KEY);
+  const clientiListRef = useRef<HTMLDivElement | null>(null);
   const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraft> | null>(null);
   const [operatoreFirmaFromProfile, setOperatoreFirmaFromProfile] = useState(false);
   const { register, watch, setValue, getValues, reset, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
@@ -259,6 +260,14 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     }
   }, [showClientiList]);
 
+  useEffect(() => {
+    if (showClientiList && clientiEsistenti.length > 0) {
+      requestAnimationFrame(() => {
+        clientiListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+  }, [showClientiList, clientiEsistenti.length]);
+
   // Carica marche al mount
   useEffect(() => {
     const loadMarche = async () => {
@@ -461,16 +470,16 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
   };
 
   return (
-    <Card className="rounded-3xl shadow-2xl border border-surface-200 dark:border-surface-700 p-6 sm:p-8 mb-8 animate-fade-in-up bg-card/95 backdrop-blur-sm">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white mb-1 tracking-tight">{initialRapportino ? 'Modifica Rapportino' : 'Nuovo Rapportino'}</h2>
+    <Card className="rounded-3xl shadow-2xl border border-surface-200 dark:border-surface-700 p-4 sm:p-8 mb-8 animate-fade-in-up bg-card/95 backdrop-blur-sm">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-start justify-between gap-3 mb-5 sm:mb-6">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl sm:text-3xl font-bold text-surface-900 dark:text-white mb-1 tracking-tight">{initialRapportino ? 'Modifica Rapportino' : 'Nuovo Rapportino'}</h2>
             <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Compila tutti i campi obbligatori per creare un nuovo rapportino</p>
           </div>
           <button
             onClick={onCancel}
-            className="p-2.5 text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-2xl transition-all hover:text-surface-900 dark:hover:text-white"
+            className="shrink-0 flex items-center justify-center min-w-11 min-h-11 p-2.5 text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-2xl transition-all hover:text-surface-900 dark:hover:text-white"
             aria-label="Chiudi"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -511,14 +520,14 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
 
       {step === 1 && (
         <div className="space-y-6 animate-fade-in-up">
-          <div className="flex items-center gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
-            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl shadow-inner">
-              <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
+            <div className="shrink-0 p-2.5 sm:p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl shadow-inner">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-surface-900 dark:text-white">Dati Operatore</h3>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-surface-900 dark:text-white">Dati Operatore</h3>
               <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Inserisci le informazioni dell&apos;operatore che esegue l&apos;intervento</p>
             </div>
           </div>
@@ -584,14 +593,14 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
 
       {step === 2 && (
         <div className="space-y-6 animate-fade-in-up">
-          <div className="flex items-center gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl shadow-inner">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
+            <div className="shrink-0 p-2.5 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-xl shadow-inner">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-surface-900 dark:text-white">Dati Cliente</h3>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-surface-900 dark:text-white">Dati Cliente</h3>
               <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Inserisci le informazioni del cliente per cui viene eseguito l&apos;intervento</p>
             </div>
           </div>
@@ -644,8 +653,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             
             {/* Lista clienti esistenti */}
             {showClientiList && clientiEsistenti.length > 0 && (
-              <div className="md:col-span-2 relative z-10 clienti-list-container">
-                <div className="bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border border-primary-300 dark:border-primary-700 rounded-2xl shadow-xl mt-2 max-h-64 overflow-y-auto">
+              <div ref={clientiListRef} className="md:col-span-2 relative z-10 clienti-list-container">
+                <div className="bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border border-primary-300 dark:border-primary-700 rounded-2xl shadow-xl mt-2 max-h-48 sm:max-h-64 overflow-y-auto overscroll-contain">
                   <div className="p-3 border-b border-surface-200 dark:border-surface-700 bg-surface-50/50 dark:bg-surface-900/50">
                     <p className="text-xs font-bold text-surface-700 dark:text-surface-300 flex items-center gap-2">
                       <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -660,7 +669,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                         key={clienteEsistente.nome + clienteEsistente.cognome + clienteEsistente.telefono}
                         type="button"
                         onClick={() => handleSelectCliente(clienteEsistente)}
-                        className="w-full text-left p-4 hover:bg-primary-50/50 dark:hover:bg-primary-900/20 transition-colors"
+                        className="w-full text-left p-4 min-h-11 hover:bg-primary-50/50 dark:hover:bg-primary-900/20 transition-colors"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -800,14 +809,14 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
 
       {step === 3 && (
         <div className="space-y-6 animate-fade-in-up">
-          <div className="flex items-center gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
-            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl shadow-inner">
-              <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
+            <div className="shrink-0 p-2.5 sm:p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl shadow-inner">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-surface-900 dark:text-white">Dati Intervento</h3>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-surface-900 dark:text-white">Dati Intervento</h3>
               <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Inserisci i dettagli dell&apos;intervento eseguito</p>
             </div>
           </div>
@@ -854,7 +863,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
                 Marca <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                 {!showMarcaInput ? (
                   <>
                     <select
@@ -885,61 +894,63 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     </select>
                   </>
                 ) : (
-                  <div className="flex-1 flex gap-2">
+                  <div className="flex-1 flex flex-col sm:flex-row gap-2 min-w-0 w-full">
                     <input
                       type="text"
                       value={intervento.marca}
                       onChange={(e) => setValue('intervento.marca', e.target.value)}
                       placeholder="Inserisci nuova marca"
-                      className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                      className="flex-1 min-w-0 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                       required
                     />
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (intervento.marca.trim()) {
-                          try {
-                            const response = await fetchWithAuth('/api/marche', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ nome: intervento.marca.trim() }),
-                            });
-                            const data = await parseResponseBody<{ id?: string; nome?: string; error?: string }>(response);
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (intervento.marca.trim()) {
+                            try {
+                              const response = await fetchWithAuth('/api/marche', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ nome: intervento.marca.trim() }),
+                              });
+                              const data = await parseResponseBody<{ id?: string; nome?: string; error?: string }>(response);
 
-                            if (!response.ok) {
-                              toast.error(getApiErrorMessage(data, 'Errore nella creazione della marca'));
-                              return;
-                            }
-
-                            if (response.ok) {
-                              const newMarca = data as { id: string; nome: string } | null;
-                              if (newMarca) {
-                                setMarche([...marche, newMarca]);
-                                setMarcaId(newMarca.id);
-                                setValue('intervento.marca', newMarca.nome);
-                                setShowMarcaInput(false);
+                              if (!response.ok) {
+                                toast.error(getApiErrorMessage(data, 'Errore nella creazione della marca'));
+                                return;
                               }
+
+                              if (response.ok) {
+                                const newMarca = data as { id: string; nome: string } | null;
+                                if (newMarca) {
+                                  setMarche([...marche, newMarca]);
+                                  setMarcaId(newMarca.id);
+                                  setValue('intervento.marca', newMarca.nome);
+                                  setShowMarcaInput(false);
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Errore creazione marca:', error);
+                              toast.error('Errore nella creazione della marca');
                             }
-                          } catch (error) {
-                            console.error('Errore creazione marca:', error);
-                            toast.error('Errore nella creazione della marca');
                           }
-                        }
-                      }}
-                      className="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 font-bold shadow-sm transition-all"
-                    >
-                      Salva
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowMarcaInput(false);
-                        setValue('intervento.marca', '');
-                      }}
-                      className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
-                    >
-                      Annulla
-                    </button>
+                        }}
+                        className="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 font-bold shadow-sm transition-all"
+                      >
+                        Salva
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMarcaInput(false);
+                          setValue('intervento.marca', '');
+                        }}
+                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
+                      >
+                        Annulla
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -948,7 +959,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
                 Modello <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                 {!showModelloInput ? (
                   <>
                     <select
@@ -982,64 +993,64 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     </select>
                   </>
                 ) : (
-                  <div className="flex-1 flex gap-2">
+                  <div className="flex-1 flex flex-col sm:flex-row gap-2 min-w-0 w-full">
                     <input
                       type="text"
                       value={intervento.modello}
                       onChange={(e) => setValue('intervento.modello', e.target.value)}
                       placeholder={marcaId ? 'Inserisci nuovo modello' : 'Modello (marca non in catalogo)'}
-                      className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                      className="flex-1 min-w-0 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
                       required
                     />
                     {marcaId && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (intervento.modello.trim() && marcaId) {
-                          try {
-                            const response = await fetchWithAuth('/api/modelli', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
-                            });
-                            const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (intervento.modello.trim() && marcaId) {
+                            try {
+                              const response = await fetchWithAuth('/api/modelli', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
+                              });
+                              const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
 
-                            if (!response.ok) {
-                              toast.error(getApiErrorMessage(data, 'Errore nella creazione del modello'));
-                              return;
-                            }
-
-                            if (response.ok) {
-                              const newModello = data as { id: string; nome: string; marca_id: string } | null;
-                              if (newModello) {
-                                setModelli([...modelli, newModello]);
-                                setModelloId(newModello.id);
-                                setValue('intervento.modello', newModello.nome);
-                                setShowModelloInput(false);
+                              if (!response.ok) {
+                                toast.error(getApiErrorMessage(data, 'Errore nella creazione del modello'));
+                                return;
                               }
+
+                              if (response.ok) {
+                                const newModello = data as { id: string; nome: string; marca_id: string } | null;
+                                if (newModello) {
+                                  setModelli([...modelli, newModello]);
+                                  setModelloId(newModello.id);
+                                  setValue('intervento.modello', newModello.nome);
+                                  setShowModelloInput(false);
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Errore creazione modello:', error);
+                              toast.error('Errore nella creazione del modello');
                             }
-                          } catch (error) {
-                            console.error('Errore creazione modello:', error);
-                            toast.error('Errore nella creazione del modello');
                           }
-                        }
-                      }}
-                      className="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 font-bold shadow-sm transition-all"
-                    >
-                      Salva
-                    </button>
-                    )}
-                    {marcaId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowModelloInput(false);
-                        setValue('intervento.modello', '');
-                      }}
-                      className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
-                    >
-                      Annulla
-                    </button>
+                        }}
+                        className="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 font-bold shadow-sm transition-all"
+                      >
+                        Salva
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowModelloInput(false);
+                          setValue('intervento.modello', '');
+                        }}
+                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
+                      >
+                        Annulla
+                      </button>
+                    </div>
                     )}
                   </div>
                 )}
@@ -1289,8 +1300,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               />
             </div>
 
-            <div className="md:col-span-2 mt-4 pb-28 sm:pb-0">
-              <div className="relative z-10 rounded-3xl border border-surface-200 dark:border-surface-700 bg-white/30 dark:bg-surface-800/30 backdrop-blur-md p-6">
+            <div className="md:col-span-2 mt-4 pb-4 sm:pb-0">
+              <div className="relative z-10 rounded-3xl border border-surface-200 dark:border-surface-700 bg-white/30 dark:bg-surface-800/30 backdrop-blur-md p-4 sm:p-6">
                 <h4 className="text-base font-semibold text-surface-900 dark:text-white mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1331,9 +1342,9 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
         </div>
       )}
 
-      <div className="h-24 sm:h-0" aria-hidden />
+      <div className="h-28 sm:h-0" aria-hidden />
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-surface-200 bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md dark:border-surface-700 sm:static sm:mt-10 sm:border-t sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div className="fixed bottom-0 left-0 right-0 z-[45] border-t border-surface-200 bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md dark:border-surface-700 sm:static sm:z-auto sm:mt-10 sm:border-t sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <div className="mx-auto flex max-w-4xl flex-col-reverse gap-3 sm:flex-row sm:justify-between">
           <button
             type="button"

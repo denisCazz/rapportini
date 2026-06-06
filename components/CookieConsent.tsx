@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const STORAGE_KEY = 'cookie_consent_accepted';
 
 export default function CookieConsent() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
+  const isRapportinoForm =
+    pathname?.startsWith('/rapportini/nuovo') || pathname?.startsWith('/rapportini/modifica');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -24,7 +28,13 @@ export default function CookieConsent() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur border-t border-gray-200 dark:border-gray-700 shadow-lg">
+    <div
+      className={`fixed left-0 right-0 z-40 p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur border-t border-gray-200 dark:border-gray-700 shadow-lg ${
+        isRapportinoForm
+          ? 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))] sm:bottom-0'
+          : 'bottom-0 pb-[max(1rem,env(safe-area-inset-bottom))]'
+      }`}
+    >
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <p className="text-sm text-gray-700 dark:text-gray-300">
           Utilizziamo cookie tecnici necessari per l&apos;autenticazione e il funzionamento della piattaforma.

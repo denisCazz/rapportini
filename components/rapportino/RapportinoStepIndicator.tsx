@@ -14,12 +14,12 @@ export default function RapportinoStepIndicator({
   onStepClick,
 }: RapportinoStepIndicatorProps) {
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2 sm:gap-3">
+    <div className="mb-6 sm:mb-8">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex items-center flex-1 min-w-0">
             <div
-              className={`flex-1 h-2 rounded-full transition-all duration-500 ${
+              className={`flex-1 h-1.5 sm:h-2 rounded-full transition-all duration-500 ${
                 s <= step ? 'bg-primary-500 shadow-glow-primary' : 'bg-surface-200 dark:bg-surface-700'
               }`}
             />
@@ -27,7 +27,7 @@ export default function RapportinoStepIndicator({
               type="button"
               disabled={!onStepClick || s > maxReachableStep || s === step}
               onClick={() => onStepClick?.(s)}
-              className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-default ${
+              className={`w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-2xl flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-default ${
                 s < step
                   ? 'bg-primary-500 text-white shadow-glow-primary scale-105'
                   : s === step
@@ -48,9 +48,12 @@ export default function RapportinoStepIndicator({
           </div>
         ))}
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-1 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
+      <div className="mt-2.5 sm:mt-3 grid grid-cols-3 gap-0.5 sm:gap-1 text-center text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
         {LABELS.map((label, i) => (
-          <span key={label} className={i + 1 === step ? 'text-primary-600 dark:text-primary-400' : ''}>
+          <span
+            key={label}
+            className={`truncate px-0.5 ${i + 1 === step ? 'text-primary-600 dark:text-primary-400' : ''}`}
+          >
             {label}
           </span>
         ))}
