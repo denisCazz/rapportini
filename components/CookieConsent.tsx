@@ -29,7 +29,7 @@ export default function CookieConsent() {
 
   return (
     <div
-      className={`fixed left-0 right-0 z-40 p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur border-t border-gray-200 dark:border-gray-700 shadow-lg ${
+      className={`fixed left-0 right-0 z-40 border-t border-border bg-card p-4 shadow-sm ${
         isRapportinoForm
           ? 'bottom-[calc(11rem+env(safe-area-inset-bottom,0px))] sm:bottom-0'
           : 'bottom-0 pb-[max(1rem,env(safe-area-inset-bottom))]'

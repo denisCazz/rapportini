@@ -10,10 +10,9 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        heading: ['var(--font-heading)', 'ui-serif', 'Georgia', 'serif'],
+        heading: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
-        /* Semantic tokens (shadcn + CSS vars in globals.css) */
         border: 'var(--border)',
         input: 'var(--input)',
         ring: 'var(--ring)',
@@ -39,7 +38,6 @@ module.exports = {
           DEFAULT: 'var(--destructive)',
           foreground: 'var(--destructive-foreground, oklch(0.985 0 0))',
         },
-        /* Tema stufe: scala arancio (bg-primary-500 …) + DEFAULT per shadcn */
         primary: {
           DEFAULT: 'var(--primary)',
           foreground: 'var(--primary-foreground)',
@@ -74,29 +72,8 @@ module.exports = {
         }
       },
       boxShadow: {
-        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-        'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
-        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-        'glow': '0 0 24px rgba(234, 88, 12, 0.35)',
-        'glow-primary': '0 0 28px rgba(234, 88, 12, 0.45)',
+        soft: '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
       },
-      animation: {
-        'blob': 'blob 7s infinite',
-        'fade-in-up': 'fadeInUp 0.5s ease-out',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      },
-      keyframes: {
-        blob: {
-          '0%': { transform: 'translate(0px, 0px) scale(1)' },
-          '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-          '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-          '100%': { transform: 'translate(0px, 0px) scale(1)' },
-        },
-        fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        }
-      }
     },
   },
   plugins: [require('tailwindcss-animate')],

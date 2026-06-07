@@ -72,10 +72,10 @@ export default function ChangePasswordRequiredPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-stone-950 via-stone-900 to-stone-950">
-      <div className="w-full max-w-md rounded-2xl border border-amber-900/40 bg-stone-900/80 p-8 shadow-xl backdrop-blur">
-        <h1 className="text-xl font-bold text-amber-100 mb-2">Cambio password obbligatorio</h1>
-        <p className="text-sm text-stone-400 mb-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <div className="saas-card w-full max-w-md p-8">
+        <h1 className="mb-2 text-xl font-semibold text-foreground">Cambio password obbligatorio</h1>
+        <p className="mb-6 text-sm text-muted-foreground">
           Per sicurezza devi impostare una nuova password prima di usare l&apos;applicazione.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">

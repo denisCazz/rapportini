@@ -110,8 +110,7 @@ export default function ForgotPasswordPage() {
     <div className="relative min-h-screen flex overflow-hidden bg-background">
       <AuthSidePanel />
       <div className="relative flex flex-1 items-center justify-center p-6">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background via-background to-primary/5" />
-        <div className="relative z-10 w-full flex justify-center">{formCard}</div>
+        <div className="w-full flex justify-center">{formCard}</div>
       </div>
     </div>
   );
