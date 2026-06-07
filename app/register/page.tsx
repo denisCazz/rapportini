@@ -137,12 +137,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex overflow-hidden bg-stone-100 dark:bg-stone-950">
+    <div className="flex min-h-screen bg-background">
       <AuthSidePanel />
-      <div className="relative flex-1 flex items-center justify-center p-4 overflow-hidden">
-      <div className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-primary-200/40 blur-3xl dark:bg-primary-900/20" />
-      <div className="pointer-events-none absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-amber-900/20 blur-3xl dark:bg-amber-950/30" />
-      <div className="relative bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 border border-stone-200/80 dark:border-stone-700/80">
+      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="saas-card w-full max-w-md p-8">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -157,7 +155,7 @@ export default function RegisterPage() {
               if (fallback) fallback.style.display = 'flex';
             }}
           />
-          <div className="h-32 w-32 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ display: 'none' }}>
+          <div className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-md bg-primary" style={{ display: 'none' }}>
             <span className="text-white font-bold text-5xl">B</span>
           </div>
           <div className="inline-flex items-center rounded-full border border-primary-200 dark:border-primary-800 bg-primary-50/80 dark:bg-primary-900/30 px-3 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300 mb-3">
@@ -330,7 +328,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? (
               <>

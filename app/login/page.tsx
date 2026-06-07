@@ -5,14 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import AuthSidePanel from '@/components/auth/AuthSidePanel';
-
-const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
-  left: 5 + (i * 5.5) % 90,
-  size: 2 + (i % 3),
-  duration: 8 + (i % 5),
-  delay: -(i * 0.8) % 10,
-  drift: -15 + (i % 31),
-}));
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,27 +19,18 @@ export default function LoginPage() {
   const hasCheckedAuth = useRef(false);
 
   useEffect(() => {
-    // Evita controlli multipli
     if (hasCheckedAuth.current) return;
     hasCheckedAuth.current = true;
 
-    // Se siamo sulla pagina di login, significa che il middleware ci ha lasciato passare
-    // Quindi NON siamo autenticati lato server (no cookie valido)
-    // Puliamo il localStorage per evitare inconsistenze
     const user = auth.getUser();
     const isAuth = auth.isAuthenticated();
-    
-    // Se il localStorage dice che siamo autenticati ma siamo sulla pagina di login,
-    // significa che il cookie è scaduto/invalido - puliamo il localStorage
+
     if (user || isAuth) {
-      // Verifichiamo se abbiamo davvero un cookie valido facendo una chiamata API
       fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
-        .then(res => {
+        .then((res) => {
           if (res.ok) {
-            // Cookie valido, possiamo andare alla home
             router.replace('/');
           } else {
-            // Cookie non valido, puliamo localStorage
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
             localStorage.removeItem('access_token');
@@ -52,7 +38,6 @@ export default function LoginPage() {
           }
         })
         .catch(() => {
-          // Errore, puliamo localStorage per sicurezza
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user_data');
           localStorage.removeItem('access_token');
@@ -68,7 +53,7 @@ export default function LoginPage() {
 
     try {
       const result = await auth.login(username, password);
-      
+
       if (result.success && result.user) {
         if (result.user.must_change_password) {
           router.push('/change-password-required');
@@ -79,261 +64,134 @@ export default function LoginPage() {
         setError(result.error || 'Credenziali non valide');
         setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || 'Errore durante il login');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Errore durante il login');
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen flex overflow-hidden bg-[#0d0d0d]">
+    <div className="flex min-h-screen bg-background">
       <AuthSidePanel />
-    <div className="relative flex-1 flex items-center justify-center p-4 overflow-hidden">
-      {/* Effetto fuoco elegante - calda atmosfera camino */}
-      <div className="login-fire-motion pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Base scura con vignette - concentra lo sguardo al centro */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0d0d0d] via-[#120a06] to-[#0a0502]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
-        {/* Bagliore principale - morbido e diffuso */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-[60%] opacity-70"
-          style={{
-            background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(180,80,20,0.35) 0%, rgba(100,40,10,0.15) 40%, transparent 70%)',
-            animation: 'fire-glow-soft 6s ease-in-out infinite',
-          }}
-        />
-        {/* Secondo strato - calore centrale */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-[45%] opacity-80"
-          style={{
-            background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(220,120,50,0.25) 0%, rgba(160,70,25,0.1) 35%, transparent 60%)',
-            animation: 'fire-ember-pulse 5s ease-in-out infinite',
-          }}
-        />
-        {/* Nucleo caldo - punto focale */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[min(80vw,400px)] h-[200px] opacity-90"
-          style={{
-            background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(255,180,100,0.2) 0%, rgba(200,100,40,0.08) 50%, transparent 70%)',
-            animation: 'fire-ember-drift 8s ease-in-out infinite',
-          }}
-        />
-        {/* Bagliore laterale sinistro */}
-        <div
-          className="absolute left-[15%] bottom-0 w-64 h-48 opacity-50 blur-2xl"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(200,90,30,0.2) 0%, transparent 70%)',
-            animation: 'fire-ember-pulse 7s ease-in-out infinite 0.5s',
-          }}
-        />
-        {/* Bagliore laterale destro */}
-        <div
-          className="absolute right-[15%] bottom-0 w-64 h-48 opacity-50 blur-2xl"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(180,70,25,0.2) 0%, transparent 70%)',
-            animation: 'fire-ember-pulse 6.5s ease-in-out infinite 1s',
-          }}
-        />
-        {/* Particelle brace che salgono */}
-        {PARTICLES.map((p, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-amber-400/80"
-            style={{
-              left: `${p.left}%`,
-              bottom: 0,
-              width: `${p.size}px`,
-              height: `${p.size}px`,
-              animation: `particle-float ${p.duration}s linear infinite`,
-              animationDelay: `${p.delay}s`,
-              ['--drift']: `${p.drift}px`,
-            } as React.CSSProperties}
-          />
-        ))}
-      </div>
-      <div className="relative z-10 rounded-3xl max-w-md w-full p-6 sm:p-10 text-surface-100 animate-fade-in-up">
-        {process.env.NEXT_PUBLIC_APP_ENV === 'TEST' && (
-          <div className="absolute -top-3 -right-3 inline-flex items-center rounded-full bg-amber-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg ring-4 ring-white dark:ring-surface-900">
-            TEST
-          </div>
-        )}
-        <div className="text-center mb-10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="h-24 sm:h-28 w-auto object-contain mx-auto mb-6 drop-shadow-xl"
-            onError={(e) => {
-              // Se il logo non esiste, mostra il fallback
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              const fallback = target.nextElementSibling as HTMLElement;
-              if (fallback) fallback.style.display = 'flex';
-            }}
-          />
-          <div className="h-24 w-24 sm:h-28 sm:w-28 bg-gradient-to-br from-primary-500 to-primary-700 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-glow" style={{ display: 'none' }}>
-            <span className="text-white font-bold text-5xl">B</span>
-          </div>
-          <div className="inline-flex items-center rounded-full border border-primary-300/30 bg-primary-500/10 px-4 py-1.5 text-xs font-semibold text-primary-200 mb-4 backdrop-blur-sm">
-            Software di Gestione Specializzato
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Bentornato</h1>
-          <p className="mt-2 text-sm text-surface-300">Accedi per gestire i tuoi rapportini</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50/80 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-2xl p-4 animate-slideUp backdrop-blur-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
-              </div>
+      <div className="flex flex-1 items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          {process.env.NEXT_PUBLIC_APP_ENV === 'TEST' && (
+            <div className="mb-4 inline-flex rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">
+              Ambiente TEST
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-surface-200 ml-1"
-            >
-              Username o Email
-            </label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-surface-400 group-focus-within:text-primary-300 transition-colors">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                disabled={isLoading}
-                className="w-full pl-11 pr-4 py-3.5 bg-black/35 border border-surface-300/30 rounded-2xl focus:ring-2 focus:ring-primary-400/60 focus:border-primary-400 text-white placeholder-surface-400 transition-all disabled:opacity-50 backdrop-blur-md"
-                placeholder="Inserisci username o email"
-                autoComplete="username"
-              />
-            </div>
+          <div className="mb-8 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="Logo Bitora"
+              className="mx-auto mb-4 h-16 w-auto object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            <h1 className="text-2xl font-semibold text-foreground">Accedi a Bitora</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Inserisci le tue credenziali per continuare
+            </p>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center ml-1">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-surface-200"
-              >
-                Password
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-primary-300 hover:text-primary-200 transition-colors"
-              >
-                Password dimenticata?
-              </Link>
-            </div>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-surface-400 group-focus-within:text-primary-300 transition-colors">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+          <div className="saas-card p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="username">Username o email</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  placeholder="username@azienda.it"
+                  autoComplete="username"
+                />
               </div>
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-                className="w-full pl-11 pr-12 py-3.5 bg-black/35 border border-surface-300/30 rounded-2xl focus:ring-2 focus:ring-primary-400/60 focus:border-primary-400 text-white placeholder-surface-400 transition-all disabled:opacity-50 backdrop-blur-md"
-                placeholder="Inserisci password"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-surface-400 hover:text-white transition-colors"
-              >
-                {showPassword ? (
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0L3 12m3.29-5.71L12 12" />
-                  </svg>
-                ) : (
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                )}
-              </button>
-            </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Password dimenticata?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
+                  >
+                    {showPassword ? (
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0L3 12m3.29-5.71L12 12" />
+                      </svg>
+                    ) : (
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Accesso in corso...' : 'Accedi'}
+              </Button>
+            </form>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-2xl shadow-glow text-sm font-bold text-white bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Accesso in corso...</span>
-              </div>
-            ) : (
-              <>
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-                <span>Accedi</span>
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-surface-300 mb-4">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Non hai un account?{' '}
-            <Link href="/register" className="text-primary-300 hover:text-primary-200 font-bold transition-colors">
+            <Link href="/register" className="font-medium text-primary hover:underline">
               Registrati
             </Link>
           </p>
-          <div className="text-xs text-surface-400 space-y-1.5">
+
+          <div className="mt-8 text-center text-xs text-muted-foreground space-y-1">
             <p>
-              <a 
-                href="https://bitora.it" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-primary-300 transition-colors"
-              >
+              <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
                 Bitora Software di Gestione Specializzato
               </a>
-              {' è un prodotto di '}
-              <a 
-                href="https://bitora.it" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-primary-300 transition-colors font-bold"
-              >
+              {' · '}
+              <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
                 Bitora.it
               </a>
             </p>
-            <p className="font-medium">© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
-            <p>
-              <Link href="/privacy" className="hover:text-primary-300 transition-colors underline font-medium">
-                Privacy Policy e Cookie
-              </Link>
-            </p>
+            <p>© {new Date().getFullYear()} Bitora.it</p>
+            <Link href="/privacy" className="hover:text-primary hover:underline">
+              Privacy Policy
+            </Link>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }

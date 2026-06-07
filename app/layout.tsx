@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Fraunces } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import CookieConsent from '@/components/CookieConsent';
 import { PWAProvider } from '@/lib/pwa-context';
@@ -12,12 +12,6 @@ const inter = Inter({
   display: 'swap',
   preload: true,
   variable: '--font-sans',
-});
-
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-heading',
 });
 
 export const viewport: Viewport = {
@@ -74,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it" className={cn('font-sans', inter.variable, fraunces.variable)}>
+    <html lang="it" className={cn('font-sans', inter.variable)}>
       <head>
         <link rel="apple-touch-icon" href="/logo.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

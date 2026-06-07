@@ -571,7 +571,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
   };
 
   return (
-    <Card className="rounded-3xl shadow-2xl border border-surface-200 dark:border-surface-700 p-4 sm:p-8 mb-8 animate-fade-in-up bg-card/95 backdrop-blur-sm">
+    <Card className="mb-8 p-4 sm:p-6">
       <div className="mb-6 sm:mb-8">
         <div className="flex items-start justify-between gap-3 mb-5 sm:mb-6">
           <div className="min-w-0 flex-1">
@@ -580,7 +580,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
           </div>
           <button
             onClick={onCancel}
-            className="shrink-0 flex items-center justify-center min-w-11 min-h-11 p-2.5 text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-2xl transition-all hover:text-surface-900 dark:hover:text-white"
+            className="shrink-0 flex items-center justify-center min-w-11 min-h-11 p-2.5 text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-md transition-all hover:text-surface-900 dark:hover:text-white"
             aria-label="Chiudi"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,7 +596,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       </div>
 
       {!initialRapportino && pendingDraft && (
-        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
             Hai una bozza salvata allo step {pendingDraft.step || 1} di 3. Vuoi riprendere da dove avevi lasciato?
           </p>
@@ -620,8 +620,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       )}
 
       {step === 1 && (
-        <div className="space-y-6 animate-fade-in-up pb-2 sm:pb-0">
-          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
+        <div className="space-y-6 pb-2 sm:pb-0">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-md border border-surface-100 dark:border-surface-700/50">
             <div className="shrink-0 p-2.5 sm:p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl shadow-inner">
               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -640,7 +640,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 {...register('operatore.nome')}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -651,7 +651,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 {...register('operatore.cognome')}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -662,7 +662,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="tel"
                 {...register('operatore.telefono')}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -673,7 +673,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="email"
                 {...register('operatore.email')}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
               />
             </div>
             <div className="md:col-span-2">
@@ -683,7 +683,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <input
                 type="text"
                 {...register('operatore.qualifica')}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all scroll-mb-[calc(11rem+env(safe-area-inset-bottom,0px))]"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground scroll-mb-[calc(11rem+env(safe-area-inset-bottom,0px))]"
                 placeholder="Es. Tecnico specializzato"
                 required
               />
@@ -693,8 +693,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       )}
 
       {step === 2 && (
-        <div className="space-y-6 animate-fade-in-up">
-          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
+        <div className="space-y-6">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-md border border-surface-100 dark:border-surface-700/50">
             <div className="shrink-0 p-2.5 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-xl shadow-inner">
               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -722,7 +722,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     setShowClientiList(true);
                   }
                 }}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
               {isSearchingClienti && (
@@ -747,7 +747,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     setShowClientiList(true);
                   }
                 }}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -755,7 +755,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             {/* Lista clienti esistenti */}
             {showClientiList && clientiEsistenti.length > 0 && (
               <div ref={clientiListRef} className="md:col-span-2 relative z-10 clienti-list-container">
-                <div className="bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border border-primary-300 dark:border-primary-700 rounded-2xl shadow-xl mt-2 max-h-48 sm:max-h-64 overflow-y-auto overscroll-contain">
+                <div className="mt-2 max-h-48 overflow-y-auto overscroll-contain rounded-md border border-border bg-card shadow-md sm:max-h-64">
                   <div className="p-3 border-b border-surface-200 dark:border-surface-700 bg-surface-50/50 dark:bg-surface-900/50">
                     <p className="text-xs font-bold text-surface-700 dark:text-surface-300 flex items-center gap-2">
                       <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -820,7 +820,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.ragioneSociale}
                 onChange={(e) => setValue('cliente.ragioneSociale', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
               />
             </div>
             <div className="md:col-span-2">
@@ -831,7 +831,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.indirizzo}
                 onChange={(e) => setValue('cliente.indirizzo', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -843,7 +843,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.citta}
                 onChange={(e) => setValue('cliente.citta', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -855,7 +855,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.cap}
                 onChange={(e) => setValue('cliente.cap', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -867,7 +867,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="tel"
                 value={cliente.telefono}
                 onChange={(e) => setValue('cliente.telefono', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -879,7 +879,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="email"
                 value={cliente.email}
                 onChange={(e) => setValue('cliente.email', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
               />
             </div>
             <div>
@@ -890,7 +890,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.partitaIva}
                 onChange={(e) => setValue('cliente.partitaIva', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
               />
             </div>
             <div>
@@ -901,7 +901,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={cliente.codiceFiscale}
                 onChange={(e) => setValue('cliente.codiceFiscale', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
               />
             </div>
           </div>
@@ -909,8 +909,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       )}
 
       {step === 3 && (
-        <div className="space-y-6 animate-fade-in-up">
-          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-2xl border border-surface-100 dark:border-surface-700/50">
+        <div className="space-y-6">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-md border border-surface-100 dark:border-surface-700/50">
             <div className="shrink-0 p-2.5 sm:p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl shadow-inner">
               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -930,7 +930,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="date"
                 value={intervento.data}
                 onChange={(e) => setValue('intervento.data', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -942,7 +942,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="time"
                 value={intervento.ora}
                 onChange={(e) => setValue('intervento.ora', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
@@ -953,7 +953,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <select
                 value={intervento.tipoStufa}
                 onChange={(e) => setValue('intervento.tipoStufa', e.target.value as 'pellet' | 'legno')}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background"
                 required
               >
                 <option value="pellet" className="bg-white dark:bg-surface-800 text-surface-900 dark:text-white">Pellet</option>
@@ -980,7 +980,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                           setValue('intervento.marca', selectedMarca?.nome || '');
                         }
                       }}
-                      className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm transition-all"
+                      className="flex-1 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background"
                       required
                     >
                       <option value="">Seleziona marca...</option>
@@ -1001,7 +1001,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                       value={intervento.marca}
                       onChange={(e) => setValue('intervento.marca', e.target.value)}
                       placeholder="Inserisci nuova marca"
-                      className="flex-1 min-w-0 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                      className="flex-1 min-w-0 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                       required
                     />
                     <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
@@ -1037,7 +1037,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                             }
                           }
                         }}
-                        className="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 font-bold shadow-sm transition-all"
+                        className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold shadow-sm transition-all"
                       >
                         Salva
                       </button>
@@ -1047,7 +1047,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                           setShowMarcaInput(false);
                           setValue('intervento.marca', '');
                         }}
-                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
+                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
                       >
                         Annulla
                       </button>
@@ -1077,7 +1077,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                         }
                       }}
                       disabled={!marcaId}
-                      className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm transition-all"
+                      className="flex-1 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background disabled:opacity-50 disabled:cursor-not-allowed"
                       required
                     >
                       <option value="">{marcaId ? 'Seleziona modello...' : 'Seleziona prima una marca'}</option>
@@ -1100,7 +1100,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                       value={intervento.modello}
                       onChange={(e) => setValue('intervento.modello', e.target.value)}
                       placeholder={marcaId ? 'Inserisci nuovo modello' : 'Modello (marca non in catalogo)'}
-                      className="flex-1 min-w-0 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                      className="flex-1 min-w-0 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                       required
                     />
                     {marcaId && (
@@ -1137,7 +1137,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                             }
                           }
                         }}
-                        className="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 font-bold shadow-sm transition-all"
+                        className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold shadow-sm transition-all"
                       >
                         Salva
                       </button>
@@ -1147,7 +1147,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                           setShowModelloInput(false);
                           setValue('intervento.modello', '');
                         }}
-                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
+                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
                       >
                         Annulla
                       </button>
@@ -1165,7 +1165,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 type="text"
                 value={intervento.numeroSerie}
                 onChange={(e) => setValue('intervento.numeroSerie', e.target.value)}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
               />
             </div>
             <div className="md:col-span-2">
@@ -1176,7 +1176,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 <select
                   value={intervento.tipoIntervento}
                   onChange={(e) => setValue('intervento.tipoIntervento', e.target.value)}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm transition-all"
+                  className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background"
                   required
                 >
                   {tipiIntervento.map((tipo) => (
@@ -1190,7 +1190,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                   <button
                     type="button"
                     onClick={() => setShowTipoInterventoInput(true)}
-                    className="w-full px-4 py-3 text-sm font-bold border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800/50 hover:border-primary-400 dark:hover:border-primary-600 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
+                    className="w-full px-4 py-3 text-sm font-bold border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-md text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800/50 hover:border-primary-400 dark:hover:border-primary-600 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
                   >
                     + Aggiungi tipologia di intervento
                   </button>
@@ -1201,7 +1201,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                       value={newTipoIntervento}
                       onChange={(e) => setNewTipoIntervento(e.target.value)}
                       placeholder="Nuova tipologia (es. Collaudo)"
-                      className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all"
+                      className="flex-1 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                     />
                     <button
                       type="button"
@@ -1221,7 +1221,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                         setNewTipoIntervento('');
                         setShowTipoInterventoInput(false);
                       }}
-                      className="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 font-bold shadow-sm transition-all"
+                      className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold shadow-sm transition-all"
                     >
                       Salva
                     </button>
@@ -1231,7 +1231,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                         setShowTipoInterventoInput(false);
                         setNewTipoIntervento('');
                       }}
-                      className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
+                      className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
                     >
                       Annulla
                     </button>
@@ -1247,7 +1247,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 value={intervento.descrizione}
                 onChange={(e) => setValue('intervento.descrizione', e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 placeholder-surface-400 dark:placeholder-surface-500 backdrop-blur-sm transition-all resize-none"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground resize-none"
                 required
               />
             </div>
@@ -1258,7 +1258,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
               <div className="space-y-3">
                 {/* Combobox multi-select per materiali */}
                 <div className="relative">
-                  <div className="min-h-[100px] max-h-[200px] overflow-y-auto border border-surface-200 dark:border-surface-700 rounded-2xl p-2 bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm">
+                  <div className="min-h-[100px] max-h-[200px] overflow-y-auto border border-surface-200 dark:border-surface-700 rounded-md p-2 bg-background">
                     {materiali.length > 0 ? (
                       <div className="space-y-1">
                         {materiali.map((materiale) => (
@@ -1303,7 +1303,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                         <button
                           type="button"
                           onClick={() => setShowMaterialeInput(true)}
-                          className="w-full px-4 py-3 text-sm border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+                          className="w-full px-4 py-3 text-sm border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-md text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
                         >
                           + Aggiungi nuovo materiale
                         </button>
@@ -1314,7 +1314,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                             value={newMaterialeNome}
                             onChange={(e) => setNewMaterialeNome(e.target.value)}
                             placeholder="Nome materiale"
-                            className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm"
+                            className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-background"
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <button
@@ -1352,7 +1352,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                                   }
                                 }
                               }}
-                              className="w-full px-4 py-3 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 shadow-glow-emerald transition-all font-medium"
+                              className="w-full px-4 py-3 bg-emerald-500 text-white rounded-md hover:bg-emerald-600  transition-all font-medium"
                             >
                               Salva
                             </button>
@@ -1362,7 +1362,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                                 setShowMaterialeInput(false);
                                 setNewMaterialeNome('');
                               }}
-                              className="w-full px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-2xl hover:bg-surface-300 dark:hover:bg-surface-600 transition-all font-medium"
+                              className="w-full px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 transition-all font-medium"
                             >
                               Annulla
                             </button>
@@ -1383,7 +1383,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                     onChange={(e) => setValue('intervento.materialiUtilizzati', e.target.value)}
                     placeholder="Inserisci materiali aggiuntivi non presenti nella lista..."
                     rows={2}
-                    className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm placeholder-surface-400 dark:placeholder-surface-500 text-sm"
+                    className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-background placeholder-surface-400 dark:placeholder-surface-500 text-sm"
                   />
                 </div>
               </div>
@@ -1397,12 +1397,12 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 onChange={(e) => setValue('intervento.note', e.target.value)}
                 placeholder="Inserisci eventuali note aggiuntive..."
                 rows={3}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-white/50 dark:bg-surface-800/50 backdrop-blur-sm placeholder-surface-400 dark:placeholder-surface-500"
+                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-background placeholder-surface-400 dark:placeholder-surface-500"
               />
             </div>
 
             <div className="md:col-span-2 mt-4 pb-4 sm:pb-0">
-              <div className="relative z-10 rounded-3xl border border-surface-200 dark:border-surface-700 bg-white/30 dark:bg-surface-800/30 backdrop-blur-md p-4 sm:p-6">
+              <div className="relative z-10 rounded-md border border-surface-200 dark:border-surface-700 bg-muted/30 p-4 sm:p-6">
                 <h4 className="text-base font-semibold text-surface-900 dark:text-white mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1449,13 +1449,13 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
         aria-hidden
       />
 
-      <div className="fixed bottom-0 left-0 right-0 z-[45] border-t border-surface-200 bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md dark:border-surface-700 sm:static sm:z-auto sm:mt-10 sm:border-t sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div className="fixed bottom-0 left-0 right-0 z-[45] border-t border-surface-200 bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-surface-700 sm:static sm:z-auto sm:mt-10 sm:border-t sm:bg-transparent sm:p-0">
         <div className="mx-auto flex max-w-4xl flex-col-reverse gap-3 sm:flex-row sm:justify-between">
           <button
             type="button"
             onClick={() => step > 1 && setStep(step - 1)}
             disabled={step === 1}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-surface-200 px-8 py-4 font-medium text-surface-700 transition-all hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800/50 sm:w-auto"
+            className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-surface-200 px-8 py-4 font-medium text-surface-700 transition-all hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800/50 sm:w-auto"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -1466,7 +1466,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary-500 px-8 py-4 font-medium text-white shadow-glow-primary transition-all hover:bg-primary-600 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-primary-500 px-8 py-4 font-medium text-white  transition-all hover:bg-primary-600 sm:w-auto"
             >
               Avanti
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1477,7 +1477,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             <button
               type="button"
               onClick={handleConfirmSave}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-8 py-4 font-medium text-white shadow-glow-emerald transition-all hover:bg-emerald-600 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-8 py-4 font-medium text-white  transition-all hover:bg-emerald-600 sm:w-auto"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

@@ -18,7 +18,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Menu, Moon, Sun, UserRound } from 'lucide-react';
+import {
+  Menu,
+  Moon,
+  Sun,
+  UserRound,
+  Home,
+  FileText,
+  BarChart3,
+  Users,
+  Settings,
+  LogOut,
+  Plus,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarLayoutProps {
@@ -32,13 +44,20 @@ interface SidebarLayoutProps {
   topActions?: React.ReactNode;
 }
 
+const navLinkClass = (active: boolean) =>
+  cn(
+    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+    active
+      ? 'bg-primary/10 text-primary'
+      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+  );
+
 export default function SidebarLayout({
   settings,
   pageTitle,
   pageSubtitle,
   children,
   onLogout,
-  onNewRapportino,
   onExportPDF,
   topActions,
 }: SidebarLayoutProps) {
@@ -91,230 +110,180 @@ export default function SidebarLayout({
 
   const NavContent = ({ showCloseButton = false }: { showCloseButton?: boolean }) => (
     <>
-      <div className="relative px-6 pt-8 pb-6 border-b border-surface-200/70 dark:border-surface-800/70">
+      <div className="border-b border-border px-4 py-4">
         <div className="flex items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-3 min-w-0 flex-1 group" onClick={() => setMobileOpen(false)}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary-500 blur-md opacity-20 group-hover:opacity-40 transition-opacity rounded-xl"></div>
+          <Link href="/" className="flex min-w-0 flex-1 items-center gap-3" onClick={() => setMobileOpen(false)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={settings.logo || '/logo.png'}
               alt={settings.nomeAzienda || 'Bitora'}
-              className="relative h-12 w-auto object-contain rounded-xl p-1"
+              className="h-9 w-auto object-contain"
             />
-          </div>
-          <div>
-            <p className="text-surface-900 dark:text-white font-bold leading-tight tracking-tight text-lg">{settings.nomeAzienda || 'Bitora'}</p>
-            <p className="text-xs text-surface-500 dark:text-surface-400 font-medium">Gestione Specializzata</p>
-          </div>
-        </Link>
-        {showCloseButton && (
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden h-10 w-10 shrink-0 grid place-items-center rounded-xl hover:bg-surface-100/70 dark:hover:bg-surface-800/70 text-surface-600 dark:text-surface-300 transition-colors"
-            aria-label="Chiudi menu"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {settings.nomeAzienda || 'Bitora'}
+              </p>
+              <p className="text-xs text-muted-foreground">Gestione rapportini</p>
+            </div>
+          </Link>
+          {showCloseButton && (
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="lg:hidden grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted"
+              aria-label="Chiudi menu"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="p-4 space-y-1.5 overflow-y-auto scrollbar-hide">
-        <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-surface-400 dark:text-surface-500 font-bold">Menu Principale</p>
-        <Link
-          href="/"
-          onClick={() => setMobileOpen(false)}
-          className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
-            isActive('/')
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
-          }`}
-        >
-          <span className={`grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110`}>🏠</span>
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        <p className="px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Menu
+        </p>
+        <Link href="/" onClick={() => setMobileOpen(false)} className={navLinkClass(isActive('/'))}>
+          <Home className="h-4 w-4" aria-hidden />
           Dashboard
         </Link>
         <Link
           href="/rapportini"
           onClick={() => setMobileOpen(false)}
-          className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
-            isActive('/rapportini') || pathname.startsWith('/rapportini/')
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
-          }`}
+          className={navLinkClass(isActive('/rapportini') || pathname.startsWith('/rapportini/'))}
         >
-          <span className={`grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110`}>📋</span>
+          <FileText className="h-4 w-4" aria-hidden />
           Rapportini
         </Link>
 
         {user?.ruolo === 'admin' && (
           <>
-            <div className="pt-4 pb-2">
-              <div className="h-px w-full bg-surface-200 dark:bg-surface-800"></div>
-            </div>
-            <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-surface-400 dark:text-surface-500 font-bold">Amministrazione</p>
-            <Link
-              href="/admin"
-              onClick={() => setMobileOpen(false)}
-              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
-                isActive('/admin')
-                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                  : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
-              }`}
-            >
-              <span className="grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110">📊</span>
+            <p className="mt-4 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Amministrazione
+            </p>
+            <Link href="/admin" onClick={() => setMobileOpen(false)} className={navLinkClass(isActive('/admin'))}>
+              <BarChart3 className="h-4 w-4" aria-hidden />
               Statistiche
             </Link>
             <Link
               href="/admin/gestione-utenti"
               onClick={() => setMobileOpen(false)}
-              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
-                isActive('/admin/users') || isActive('/admin/gestione-utenti')
-                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                  : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
-              }`}
+              className={navLinkClass(isActive('/admin/users') || isActive('/admin/gestione-utenti'))}
             >
-              <span className="grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110">👥</span>
+              <Users className="h-4 w-4" aria-hidden />
               Utenti
             </Link>
             <Link
               href="/admin/impostazioni"
               onClick={() => setMobileOpen(false)}
-              className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 border-l-2 ${
-                isActive('/admin/impostazioni')
-                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                  : 'border-transparent text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white hover:border-surface-300 dark:hover:border-surface-600'
-              }`}
+              className={navLinkClass(isActive('/admin/impostazioni'))}
             >
-              <span className="grid h-8 w-8 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110">⚙️</span>
+              <Settings className="h-4 w-4" aria-hidden />
               Impostazioni
             </Link>
           </>
         )}
-      </div>
+      </nav>
 
       {((user?.ruolo === 'operatore') || onExportPDF) && (
-        <div className="px-4 pb-4 space-y-3 mt-auto">
+        <div className="space-y-2 border-t border-border px-3 py-3">
           {user?.ruolo === 'operatore' && (
             <Link
               href="/rapportini/nuovo"
               onClick={() => setMobileOpen(false)}
-              className="block w-full rounded-2xl border border-primary-400/40 px-4 py-3.5 text-sm font-bold text-primary-700 dark:text-primary-300 hover:bg-primary-500/10 transition-all text-center"
+              className={cn(
+                buttonVariants({ variant: 'default' }),
+                'w-full justify-center gap-2'
+              )}
             >
-              + Nuovo Rapportino
+              <Plus className="h-4 w-4" />
+              Nuovo rapportino
             </Link>
           )}
           {onExportPDF && (
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                onExportPDF();
-              }}
-              className="w-full rounded-2xl border border-surface-300 dark:border-surface-700 px-4 py-3.5 text-sm font-bold text-surface-700 dark:text-surface-200 hover:bg-surface-100/70 dark:hover:bg-surface-800/70 transition-all"
-            >
+            <Button variant="outline" className="w-full" onClick={() => { setMobileOpen(false); onExportPDF(); }}>
               Esporta PDF
-            </button>
+            </Button>
           )}
         </div>
       )}
 
-      <div className="px-4 pb-6">
+      <div className="border-t border-border p-3 space-y-2">
         <InstallPWAButton />
-        <button
-          onClick={toggleDarkMode}
-          className="w-full min-h-[46px] flex items-center justify-center gap-2 rounded-2xl border border-surface-200 dark:border-surface-700 px-4 py-3 text-sm font-semibold text-surface-700 dark:text-surface-300 hover:bg-surface-100/70 dark:hover:bg-surface-800/70 transition-all mb-4"
-          aria-label="Cambia modalità tema"
-        >
-          {darkMode ? '🌙 Modalità Scura' : '☀️ Modalità Chiara'}
-        </button>
+        <Button variant="outline" className="w-full justify-center gap-2" onClick={toggleDarkMode}>
+          {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          {darkMode ? 'Tema scuro' : 'Tema chiaro'}
+        </Button>
 
         <Link
           href="/utente"
           onClick={() => setMobileOpen(false)}
-          className="block rounded-2xl p-3 mb-3 border border-surface-200 dark:border-surface-700 hover:bg-surface-100/70 dark:hover:bg-surface-800/70 transition-all group"
+          className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-muted"
         >
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white grid place-items-center text-sm font-bold shadow-md group-hover:scale-105 transition-transform">
-              {user?.nome?.charAt(0)}{user?.cognome?.charAt(0)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm text-surface-900 dark:text-white font-bold truncate">{user?.nome} {user?.cognome}</p>
-              <p className="text-xs text-surface-500 dark:text-surface-400 capitalize font-medium">{user?.ruolo}</p>
-            </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+            {user?.nome?.charAt(0)}{user?.cognome?.charAt(0)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">
+              {user?.nome} {user?.cognome}
+            </p>
+            <p className="text-xs capitalize text-muted-foreground">{user?.ruolo}</p>
           </div>
         </Link>
 
         {onLogout && (
-          <button
-            onClick={onLogout}
-            className="w-full min-h-[46px] flex items-center justify-center gap-2 rounded-2xl border border-red-300/50 dark:border-red-800/60 px-4 py-3 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-900/20 transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
+          <Button variant="outline" className="w-full justify-center gap-2 text-destructive hover:text-destructive" onClick={onLogout}>
+            <LogOut className="h-4 w-4" />
             Esci
-          </button>
+          </Button>
         )}
       </div>
     </>
   );
 
   return (
-    <div className="min-h-screen bg-surface-50 dark:bg-surface-950 text-surface-900 dark:text-surface-50 selection:bg-primary-500/30">
-      {/* Sfondo decorativo moderno */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-400/10 dark:bg-primary-600/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-400/10 dark:bg-purple-600/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-400/10 dark:bg-pink-600/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
-      </div>
-
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 flex-col z-20 border-r border-border bg-card/90 backdrop-blur-md shadow-sm">
+    <div className="min-h-screen bg-background text-foreground">
+      <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-border bg-card lg:flex">
         <NavContent />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent
-          side="left"
-          className="lg:hidden w-[min(88vw,360px)] max-w-[360px] border-r border-border bg-card/95 p-0 backdrop-blur-xl"
-        >
-          <div className="flex h-full max-h-[100dvh] flex-col overflow-y-auto overscroll-contain">
+        <SheetContent side="left" className="w-[min(88vw,320px)] p-0 lg:hidden">
+          <div className="flex h-full max-h-[100dvh] flex-col overflow-y-auto">
             <NavContent showCloseButton />
           </div>
         </SheetContent>
       </Sheet>
 
-      <div className="lg:pl-72 flex flex-col min-h-screen relative z-10">
-        <header className="sticky top-0 z-30 bg-surface-50/85 dark:bg-surface-900/85 backdrop-blur-xl border-b border-surface-200/80 dark:border-surface-800 shadow-sm">
-          <div className="px-4 md:px-8 py-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
+      <div className="flex min-h-screen flex-col lg:pl-64">
+        <header className="sticky top-0 z-30 border-b border-border bg-card">
+          <div className="flex flex-col gap-2 px-4 py-3 sm:px-6">
+            <div className="flex items-start gap-3">
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden mt-0.5 h-11 w-11 shrink-0 rounded-xl border-border bg-card/80"
+                className="mt-0.5 shrink-0 lg:hidden"
                 aria-label="Apri menu"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4" />
               </Button>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="font-heading text-lg sm:text-2xl md:text-3xl font-bold text-surface-900 dark:text-white break-words tracking-tight leading-tight">
-                    {pageTitle}
-                  </h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg font-semibold text-foreground sm:text-xl">{pageTitle}</h1>
                   {isTestEnv() && (
-                    <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                       TEST
                     </span>
                   )}
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-1">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
-                      className="h-9 w-9 rounded-lg border-border"
+                      className="h-8 w-8"
                       onClick={toggleDarkMode}
                       aria-label={darkMode ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
                     >
@@ -324,22 +293,19 @@ export default function SidebarLayout({
                       <Link
                         href="/utente"
                         aria-label="Profilo utente"
-                        className={cn(
-                          buttonVariants({ variant: 'outline', size: 'icon' }),
-                          'h-9 w-9 rounded-lg border-border'
-                        )}
+                        className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}
                       >
                         <UserRound className="h-4 w-4" />
                       </Link>
                     )}
                   </div>
                 </div>
-                <Breadcrumb className="mt-2">
+                <Breadcrumb className="mt-1">
                   <BreadcrumbList>
                     <BreadcrumbItem>
                       <BreadcrumbLink
                         className="text-muted-foreground"
-                        render={<Link href="/" className="transition-colors hover:text-foreground" />}
+                        render={<Link href="/" className="hover:text-foreground" />}
                       >
                         Bitora
                       </BreadcrumbLink>
@@ -351,18 +317,16 @@ export default function SidebarLayout({
                   </BreadcrumbList>
                 </Breadcrumb>
                 {pageSubtitle && (
-                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 mt-1 font-medium line-clamp-2">
-                    {pageSubtitle}
-                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{pageSubtitle}</p>
                 )}
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 px-3 sm:px-6 md:px-8 py-5 md:py-8 max-w-7xl mx-auto w-full animate-fadeIn">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
           {topActions && (
-            <div className="mb-5 flex flex-wrap items-center gap-3 justify-start sm:justify-end w-full">
+            <div className="mb-4 flex w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
               {topActions}
             </div>
           )}

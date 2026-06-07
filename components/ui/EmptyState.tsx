@@ -19,16 +19,16 @@ export default function EmptyState({
   return (
     <div
       className={cn(
-        'glass-card flex min-h-[280px] flex-col items-center justify-center rounded-3xl p-12 text-center',
+        'saas-card flex min-h-[240px] flex-col items-center justify-center p-8 text-center',
         className
       )}
     >
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-surface-100 shadow-inner dark:bg-surface-800">
-        {icon ?? <FileText className="h-10 w-10 text-surface-400 dark:text-surface-500" aria-hidden />}
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+        {icon ?? <FileText className="h-6 w-6 text-muted-foreground" aria-hidden />}
       </div>
-      <h3 className="mb-2 text-2xl font-bold tracking-tight text-surface-900 dark:text-white">{title}</h3>
+      <h3 className="mb-1 text-lg font-semibold text-foreground">{title}</h3>
       {description && (
-        <p className="mb-6 max-w-md font-medium text-surface-500 dark:text-surface-400">{description}</p>
+        <p className="mb-4 max-w-md text-sm text-muted-foreground">{description}</p>
       )}
       {action}
     </div>

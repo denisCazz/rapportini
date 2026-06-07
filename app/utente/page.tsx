@@ -76,7 +76,7 @@ export default function UtentePage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="space-y-5">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white grid place-items-center text-lg font-bold shadow-lg shadow-indigo-900/30">
+            <div className="grid h-14 w-14 place-items-center rounded-md bg-primary text-lg font-semibold text-primary-foreground">
               {user.nome?.charAt(0)}{user.cognome?.charAt(0)}
             </div>
             <div>

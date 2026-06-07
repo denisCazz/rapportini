@@ -140,7 +140,7 @@ export default function Home() {
         ) : (
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
-              <Card className="border-primary-200/50 dark:border-primary-900/40 bg-gradient-to-br from-card to-primary-50/30 dark:from-card dark:to-primary-950/20">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Rapportini (lista)</CardTitle>
                   <FileText className="h-4 w-4 text-primary-600" aria-hidden />
@@ -197,22 +197,22 @@ export default function Home() {
                 )}
               </CardContent>
             </Card>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/50 dark:bg-surface-900/50 p-6 rounded-3xl border border-surface-200 dark:border-surface-800 backdrop-blur-sm shadow-sm">
+            <div className="saas-card flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-surface-900 dark:text-white tracking-tight">Rapportini recenti</h2>
-                <p className="text-sm text-surface-500 dark:text-surface-400 font-medium mt-1">Ultimi {rapportini.length} rapportini registrati</p>
+                <h2 className="text-lg font-semibold text-foreground">Rapportini recenti</h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">Ultimi {rapportini.length} rapportini registrati</p>
               </div>
               <Link
                 href="/rapportini"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-surface-800 text-surface-900 dark:text-white border border-surface-200 dark:border-surface-700 rounded-2xl hover:bg-surface-50 dark:hover:bg-surface-700 transition-all text-sm font-bold shadow-sm group"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
               >
-                <svg className="w-5 h-5 text-primary-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 Cerca tutti i rapportini
               </Link>
             </div>
-            <div className="glass-card rounded-3xl overflow-hidden">
+            <div className="saas-card overflow-hidden">
               <RapportiniList
                 rapportini={rapportini}
                 onDelete={handleDeleteRapportino}

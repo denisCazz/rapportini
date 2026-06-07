@@ -44,10 +44,10 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
 
   return (
     <div 
-      className="fixed inset-0 bg-surface-900/75 backdrop-blur-sm z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto animate-fade-in-up"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-2 sm:p-4 animate-fadeIn"
       onClick={handleOverlayClick}
     >
-      <div className="glass-card bg-surface-50/95 dark:bg-surface-900/95 rounded-3xl shadow-2xl max-w-4xl w-full my-4 sm:my-8 print:shadow-none print:max-w-full print:my-0 print:rounded-none print:bg-white">
+      <div className="saas-card my-4 w-full max-w-4xl sm:my-8 print:my-0 print:max-w-full print:rounded-none print:bg-white print:shadow-none">
         <div className="p-5 sm:p-8 print:p-8">
           {/* Header con logo */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-surface-200 dark:border-surface-700 print:border-surface-800 gap-4">
@@ -74,7 +74,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
                       if (fallback) fallback.style.display = 'flex';
                     }}
                   />
-                  <div className="h-12 w-12 sm:h-16 sm:w-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center print:h-20 print:w-20 flex-shrink-0 shadow-glow" style={{ display: 'none' }}>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary sm:h-16 sm:w-16 print:h-20 print:w-20" style={{ display: 'none' }}>
                     <span className="text-white font-bold text-xl sm:text-2xl print:text-3xl">R</span>
                   </div>
                 </>
@@ -92,7 +92,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
               {onEdit && (
                 <button
                   onClick={onEdit}
-                  className="flex-1 sm:flex-none px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all text-sm font-bold flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted sm:flex-none"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -102,13 +102,13 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
               )}
               <button
                 onClick={handlePrint}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-2xl hover:from-primary-500 hover:to-primary-400 transition-all text-sm font-bold shadow-glow flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+                className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:flex-none"
               >
                 🖨️ Stampa
               </button>
               <button
                 onClick={onClose}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-300 border border-surface-200 dark:border-surface-700 rounded-2xl hover:bg-surface-200 dark:hover:bg-surface-700 transition-all text-sm font-bold flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted sm:flex-none"
               >
                 Chiudi
               </button>
@@ -116,7 +116,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
           </div>
 
           {/* Timeline sintetica intervento */}
-          <div className="mb-6 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent p-4 print:hidden">
+          <div className="mb-6 rounded-md border border-border bg-muted/50 p-4 print:hidden">
             <p className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Flusso intervento</p>
             <ol className="grid gap-3 sm:grid-cols-5 text-sm">
               {[

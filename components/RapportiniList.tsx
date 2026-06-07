@@ -47,7 +47,7 @@ export default function RapportiniList({
 
   if (loading && rapportini.length === 0) {
     return (
-      <div className="rounded-3xl border border-border bg-card/80 p-6 shadow-sm">
+      <div className="saas-card p-6">
         <div className="mb-4 space-y-2">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-4 w-72" />
@@ -92,7 +92,7 @@ export default function RapportiniList({
         action={
           showCreateAction ? (
             <Link href="/rapportini/nuovo">
-              <Button size="lg" className="rounded-2xl">
+              <Button size="lg">
                 Nuovo rapportino
               </Button>
             </Link>
@@ -106,81 +106,80 @@ export default function RapportiniList({
     <>
       <div
         className={cn(
-          'bg-white/50 dark:bg-surface-900/50 rounded-3xl shadow-sm border border-surface-200 dark:border-surface-800 p-4 sm:p-6 mb-6 backdrop-blur-sm transition-opacity',
-          loading && rapportini.length > 0 && 'opacity-60 pointer-events-none'
+          'saas-card mb-6 p-4 sm:p-6 transition-opacity',
+          loading && rapportini.length > 0 && 'pointer-events-none opacity-60'
         )}
       >
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold text-surface-900 dark:text-white mb-1 tracking-tight">
+            <h2 className="mb-0.5 text-lg font-semibold text-foreground">
               Rapportini
             </h2>
-            <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 font-medium">
+            <p className="text-sm text-muted-foreground">
               {rapportini.length} {rapportini.length === 1 ? 'rapportino' : 'rapportini'} totali
               {filter !== 'all' && ` • ${filteredRapportini.length} ${filter === 'pellet' ? 'pellet' : 'legno'}`}
             </p>
           </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 bg-surface-100/80 dark:bg-surface-800/80 p-1.5 rounded-2xl w-full sm:w-auto backdrop-blur-sm border border-surface-200/50 dark:border-surface-700/50">
+          <div className="flex w-full flex-wrap gap-1 rounded-md border border-border bg-muted p-1 sm:w-auto">
             <button
               onClick={() => setFilter('all')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-xl transition-all text-xs sm:text-sm font-bold ${
+              className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none ${
                 filter === 'all'
-                  ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-sm'
-                  : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-surface-700/50'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Tutti
             </button>
             <button
               onClick={() => setFilter('pellet')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-xl transition-all text-xs sm:text-sm font-bold ${
+              className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none ${
                 filter === 'pellet'
-                  ? 'bg-white dark:bg-surface-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                  : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-surface-700/50'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              🔥 Pellet
+              Pellet
             </button>
             <button
               onClick={() => setFilter('legno')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-xl transition-all text-xs sm:text-sm font-bold ${
+              className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none ${
                 filter === 'legno'
-                  ? 'bg-white dark:bg-surface-700 text-amber-600 dark:text-amber-400 shadow-sm'
-                  : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-surface-700/50'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              🪵 Legno
+              Legno
             </button>
           </div>
         </div>
 
         <div className="space-y-4">
           {filteredRapportini.length === 0 ? (
-            <div className="text-center py-16 bg-surface-50/50 dark:bg-surface-800/30 rounded-3xl border border-dashed border-surface-200 dark:border-surface-700">
-              <p className="text-surface-500 dark:text-surface-400 font-medium">Nessun rapportino trovato con i filtri selezionati</p>
+            <div className="rounded-md border border-dashed border-border py-12 text-center">
+              <p className="text-sm text-muted-foreground">Nessun rapportino trovato con i filtri selezionati</p>
             </div>
           ) : (
             filteredRapportini.map((rapportino) => (
               <div
                 key={rapportino.id}
-                className="group relative overflow-hidden rounded-3xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary-300 dark:hover:border-primary-700"
+                className="relative overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/40"
               >
-                <div className={`absolute top-0 left-0 w-1.5 h-full ${rapportino.intervento.tipoStufa === 'pellet' ? 'bg-gradient-to-b from-orange-400 to-orange-600' : 'bg-gradient-to-b from-amber-500 to-amber-700'}`} />
-                <div className="p-5 sm:p-6 pl-6 sm:pl-8">
+                <div className={`absolute top-0 left-0 h-full w-1 ${rapportino.intervento.tipoStufa === 'pellet' ? 'bg-orange-500' : 'bg-amber-600'}`} />
+                <div className="relative p-4 pl-5 sm:p-5 sm:pl-6">
                   <div className="flex flex-col gap-5 sm:gap-6">
                     <div className="flex-1 min-w-0 space-y-4">
                       <div className="flex flex-wrap items-center gap-3">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm ${
+                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
                             rapportino.intervento.tipoStufa === 'pellet'
-                              ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200/50 dark:border-orange-800/50'
-                              : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/50'
+                              ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                           }`}
                         >
-                          {rapportino.intervento.tipoStufa === 'pellet' ? '🔥' : '🪵'}
                           {rapportino.intervento.tipoStufa === 'pellet' ? 'Pellet' : 'Legno'}
                         </span>
-                        <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-surface-500 dark:text-surface-400 bg-surface-50 dark:bg-surface-900/50 px-3 py-1.5 rounded-xl border border-surface-100 dark:border-surface-800">
+                        <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground">
                           <svg className="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
@@ -188,7 +187,7 @@ export default function RapportiniList({
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-xl sm:text-2xl font-bold text-surface-900 dark:text-white mb-1 break-words tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                        <h3 className="mb-0.5 break-words text-base font-semibold text-foreground sm:text-lg">
                           {rapportino.cliente.nome} {rapportino.cliente.cognome}
                         </h3>
                         {rapportino.cliente.ragioneSociale && (
@@ -222,37 +221,39 @@ export default function RapportiniList({
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 sm:gap-3 shrink-0 border-t border-surface-100 dark:border-surface-700 pt-5 sm:pt-0 sm:border-t-0">
-                      <button
+                      <Button
                         onClick={() => setSelectedRapportino(rapportino)}
-                        className="flex-1 sm:flex-none min-w-[110px] px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-2xl hover:from-primary-500 hover:to-primary-400 transition-all text-sm font-bold shadow-glow flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+                        className="min-w-[110px] flex-1 sm:flex-none"
                       >
                         <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         Visualizza
-                      </button>
+                      </Button>
                       {onEdit && (
-                        <button
+                        <Button
+                          variant="outline"
                           onClick={() => { onEdit(rapportino); setSelectedRapportino(null); }}
-                          className="flex-1 sm:flex-none min-w-[110px] px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all text-sm font-bold flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+                          className="min-w-[110px] flex-1 sm:flex-none"
                         >
                           <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                           Modifica
-                        </button>
+                        </Button>
                       )}
-                      <button
+                      <Button
+                        variant="outline"
                         onClick={() => setDeleteTargetId(rapportino.id)}
-                        className="flex-1 sm:flex-none min-w-[110px] px-4 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-all text-sm font-bold flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+                        className="min-w-[110px] flex-1 text-destructive hover:text-destructive sm:flex-none"
                         aria-label={`Elimina rapportino di ${rapportino.cliente.nome} ${rapportino.cliente.cognome}`}
                       >
                         <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                         Elimina
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
