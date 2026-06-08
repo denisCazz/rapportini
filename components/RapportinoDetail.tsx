@@ -4,6 +4,7 @@ import { Rapportino, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
 import { useEffect } from 'react';
 import { downloadPDF } from '@/lib/pdfGenerator';
+import CondizioniGaranziaSection from '@/components/rapportino/CondizioniGaranziaSection';
 import {
   CONTROLLO_GARANZIA_FIELDS,
   formatSiNoNc,
@@ -148,6 +149,14 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
                 </div>
               ))}
             </div>
+          </section>
+
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <CondizioniGaranziaSection
+              checked={Boolean(intervento.presaVisioneCondizioniGaranzia)}
+              onChange={() => {}}
+              readOnly
+            />
           </section>
 
           <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">

@@ -47,7 +47,7 @@ export const CONTROLLO_GARANZIA_FIELDS = [
   },
   {
     key: 'impiantoElettrico',
-    label: 'Impianto elettrico',
+    label: 'Impianto elettrico a norma',
   },
   {
     key: 'condottoFumi',
@@ -64,6 +64,25 @@ export const CONTROLLO_GARANZIA_FIELDS = [
 ] as const;
 
 export type ControlloGaranziaKey = (typeof CONTROLLO_GARANZIA_FIELDS)[number]['key'];
+
+export const CONDIZIONI_GARANZIA_INTRO =
+  'La garanzia del produttore può decadere nei casi previsti dalle condizioni di vendita e assistenza, tra cui:';
+
+export const CONDIZIONI_GARANZIA_ITEMS = [
+  'Installazione non conforme alle normative vigenti e alle istruzioni del costruttore',
+  'Scarico fumi non conforme alla normativa UNI 10683 o successive modifiche',
+  'Utilizzo improprio dell\'apparecchio',
+  'Utilizzo di combustibili non idonei',
+  'Mancata esecuzione della manutenzione periodica prevista',
+  'Modifica non autorizzata dei parametri di funzionamento',
+  'Interventi eseguiti da personale non autorizzato',
+  'Tubazioni o canali da fumo ostruiti o non idonei',
+] as const;
+
+export const CONDIZIONI_GARANZIA_DICHIARAZIONE =
+  'Il cliente dichiara di aver preso visione delle suddette condizioni.';
+
+export const CONDIZIONI_GARANZIA_CHECKBOX_LABEL = 'Presa visione delle condizioni di garanzia';
 
 export function formatSiNoNc(value?: SiNoNc | null): string {
   if (!value) return '—';

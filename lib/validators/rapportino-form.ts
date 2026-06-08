@@ -67,6 +67,9 @@ export const interventoSchema = z.object({
   installazioneEseguitaDa: optStr,
   descrizione: optStr,
   controlloGaranzia: controlloGaranziaSchema,
+  presaVisioneCondizioniGaranzia: z
+    .boolean()
+    .refine((v) => v === true, 'Conferma la presa visione delle condizioni di garanzia'),
   tipologiaInstallazione: z.enum(TIPOLOGIA_INSTALLAZIONE_VALUES).optional(),
   noteInstallazione: optStr,
   prossimoIntervento: optStr,
@@ -184,6 +187,7 @@ export function getDefaultRapportinoFormValues(initial?: Rapportino): Rapportino
             ...defaultControlloGaranzia,
             ...initial.intervento.controlloGaranzia,
           },
+          presaVisioneCondizioniGaranzia: initial.intervento.presaVisioneCondizioniGaranzia ?? false,
           tipologiaInstallazione: initial.intervento.tipologiaInstallazione,
           noteInstallazione: initial.intervento.noteInstallazione ?? '',
           prossimoIntervento: initial.intervento.prossimoIntervento ?? '',
@@ -210,6 +214,7 @@ export function getDefaultRapportinoFormValues(initial?: Rapportino): Rapportino
           installazioneEseguitaDa: '',
           descrizione: '',
           controlloGaranzia: defaultControlloGaranzia,
+          presaVisioneCondizioniGaranzia: false,
           noteInstallazione: '',
           prossimoIntervento: '',
           materialiUtilizzati: '',
