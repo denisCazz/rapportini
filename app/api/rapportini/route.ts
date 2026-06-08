@@ -4,6 +4,7 @@ import { Rapportino } from '@/types';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
+import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import { mapClienteToDbData, mapDbRowToRapportino, mapInterventoToDbData } from '@/lib/rapportino-db';
 import { parseDateOnly } from '@/lib/time-db';
 import { Prisma } from '@prisma/client';
@@ -77,6 +78,8 @@ function buildRapportiniWhere(
 // GET - Ottieni tutti i rapportini (filtrati per utente se operatore)
 export async function GET(request: NextRequest) {
   try {
+    await syncDatabaseSchema();
+
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
