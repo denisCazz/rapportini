@@ -145,8 +145,8 @@ export default function RegisterPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
-            alt="Logo"
-            className="h-32 w-auto object-contain mx-auto mb-6"
+            alt="EVA CALÒR"
+            className="mx-auto mb-6 h-20 w-auto max-w-full object-contain"
             onError={(e) => {
               // Se il logo non esiste, mostra il fallback
               const target = e.target as HTMLImageElement;
@@ -156,7 +156,7 @@ export default function RegisterPage() {
             }}
           />
           <div className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-md bg-primary" style={{ display: 'none' }}>
-            <span className="text-white font-bold text-5xl">B</span>
+            <span className="text-white font-bold text-5xl">E</span>
           </div>
           <div className="inline-flex items-center rounded-full border border-primary-200 dark:border-primary-800 bg-primary-50/80 dark:bg-primary-900/30 px-3 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300 mb-3">
             Software di Gestione Specializzato

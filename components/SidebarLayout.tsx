@@ -116,12 +116,12 @@ export default function SidebarLayout({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={settings.logo || '/logo.png'}
-              alt={settings.nomeAzienda || 'Bitora'}
-              className="h-9 w-auto object-contain"
+              alt={settings.nomeAzienda || 'EVA CALÒR'}
+              className="h-10 w-auto max-w-[160px] object-contain"
             />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">
-                {settings.nomeAzienda || 'Bitora'}
+                {settings.nomeAzienda || 'EVA CALÒR'}
               </p>
               <p className="text-xs text-muted-foreground">Gestione rapportini</p>
             </div>
@@ -307,7 +307,7 @@ export default function SidebarLayout({
                         className="text-muted-foreground"
                         render={<Link href="/" className="hover:text-foreground" />}
                       >
-                        Bitora
+                        EVA CALÒR
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />

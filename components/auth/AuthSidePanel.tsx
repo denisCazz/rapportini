@@ -7,7 +7,14 @@ export default function AuthSidePanel() {
     <div className="hidden lg:flex lg:w-[40%] flex-col justify-between bg-primary-700 p-10 text-white">
       <div className="space-y-8">
         <div>
-          <p className="text-sm font-medium text-primary-100">Bitora</p>
+          <div className="mb-6 inline-block rounded-lg bg-white px-4 py-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="EVA CALÒR"
+              className="h-12 w-auto max-w-full object-contain"
+            />
+          </div>
           <h2 className="mt-2 text-2xl font-semibold leading-snug">
             Gestione rapportini d&apos;intervento per stufe pellet e legna
           </h2>
@@ -27,7 +34,7 @@ export default function AuthSidePanel() {
           </li>
         </ul>
       </div>
-      <p className="text-xs text-primary-200">© Bitora.it</p>
+      <p className="text-xs text-primary-200">© EVA CALÒR</p>
     </div>
   );
 }

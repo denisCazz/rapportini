@@ -65,7 +65,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
               )}
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-surface-900 dark:text-white sm:text-2xl print:text-3xl">
-                  {settings.nomeAzienda || 'Bitora - Gestione Rapportini'}
+                  {settings.nomeAzienda || 'EVA CALÒR'}
                 </h1>
                 <p className="text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm print:text-base">
                   Rapportino e Attivazione Garanzie

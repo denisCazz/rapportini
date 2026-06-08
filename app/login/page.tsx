@@ -85,14 +85,14 @@ export default function LoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
-              alt="Logo Bitora"
-              className="mx-auto mb-4 h-16 w-auto object-contain"
+              alt="EVA CALÒR"
+              className="mx-auto mb-4 h-16 w-auto max-w-full object-contain"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';
               }}
             />
-            <h1 className="text-2xl font-semibold text-foreground">Accedi a Bitora</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Accedi a EVA CALÒR</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Inserisci le tue credenziali per continuare
             </p>
