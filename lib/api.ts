@@ -1,6 +1,6 @@
 import { Rapportino, AziendaSettings } from '@/types';
 import { auth } from './auth';
-import { fetchWithAuth, getAuthHeaders, parseResponseBody } from './api-helpers';
+import { fetchWithAuth, getApiErrorMessage, getAuthHeaders, parseResponseBody } from './api-helpers';
 
 const API_BASE = '/api';
 
@@ -53,12 +53,12 @@ export const api = {
     const response = await fetchWithAuth(`${API_BASE}/rapportini${queryString}`, {
       headers,
     });
+    const result = await parseResponseBody<{ data?: Rapportino[]; error?: string } | Rapportino[]>(response);
     if (!response.ok) {
-      throw new Error('Errore nel recupero dei rapportini');
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero dei rapportini'));
     }
-    const result = await response.json();
     // Supporta sia la vecchia risposta (array) che la nuova (paginata)
-    return Array.isArray(result) ? result : result.data;
+    return Array.isArray(result) ? result : (result?.data ?? []);
   },
 
   // Ottieni rapportini con paginazione
@@ -68,10 +68,11 @@ export const api = {
     const response = await fetchWithAuth(`${API_BASE}/rapportini${queryString}`, {
       headers,
     });
+    const result = await parseResponseBody<PaginatedResponse<Rapportino> & { error?: string }>(response);
     if (!response.ok) {
-      throw new Error('Errore nel recupero dei rapportini');
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero dei rapportini'));
     }
-    return response.json();
+    return result as PaginatedResponse<Rapportino>;
   },
 
   // Crea un nuovo rapportino

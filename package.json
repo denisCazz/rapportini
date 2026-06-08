@@ -9,6 +9,7 @@
     "db:generate": "npx tsx scripts/prisma-with-database-url.ts generate",
     "db:push": "npx tsx scripts/prisma-with-database-url.ts db push",
     "db:migrate": "npx tsx scripts/prisma-with-database-url.ts migrate deploy",
+    "db:sync": "npx tsx scripts/db-sync.ts",
     "db:studio": "npx tsx scripts/prisma-with-database-url.ts studio",
     "db:seed": "npx tsx scripts/prisma-with-database-url.ts db seed",
     "db:bootstrap": "npx tsx scripts/bootstrap-db.ts",
