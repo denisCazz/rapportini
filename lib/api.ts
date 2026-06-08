@@ -1,4 +1,4 @@
-import { Rapportino, AziendaSettings } from '@/types';
+import { Rapportino, RapportinoImmagine, AziendaSettings } from '@/types';
 import { auth } from './auth';
 import { fetchWithAuth, getAuthHeaders, parseResponseBody } from './api-helpers';
 
@@ -119,6 +119,68 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Errore nella modifica del rapportino');
+    }
+  },
+
+  // Immagini rapportino (opzionali)
+  getRapportinoImmagini: async (rapportinoId: string): Promise<RapportinoImmagine[]> => {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini/${rapportinoId}/immagini`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nel recupero immagini');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  uploadRapportinoImmagine: async (rapportinoId: string, file: File, caption?: string): Promise<RapportinoImmagine> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (caption) formData.append('caption', caption);
+
+    const response = await fetchWithAuth(`${API_BASE}/rapportini/${rapportinoId}/immagini`, {
+      method: 'POST',
+      headers: getAuthHeaders({ skipContentType: true }),
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nel caricamento immagine');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  uploadRapportinoImmagini: async (rapportinoId: string, files: File[]): Promise<RapportinoImmagine[]> => {
+    const results: RapportinoImmagine[] = [];
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetchWithAuth(`${API_BASE}/rapportini/${rapportinoId}/immagini`, {
+        method: 'POST',
+        headers: getAuthHeaders({ skipContentType: true }),
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Errore nel caricamento immagine');
+      }
+      const result = await response.json();
+      results.push(result.data);
+    }
+    return results;
+  },
+
+  deleteRapportinoImmagine: async (rapportinoId: string, imageId: string): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini/${rapportinoId}/immagini/${imageId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Errore nell'eliminazione immagine");
     }
   },
 

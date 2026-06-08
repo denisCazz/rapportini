@@ -31,11 +31,12 @@ export function getApiErrorMessage(data: unknown, fallback: string): string {
 /**
  * Ottiene gli header di autenticazione per le richieste API
  */
-export function getAuthHeaders(): Record<string, string> {
+export function getAuthHeaders(options?: { skipContentType?: boolean }): Record<string, string> {
   const user = auth.getUser();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = {};
+  if (!options?.skipContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (user) {
     headers['X-User-Id'] = user.id;
