@@ -25,7 +25,8 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     precision: 2,
   });
 
-  const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78));
+  const mmToPx = (mm: number, dpi = 96) =>
+    Math.max(1, Math.round(mm * (dpi / 25.4)));
 
   const optimizeImageDataUrl = async (
     source: string,
@@ -100,6 +101,8 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
         }
       }
 
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
       if (outputFormat === 'png') {
         return canvas.toDataURL('image/png');
@@ -566,12 +569,13 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     const sig = signatures[index];
     if (!sig.value) continue;
     try {
+      const signatureDpi = 300;
       const optimized = await optimizeImageDataUrl(
         sig.value,
-        mmToPx(signatureWidth - 4),
-        mmToPx(signatureBoxHeight - 11),
+        mmToPx(signatureWidth - 4, signatureDpi),
+        mmToPx(signatureBoxHeight - 11, signatureDpi),
         0.9,
-        { fitMode: 'contain', outputFormat: 'png', backgroundColor: '#ffffff', paddingPx: 6 }
+        { fitMode: 'contain', outputFormat: 'png', backgroundColor: '#ffffff', paddingPx: 2 }
       );
       if (optimized) {
         doc.addImage(
