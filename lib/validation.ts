@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  SI_NO_NC_VALUES,
+  TIPOLOGIA_INSTALLAZIONE_VALUES,
+  TIPOLOGIA_INTERVENTO_VALUES,
+} from '@/lib/rapportino-constants';
 
 // Schema per login
 export const loginSchema = z.object({
@@ -26,34 +31,86 @@ export const registerSchema = z.object({
   }
 });
 
+const siNoNcSchema = z.enum(SI_NO_NC_VALUES).optional();
+
+export const controlloGaranziaSchema = z.object({
+  spiegataManutenzione: siNoNcSchema,
+  impiantoElettrico: siNoNcSchema,
+  condottoFumi: siNoNcSchema,
+  installazioneUni10683: siNoNcSchema,
+  controlloParametri: siNoNcSchema,
+});
+
 // Schema per cliente
 export const clienteSchema = z.object({
   nome: z.string().min(1, 'Nome obbligatorio').max(100, 'Nome troppo lungo'),
   cognome: z.string().min(1, 'Cognome obbligatorio').max(100, 'Cognome troppo lungo'),
   ragioneSociale: z.string().max(200, 'Ragione sociale troppo lunga').optional().or(z.literal('')),
-  indirizzo: z.string().min(1, 'Indirizzo obbligatorio').max(200, 'Indirizzo troppo lungo'),
-  citta: z.string().min(1, 'Città obbligatoria').max(100, 'Città troppo lunga'),
-  cap: z.string().min(5, 'CAP deve avere 5 caratteri').max(5, 'CAP deve avere 5 caratteri'),
+  via: z.string().max(200, 'Via troppo lunga').optional().or(z.literal('')),
+  numeroCivico: z.string().max(20, 'Numero civico troppo lungo').optional().or(z.literal('')),
+  indirizzo: z.string().max(200, 'Indirizzo troppo lungo').optional().or(z.literal('')),
+  citta: z.string().min(1, 'Località obbligatoria').max(100, 'Località troppo lunga'),
+  cap: z.string().max(5, 'CAP non valido').optional().or(z.literal('')),
+  provincia: z.string().max(10, 'Provincia troppo lunga').optional().or(z.literal('')),
   telefono: z.string().min(1, 'Telefono obbligatorio').max(20, 'Telefono troppo lungo'),
   email: z.string().email('Email non valida').optional().or(z.literal('')),
   partitaIva: z.string().max(20, 'Partita IVA troppo lunga').optional().or(z.literal('')),
   codiceFiscale: z.string().max(20, 'Codice fiscale troppo lungo').optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  const hasVia = Boolean(data.via?.trim());
+  const hasIndirizzo = Boolean(data.indirizzo?.trim());
+  if (!hasVia && !hasIndirizzo) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['via'],
+      message: 'Via o indirizzo obbligatorio',
+    });
+  }
 });
 
 // Schema per intervento
 export const interventoSchema = z.object({
-  data: z.string().min(1, 'Data obbligatoria'),
+  dataRichiesta: z.string().optional().or(z.literal('')),
+  data: z.string().min(1, 'Data intervento obbligatoria'),
   ora: z.string().min(1, 'Ora obbligatoria'),
+  tipologiaIntervento: z.enum(TIPOLOGIA_INTERVENTO_VALUES, {
+    message: 'Tipologia intervento non valida',
+  }).optional(),
   tipoStufa: z.enum(['pellet', 'legno'], { message: 'Tipo stufa deve essere pellet o legno' }),
   marca: z.string().min(1, 'Marca obbligatoria').max(100, 'Marca troppo lunga'),
   modello: z.string().min(1, 'Modello obbligatorio').max(100, 'Modello troppo lungo'),
-  numeroSerie: z.string().max(100, 'Numero serie troppo lungo').optional().or(z.literal('')),
-  tipoIntervento: z.string().min(1, 'Tipo intervento obbligatorio').max(100, 'Tipo intervento troppo lungo'),
-  descrizione: z.string().min(1, 'Descrizione obbligatoria').max(2000, 'Descrizione troppo lunga'),
+  numeroSerie: z.string().max(100, 'Matricola troppo lunga').optional().or(z.literal('')),
+  dataAcquisto: z.string().optional().or(z.literal('')),
+  rivenditore: z.string().max(200, 'Rivenditore troppo lungo').optional().or(z.literal('')),
+  tipoIntervento: z.string().max(100, 'Tipo intervento troppo lungo').optional().or(z.literal('')),
+  motivoChiamata: z.string().max(2000, 'Motivo chiamata troppo lungo').optional().or(z.literal('')),
+  verifiche: z.string().max(2000, 'Verifiche troppo lunghe').optional().or(z.literal('')),
+  installazioneEseguitaDa: z.string().max(200, 'Campo troppo lungo').optional().or(z.literal('')),
+  descrizione: z.string().max(2000, 'Descrizione troppo lunga').optional().or(z.literal('')),
+  controlloGaranzia: controlloGaranziaSchema.optional(),
+  tipologiaInstallazione: z.enum(TIPOLOGIA_INSTALLAZIONE_VALUES).optional(),
+  noteInstallazione: z.string().max(2000, 'Note installazione troppo lunghe').optional().or(z.literal('')),
+  prossimoIntervento: z.string().optional().or(z.literal('')),
   materialiUtilizzati: z.string().max(1000, 'Materiali troppo lunghi').optional().or(z.literal('')),
   note: z.string().max(1000, 'Note troppo lunghe').optional().or(z.literal('')),
+  firmaClientePrivacy: z.string().optional().or(z.literal('')),
   firmaOperatore: z.string().optional().or(z.literal('')),
   firmaCliente: z.string().optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (!data.tipologiaIntervento && !data.tipoIntervento?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['tipologiaIntervento'],
+      message: 'Tipologia intervento obbligatoria',
+    });
+  }
+  if (!data.motivoChiamata?.trim() && !data.descrizione?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['motivoChiamata'],
+      message: 'Motivo della chiamata obbligatorio',
+    });
+  }
 });
 
 // Schema per rapportino completo
