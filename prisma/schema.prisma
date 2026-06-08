@@ -82,6 +82,7 @@ model Rapportini {
   condotto_fumi       String?   @db.VarChar(5)
   installazione_uni10683 String? @db.VarChar(5)
   controllo_parametri String?   @db.VarChar(5)
+  presa_visione_condizioni_garanzia Boolean? @default(false)
   tipologia_installazione String? @db.VarChar(50)
   note_installazione  String?
   prossimo_intervento DateTime? @db.Date

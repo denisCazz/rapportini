@@ -1,6 +1,10 @@
 import { Rapportino, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
 import {
+  CONDIZIONI_GARANZIA_CHECKBOX_LABEL,
+  CONDIZIONI_GARANZIA_DICHIARAZIONE,
+  CONDIZIONI_GARANZIA_INTRO,
+  CONDIZIONI_GARANZIA_ITEMS,
   CONTROLLO_GARANZIA_FIELDS,
   formatSiNoNc,
   formatTipologiaInstallazione,
@@ -486,6 +490,32 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     yPos += labelLines.length * 5 + 2;
   });
   yPos += 4;
+  drawLine(yPos);
+  yPos += 10;
+
+  addSectionTitle('CONDIZIONI DI GARANZIA');
+  ensureSpace(20);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+  const introLines = doc.splitTextToSize(CONDIZIONI_GARANZIA_INTRO, contentWidth - 4);
+  ensureSpace(introLines.length * 4 + 6);
+  doc.text(introLines, margin + 2, yPos);
+  yPos += introLines.length * 4 + 4;
+  CONDIZIONI_GARANZIA_ITEMS.forEach((item) => {
+    const itemLines = doc.splitTextToSize(`• ${item}`, contentWidth - 8);
+    ensureSpace(itemLines.length * 4 + 2);
+    doc.text(itemLines, margin + 4, yPos);
+    yPos += itemLines.length * 4 + 1;
+  });
+  const dichLines = doc.splitTextToSize(CONDIZIONI_GARANZIA_DICHIARAZIONE, contentWidth - 4);
+  ensureSpace(dichLines.length * 4 + 8);
+  doc.setFont('helvetica', 'bold');
+  doc.text(dichLines, margin + 2, yPos);
+  yPos += dichLines.length * 4 + 4;
+  const checkMark = rapportino.intervento.presaVisioneCondizioniGaranzia ? '☑' : '☐';
+  doc.text(`${checkMark} ${CONDIZIONI_GARANZIA_CHECKBOX_LABEL}`, margin + 2, yPos);
+  yPos += 8;
   drawLine(yPos);
   yPos += 10;
 

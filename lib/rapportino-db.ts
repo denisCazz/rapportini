@@ -29,6 +29,7 @@ type RapportinoDbRow = {
   condotto_fumi?: string | null;
   installazione_uni10683?: string | null;
   controllo_parametri?: string | null;
+  presa_visione_condizioni_garanzia?: boolean | null;
   tipologia_installazione?: string | null;
   note_installazione?: string | null;
   prossimo_intervento?: Date | null;
@@ -141,6 +142,7 @@ export function mapDbRowToRapportino(r: RapportinoDbRow): Rapportino {
         installazioneUni10683: parseSiNoNc(r.installazione_uni10683),
         controlloParametri: parseSiNoNc(r.controllo_parametri),
       },
+      presaVisioneCondizioniGaranzia: r.presa_visione_condizioni_garanzia ?? false,
       tipologiaInstallazione: (r.tipologia_installazione as TipologiaInstallazione) || undefined,
       noteInstallazione: r.note_installazione || '',
       prossimoIntervento: formatData(r.prossimo_intervento),
@@ -181,6 +183,7 @@ export function mapInterventoToDbData(intervento: Intervento) {
     condotto_fumi: intervento.controlloGaranzia?.condottoFumi || null,
     installazione_uni10683: intervento.controlloGaranzia?.installazioneUni10683 || null,
     controllo_parametri: intervento.controlloGaranzia?.controlloParametri || null,
+    presa_visione_condizioni_garanzia: intervento.presaVisioneCondizioniGaranzia ?? false,
     tipologia_installazione: intervento.tipologiaInstallazione || null,
     note_installazione: intervento.noteInstallazione?.trim() || null,
     prossimo_intervento: intervento.prossimoIntervento

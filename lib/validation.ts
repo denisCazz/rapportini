@@ -88,6 +88,7 @@ export const interventoSchema = z.object({
   installazioneEseguitaDa: z.string().max(200, 'Campo troppo lungo').optional().or(z.literal('')),
   descrizione: z.string().max(2000, 'Descrizione troppo lunga').optional().or(z.literal('')),
   controlloGaranzia: controlloGaranziaSchema.optional(),
+  presaVisioneCondizioniGaranzia: z.boolean().optional(),
   tipologiaInstallazione: z.enum(TIPOLOGIA_INSTALLAZIONE_VALUES).optional(),
   noteInstallazione: z.string().max(2000, 'Note installazione troppo lunghe').optional().or(z.literal('')),
   prossimoIntervento: z.string().optional().or(z.literal('')),

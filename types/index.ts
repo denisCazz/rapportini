@@ -55,6 +55,7 @@ export interface Intervento {
   installazioneEseguitaDa?: string;
   descrizione?: string;
   controlloGaranzia?: ControlloGaranzia;
+  presaVisioneCondizioniGaranzia?: boolean;
   tipologiaInstallazione?: TipologiaInstallazione;
   noteInstallazione?: string;
   prossimoIntervento?: string;

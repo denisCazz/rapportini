@@ -2,6 +2,7 @@
 
 import { toast } from 'sonner';
 import FormSectionHeader from '@/components/rapportino/FormSectionHeader';
+import CondizioniGaranziaSection from '@/components/rapportino/CondizioniGaranziaSection';
 import SiNoNcField from '@/components/rapportino/SiNoNcField';
 import {
   CONTROLLO_GARANZIA_FIELDS,
@@ -298,6 +299,13 @@ export default function RapportinoStepIntervento({
             />
           ))}
         </div>
+      </section>
+
+      <section>
+        <CondizioniGaranziaSection
+          checked={Boolean(intervento.presaVisioneCondizioniGaranzia)}
+          onChange={(checked) => setValue('intervento.presaVisioneCondizioniGaranzia', checked)}
+        />
       </section>
 
       <section>
