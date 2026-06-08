@@ -22,6 +22,7 @@ export default function SignaturePad({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isDrawingRef = useRef(false);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const draftRef = useRef<string>('');
   const historyRef = useRef<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -46,11 +47,13 @@ export default function SignaturePad({
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
-    ctx.lineWidth = window.innerWidth < 640 ? 2.5 : 2;
+    ctx.lineWidth = window.innerWidth < 640 ? 3 : 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     const isDark = document.documentElement.classList.contains('dark');
-    ctx.strokeStyle = isDark ? '#ffffff' : '#1e293b';
+    const strokeColor = isDark ? '#ffffff' : '#1e293b';
+    ctx.strokeStyle = strokeColor;
+    ctx.fillStyle = strokeColor;
     ctx.clearRect(0, 0, w, h);
 
     const src = img ?? draftRef.current ?? value;
@@ -116,8 +119,11 @@ export default function SignaturePad({
 
     canvas.setPointerCapture(e.pointerId);
     const { x, y } = getPoint(e);
+    lastPointRef.current = { x, y };
     ctx.beginPath();
     ctx.moveTo(x, y);
+    ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
     isDrawingRef.current = true;
     setIsDrawing(true);
   };
@@ -128,8 +134,18 @@ export default function SignaturePad({
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
     const { x, y } = getPoint(e);
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    const last = lastPointRef.current;
+    if (last) {
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    lastPointRef.current = { x, y };
   };
 
   const stopDrawing = (e?: React.PointerEvent<HTMLCanvasElement>) => {
@@ -138,6 +154,7 @@ export default function SignaturePad({
     if (e && canvasRef.current?.hasPointerCapture(e.pointerId)) {
       canvasRef.current.releasePointerCapture(e.pointerId);
     }
+    lastPointRef.current = null;
     const c = canvasRef.current;
     if (c && c.width > 0 && c.height > 0) {
       try { draftRef.current = c.toDataURL('image/png'); } catch { /* noop */ }
