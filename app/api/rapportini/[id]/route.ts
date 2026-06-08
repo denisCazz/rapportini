@@ -2,94 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { Rapportino } from '@/types';
-import { parseTimeForDb, parseDateOnly } from '@/lib/time-db';
+import {
+  mapClienteToDbData,
+  mapDbRowToRapportino,
+  mapInterventoToDbData,
+} from '@/lib/rapportino-db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-function formatOra(ora: Date): string {
-  if (typeof ora === 'string') return ora;
-  return ora.toISOString().slice(11, 19);
-}
-
-function formatData(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function toRapportino(r: {
-  id: string;
-  data_intervento: Date;
-  ora_intervento: Date;
-  tipo_stufa: string;
-  marca: string;
-  modello: string;
-  numero_serie: string | null;
-  tipo_intervento: string;
-  descrizione: string;
-  materiali_utilizzati: string | null;
-  note: string | null;
-  firma_operatore: string | null;
-  firma_cliente: string | null;
-  data_creazione: Date | null;
-  created_at: Date | null;
-  utenti: {
-    nome: string;
-    cognome: string;
-    telefono: string | null;
-    email: string | null;
-    qualifica: string | null;
-  } | null;
-  clienti: {
-    nome: string;
-    cognome: string;
-    ragione_sociale: string | null;
-    indirizzo: string;
-    citta: string;
-    cap: string;
-    telefono: string;
-    email: string | null;
-    partita_iva: string | null;
-    codice_fiscale: string | null;
-  };
-}): Rapportino {
-  return {
-    id: r.id,
-    operatore: {
-      nome: r.utenti?.nome || '',
-      cognome: r.utenti?.cognome || '',
-      telefono: r.utenti?.telefono || '',
-      email: r.utenti?.email || '',
-      qualifica: r.utenti?.qualifica || '',
-    },
-    cliente: {
-      nome: r.clienti.nome,
-      cognome: r.clienti.cognome,
-      ragioneSociale: r.clienti.ragione_sociale || '',
-      indirizzo: r.clienti.indirizzo,
-      citta: r.clienti.citta,
-      cap: r.clienti.cap,
-      telefono: r.clienti.telefono,
-      email: r.clienti.email || '',
-      partitaIva: r.clienti.partita_iva || '',
-      codiceFiscale: r.clienti.codice_fiscale || '',
-    },
-    intervento: {
-      data: formatData(r.data_intervento),
-      ora: formatOra(r.ora_intervento),
-      tipoStufa: r.tipo_stufa as 'pellet' | 'legno',
-      marca: r.marca,
-      modello: r.modello,
-      numeroSerie: r.numero_serie || '',
-      tipoIntervento: r.tipo_intervento,
-      descrizione: r.descrizione,
-      materialiUtilizzati: r.materiali_utilizzati || '',
-      note: r.note || '',
-      firmaOperatore: r.firma_operatore || '',
-      firmaCliente: r.firma_cliente || '',
-    },
-    dataCreazione: (r.data_creazione || r.created_at || new Date()).toISOString(),
-  };
-}
 
 // GET - Ottieni un singolo rapportino
 export async function GET(
@@ -126,7 +46,7 @@ export async function GET(
       return NextResponse.json({ error: 'Rapportino non trovato' }, { status: 404 });
     }
 
-    const response = NextResponse.json(toRapportino(rapportino));
+    const response = NextResponse.json(mapDbRowToRapportino(rapportino));
     response.headers.set('Cache-Control', 'no-store, must-revalidate');
     return response;
   } catch (error: unknown) {
@@ -192,40 +112,19 @@ export async function PATCH(
       clienteId = clienteEsistente.id;
     } else {
       const newCliente = await prisma.clienti.create({
-        data: {
-          org_id: orgId,
-          nome: nomeNormalizzato,
-          cognome: cognomeNormalizzato,
-          ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
-          indirizzo: rapportino.cliente.indirizzo.trim(),
-          citta: rapportino.cliente.citta.trim(),
-          cap: rapportino.cliente.cap.trim(),
-          telefono: telefonoNormalizzato,
-          email: rapportino.cliente.email?.trim() || null,
-          partita_iva: rapportino.cliente.partitaIva?.trim() || null,
-          codice_fiscale: rapportino.cliente.codiceFiscale?.trim() || null,
-        },
+        data: mapClienteToDbData(rapportino.cliente, orgId),
         select: { id: true },
       });
       clienteId = newCliente.id;
     }
 
+    const interventoData = mapInterventoToDbData(rapportino.intervento);
+
     await prisma.rapportini.updateMany({
       where: { id, org_id: orgId },
       data: {
         cliente_id: clienteId,
-        data_intervento: parseDateOnly(rapportino.intervento.data),
-        ora_intervento: parseTimeForDb(rapportino.intervento.ora),
-        tipo_stufa: rapportino.intervento.tipoStufa,
-        marca: rapportino.intervento.marca,
-        modello: rapportino.intervento.modello,
-        numero_serie: rapportino.intervento.numeroSerie?.trim() || null,
-        tipo_intervento: rapportino.intervento.tipoIntervento,
-        descrizione: rapportino.intervento.descrizione,
-        materiali_utilizzati: rapportino.intervento.materialiUtilizzati?.trim() || null,
-        note: rapportino.intervento.note?.trim() || null,
-        firma_operatore: rapportino.intervento.firmaOperatore?.trim() || null,
-        firma_cliente: rapportino.intervento.firmaCliente?.trim() || null,
+        ...interventoData,
       },
     });
 

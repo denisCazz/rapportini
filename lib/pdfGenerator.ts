@@ -1,5 +1,11 @@
 import { Rapportino, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
+import {
+  CONTROLLO_GARANZIA_FIELDS,
+  formatSiNoNc,
+  formatTipologiaInstallazione,
+  formatTipologiaIntervento,
+} from '@/lib/rapportino-constants';
 
 
 export const generatePDF = async (rapportino: Rapportino, settings: AziendaSettings) => {
@@ -229,7 +235,7 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Rapporto di Intervento Tecnico', textX, 27);
+  doc.text('Rapportini e Attivazioni Garanzie', textX, 27);
 
   doc.setFontSize(8);
   doc.setTextColor(230, 245, 255);
@@ -316,7 +322,9 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   doc.text('Indirizzo:', margin, yPos);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  const indirizzo = `${rapportino.cliente.indirizzo}, ${rapportino.cliente.citta} (${rapportino.cliente.cap})`;
+  const viaCliente = [rapportino.cliente.via, rapportino.cliente.numeroCivico].filter(Boolean).join(' ') || rapportino.cliente.indirizzo;
+  const localitaCliente = [rapportino.cliente.citta, rapportino.cliente.provincia, rapportino.cliente.cap].filter(Boolean).join(' ');
+  const indirizzo = `${viaCliente}, ${localitaCliente}`;
   doc.text(indirizzo, margin + 45, yPos);
   yPos += 6;
 
@@ -362,23 +370,54 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   drawLine(yPos);
   yPos += 10;
 
-  // Dati Intervento - Sezione con sfondo
-  drawBox(margin, yPos - 5, contentWidth, 8, bgLight);
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text('DATI INTERVENTO', margin + 2, yPos);
+  const addFieldRow = (label: string, value: string) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
+    doc.text(`${label}:`, margin, yPos);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+    doc.text(value, margin + 45, yPos);
+    yPos += 6;
+  };
+
+  const addSectionTitle = (title: string) => {
+    ensureSpace(18);
+    drawBox(margin, yPos - 5, contentWidth, 8, bgLight);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(title, margin + 2, yPos);
+    yPos += 10;
+    doc.setFontSize(9);
+  };
+
+  const addTextBlock = (title: string, text: string) => {
+    if (!text?.trim()) return;
+    ensureSpace(28);
+    drawBox(margin, yPos - 3, contentWidth, 6, bgLight);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(`${title}:`, margin + 2, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+    const lines = doc.splitTextToSize(text, contentWidth - 4);
+    ensureSpace((lines.length * 5) + 12);
+    doc.text(lines, margin + 2, yPos);
+    yPos += lines.length * 5 + 8;
+  };
+
+  addSectionTitle('TIPOLOGIA INTERVENTO');
+  addFieldRow('Tipologia', formatTipologiaIntervento(rapportino.intervento.tipologiaIntervento || rapportino.intervento.tipoIntervento));
+  if (rapportino.intervento.dataRichiesta) {
+    addFieldRow('Data richiesta', format(new Date(rapportino.intervento.dataRichiesta), 'dd/MM/yyyy'));
+  }
+  addFieldRow('Data intervento', `${format(new Date(rapportino.intervento.data), 'dd/MM/yyyy')} - ${rapportino.intervento.ora}`);
+  yPos += 4;
+  drawLine(yPos);
   yPos += 10;
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
-  doc.text('Data e Ora:', margin, yPos);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  const dataOra = `${format(new Date(rapportino.intervento.data), 'dd/MM/yyyy')} - ${rapportino.intervento.ora}`;
-  doc.text(dataOra, margin + 45, yPos);
-  yPos += 6;
+  addSectionTitle('DATI APPARECCHIO');
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
@@ -414,58 +453,49 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     yPos += 6;
   }
 
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
-  doc.text('Tipo Intervento:', margin, yPos);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  doc.text(rapportino.intervento.tipoIntervento, margin + 45, yPos);
-  yPos += 8;
-
-  // Descrizione con box
-  ensureSpace(28);
-  drawBox(margin, yPos - 3, contentWidth, 6, bgLight);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text('Descrizione:', margin + 2, yPos);
-  yPos += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  const descLines = doc.splitTextToSize(rapportino.intervento.descrizione, contentWidth - 4);
-  ensureSpace((descLines.length * 5) + 12);
-  doc.text(descLines, margin + 2, yPos);
-  yPos += descLines.length * 5 + 8;
-
-  // Materiali Utilizzati
-  if (rapportino.intervento.materialiUtilizzati) {
-    ensureSpace(24);
-    drawBox(margin, yPos - 3, contentWidth, 6, bgLight);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text('Materiali Utilizzati:', margin + 2, yPos);
-    yPos += 8;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-    const matLines = doc.splitTextToSize(rapportino.intervento.materialiUtilizzati, contentWidth - 4);
-    ensureSpace((matLines.length * 5) + 12);
-    doc.text(matLines, margin + 2, yPos);
-    yPos += matLines.length * 5 + 8;
+  if (rapportino.intervento.dataAcquisto) {
+    addFieldRow('Data acquisto', format(new Date(rapportino.intervento.dataAcquisto), 'dd/MM/yyyy'));
   }
+  if (rapportino.intervento.rivenditore) {
+    addFieldRow('Rivenditore', rapportino.intervento.rivenditore);
+  }
+  yPos += 4;
+  drawLine(yPos);
+  yPos += 10;
 
-  // Note
-  if (rapportino.intervento.note) {
-    ensureSpace(24);
-    drawBox(margin, yPos - 3, contentWidth, 6, bgLight);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text('Note Aggiuntive:', margin + 2, yPos);
-    yPos += 8;
+  addSectionTitle('RELAZIONE INTERVENTO');
+  addTextBlock('Motivo della chiamata', rapportino.intervento.motivoChiamata || rapportino.intervento.descrizione || '');
+  addTextBlock('Verifiche', rapportino.intervento.verifiche || '');
+  if (rapportino.intervento.installazioneEseguitaDa) {
+    addFieldRow('Installazione eseguita da', rapportino.intervento.installazioneEseguitaDa);
+  }
+  addTextBlock('Materiali utilizzati', rapportino.intervento.materialiUtilizzati || '');
+  addTextBlock('Note', rapportino.intervento.note || '');
+
+  addSectionTitle('CONTROLLO AVVIO GARANZIA');
+  CONTROLLO_GARANZIA_FIELDS.forEach((field) => {
+    const value = formatSiNoNc(rapportino.intervento.controlloGaranzia?.[field.key]);
+    const labelLines = doc.splitTextToSize(field.label, contentWidth - 50);
+    ensureSpace(labelLines.length * 5 + 8);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
+    doc.text(labelLines, margin, yPos);
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-    const noteLines = doc.splitTextToSize(rapportino.intervento.note, contentWidth - 4);
-    ensureSpace((noteLines.length * 5) + 12);
-    doc.text(noteLines, margin + 2, yPos);
-    yPos += noteLines.length * 5 + 10;
+    doc.text(value, pageWidth - margin, yPos, { align: 'right' });
+    yPos += labelLines.length * 5 + 2;
+  });
+  yPos += 4;
+  drawLine(yPos);
+  yPos += 10;
+
+  addSectionTitle('TIPOLOGIA INSTALLAZIONE');
+  if (rapportino.intervento.tipologiaInstallazione) {
+    addFieldRow('Tipologia', formatTipologiaInstallazione(rapportino.intervento.tipologiaInstallazione));
+  }
+  addTextBlock('Note installazione', rapportino.intervento.noteInstallazione || '');
+  if (rapportino.intervento.prossimoIntervento) {
+    addFieldRow('Prossimo intervento', format(new Date(rapportino.intervento.prossimoIntervento), 'dd/MM/yyyy'));
   }
 
   // Garantisce spazio per blocco firme + nomi + footer
@@ -482,71 +512,60 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   
   const signatureTop = yPos;
   const signatureBoxHeight = 30;
-  const signatureGap = 8;
-  const signatureWidth = (contentWidth - signatureGap) / 2;
+  const signatureGap = 6;
+  const signatureWidth = (contentWidth - signatureGap * 2) / 3;
+  const signatures = [
+    { label: 'Firma privacy cliente', value: rapportino.intervento.firmaClientePrivacy },
+    { label: 'Firma cliente', value: rapportino.intervento.firmaCliente },
+    { label: 'Firma C.A.T.', value: rapportino.intervento.firmaOperatore },
+  ];
 
   doc.setFillColor(249, 250, 251);
-  doc.rect(margin, signatureTop, signatureWidth, signatureBoxHeight, 'F');
-  doc.rect(margin + signatureWidth + signatureGap, signatureTop, signatureWidth, signatureBoxHeight, 'F');
+  signatures.forEach((_, index) => {
+    doc.rect(margin + index * (signatureWidth + signatureGap), signatureTop, signatureWidth, signatureBoxHeight, 'F');
+  });
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
-  doc.text('Firma Operatore', margin + 2, signatureTop + 5);
-  doc.text('Firma Cliente', margin + signatureWidth + signatureGap + 2, signatureTop + 5);
+  signatures.forEach((sig, index) => {
+    doc.text(sig.label, margin + index * (signatureWidth + signatureGap) + 2, signatureTop + 5);
+  });
 
-  if (rapportino.intervento.firmaOperatore) {
+  for (let index = 0; index < signatures.length; index++) {
+    const sig = signatures[index];
+    if (!sig.value) continue;
     try {
-      const optimizedOperatore = await optimizeImageDataUrl(
-        rapportino.intervento.firmaOperatore,
+      const optimized = await optimizeImageDataUrl(
+        sig.value,
         mmToPx(signatureWidth - 4),
         mmToPx(signatureBoxHeight - 11),
         0.9,
-        {
-          fitMode: 'contain',
-          outputFormat: 'png',
-          backgroundColor: '#ffffff',
-          paddingPx: 6,
-        }
+        { fitMode: 'contain', outputFormat: 'png', backgroundColor: '#ffffff', paddingPx: 6 }
       );
-      if (optimizedOperatore) {
-        doc.addImage(optimizedOperatore, 'PNG', margin + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
+      if (optimized) {
+        doc.addImage(
+          optimized,
+          'PNG',
+          margin + index * (signatureWidth + signatureGap) + 2,
+          signatureTop + 7,
+          signatureWidth - 4,
+          signatureBoxHeight - 11
+        );
       }
     } catch (error) {
-      console.error('Errore rendering firma operatore nel PDF:', error);
-    }
-  }
-
-  if (rapportino.intervento.firmaCliente) {
-    try {
-      const optimizedCliente = await optimizeImageDataUrl(
-        rapportino.intervento.firmaCliente,
-        mmToPx(signatureWidth - 4),
-        mmToPx(signatureBoxHeight - 11),
-        0.9,
-        {
-          fitMode: 'contain',
-          outputFormat: 'png',
-          backgroundColor: '#ffffff',
-          paddingPx: 6,
-        }
-      );
-      if (optimizedCliente) {
-        doc.addImage(optimizedCliente, 'PNG', margin + signatureWidth + signatureGap + 2, signatureTop + 7, signatureWidth - 4, signatureBoxHeight - 11);
-      }
-    } catch (error) {
-      console.error('Errore rendering firma cliente nel PDF:', error);
+      console.error('Errore rendering firma nel PDF:', error);
     }
   }
 
   yPos = signatureTop + signatureBoxHeight + 5;
   drawLine(yPos, darkGray, 0.8);
   yPos += 5;
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
-  doc.text(`${rapportino.operatore.nome} ${rapportino.operatore.cognome}`, margin + 2, yPos);
   doc.text(`${rapportino.cliente.nome} ${rapportino.cliente.cognome}`, margin + signatureWidth + signatureGap + 2, yPos);
+  doc.text(`${rapportino.operatore.nome} ${rapportino.operatore.cognome}`, margin + 2 * (signatureWidth + signatureGap) + 2, yPos);
 
   drawFooter();
 

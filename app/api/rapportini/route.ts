@@ -4,7 +4,8 @@ import { Rapportino } from '@/types';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
-import { parseTimeForDb, parseDateOnly } from '@/lib/time-db';
+import { mapClienteToDbData, mapDbRowToRapportino, mapInterventoToDbData } from '@/lib/rapportino-db';
+import { parseDateOnly } from '@/lib/time-db';
 import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -122,46 +123,7 @@ export async function GET(request: NextRequest) {
       prisma.rapportini.count({ where }),
     ]);
 
-    const formattedRapportini: Rapportino[] = rapportini.map((r) => ({
-      id: r.id,
-      operatore: {
-        nome: r.utenti?.nome || '',
-        cognome: r.utenti?.cognome || '',
-        telefono: r.utenti?.telefono || '',
-        email: r.utenti?.email || '',
-        qualifica: r.utenti?.qualifica || '',
-      },
-      cliente: {
-        nome: r.clienti.nome,
-        cognome: r.clienti.cognome,
-        ragioneSociale: r.clienti.ragione_sociale || '',
-        indirizzo: r.clienti.indirizzo,
-        citta: r.clienti.citta,
-        cap: r.clienti.cap,
-        telefono: r.clienti.telefono,
-        email: r.clienti.email || '',
-        partitaIva: r.clienti.partita_iva || '',
-        codiceFiscale: r.clienti.codice_fiscale || '',
-      },
-      intervento: {
-        data: r.data_intervento.toISOString().slice(0, 10),
-        ora:
-          typeof r.ora_intervento === 'string'
-            ? r.ora_intervento
-            : r.ora_intervento.toISOString().slice(11, 19),
-        tipoStufa: r.tipo_stufa as 'pellet' | 'legno',
-        marca: r.marca,
-        modello: r.modello,
-        numeroSerie: r.numero_serie || '',
-        tipoIntervento: r.tipo_intervento,
-        descrizione: r.descrizione,
-        materialiUtilizzati: r.materiali_utilizzati || '',
-        note: r.note || '',
-        firmaOperatore: r.firma_operatore || '',
-        firmaCliente: r.firma_cliente || '',
-      },
-      dataCreazione: (r.data_creazione || r.created_at || new Date()).toISOString(),
-    }));
+    const formattedRapportini: Rapportino[] = rapportini.map((r) => mapDbRowToRapportino(r));
 
     const totalPages = Math.ceil(count / filters.limit);
 
@@ -275,19 +237,7 @@ export async function POST(request: NextRequest) {
     if (!clienteId) {
       try {
         const newCliente = await prisma.clienti.create({
-          data: {
-            org_id: effectiveOrgId,
-            nome: nomeNormalizzato,
-            cognome: cognomeNormalizzato,
-            ragione_sociale: rapportino.cliente.ragioneSociale?.trim() || null,
-            indirizzo: rapportino.cliente.indirizzo.trim(),
-            citta: rapportino.cliente.citta.trim(),
-            cap: rapportino.cliente.cap.trim(),
-            telefono: telefonoNormalizzato,
-            email: rapportino.cliente.email?.trim() || null,
-            partita_iva: rapportino.cliente.partitaIva?.trim() || null,
-            codice_fiscale: rapportino.cliente.codiceFiscale?.trim() || null,
-          },
+          data: mapClienteToDbData(rapportino.cliente, effectiveOrgId),
           select: { id: true },
         });
         clienteId = newCliente.id;
@@ -313,23 +263,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const interventoData = mapInterventoToDbData(rapportino.intervento);
+
     const newRapportino = await prisma.rapportini.create({
       data: {
         org_id: effectiveOrgId,
         utente_id: userId,
         cliente_id: clienteId!,
-        data_intervento: parseDateOnly(rapportino.intervento.data),
-        ora_intervento: parseTimeForDb(rapportino.intervento.ora),
-        tipo_stufa: rapportino.intervento.tipoStufa,
-        marca: rapportino.intervento.marca,
-        modello: rapportino.intervento.modello,
-        numero_serie: rapportino.intervento.numeroSerie?.trim() || null,
-        tipo_intervento: rapportino.intervento.tipoIntervento,
-        descrizione: rapportino.intervento.descrizione,
-        materiali_utilizzati: rapportino.intervento.materialiUtilizzati?.trim() || null,
-        note: rapportino.intervento.note?.trim() || null,
-        firma_operatore: rapportino.intervento.firmaOperatore?.trim() || null,
-        firma_cliente: rapportino.intervento.firmaCliente?.trim() || null,
+        ...interventoData,
         data_creazione: new Date(),
       },
       select: { id: true },

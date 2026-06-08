@@ -6,9 +6,13 @@ import { toast } from 'sonner';
 import { Rapportino, Cliente } from '@/types';
 import { format } from 'date-fns';
 import { auth } from '@/lib/auth';
-import SignaturePad from '@/components/SignaturePad';
 import RapportinoStepIndicator from '@/components/rapportino/RapportinoStepIndicator';
+import RapportinoStepTipologia from '@/components/rapportino/steps/RapportinoStepTipologia';
+import RapportinoStepIntervento from '@/components/rapportino/steps/RapportinoStepIntervento';
+import RapportinoStepFirme from '@/components/rapportino/steps/RapportinoStepFirme';
+import FormSectionHeader from '@/components/rapportino/FormSectionHeader';
 import { fetchWithAuth, parseResponseBody, getApiErrorMessage } from '@/lib/api';
+import { buildClienteIndirizzo } from '@/lib/rapportino-db';
 import { Card } from '@/components/ui/card';
 import {
   getDefaultRapportinoFormValues,
@@ -16,6 +20,9 @@ import {
   rapportinoStep1Schema,
   rapportinoStep2Schema,
   rapportinoStep3Schema,
+  rapportinoStep4Schema,
+  rapportinoStep5Schema,
+  RAPPORTINO_FORM_STEPS,
   firstIssueMessage,
   type RapportinoFormValues,
 } from '@/lib/validators/rapportino-form';
@@ -34,15 +41,8 @@ interface RapportinoFormProps {
   onCancel: () => void;
 }
 
-const DEFAULT_TIPI_INTERVENTO = [
-  'Manutenzione',
-  'Riparazione',
-  'Installazione',
-  'Pulizia',
-  'Controllo',
-];
-
 const NEW_RAPPORTINO_DRAFT_KEY = 'rapportino_new';
+const TOTAL_STEPS = RAPPORTINO_FORM_STEPS;
 
 /** Altezza footer fisso mobile: 2 pulsanti impilati + padding + safe area */
 const MOBILE_FOOTER_OFFSET = 'calc(11rem + env(safe-area-inset-bottom, 0px))';
@@ -177,10 +177,6 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
   const [showModelloInput, setShowModelloInput] = useState(false);
   const [showMaterialeInput, setShowMaterialeInput] = useState(false);
   const [newMaterialeNome, setNewMaterialeNome] = useState('');
-  const [tipiIntervento, setTipiIntervento] = useState<string[]>(DEFAULT_TIPI_INTERVENTO);
-  const [showTipoInterventoInput, setShowTipoInterventoInput] = useState(false);
-  const [newTipoIntervento, setNewTipoIntervento] = useState('');
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -249,7 +245,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       intervento: { ...defaults.intervento, ...(rawForm.intervento as RapportinoFormValues['intervento'] | undefined) },
     };
 
-    const draftStep = Math.min(Math.max(pendingDraft.step || 1, 1), 3);
+    const draftStep = Math.min(Math.max(pendingDraft.step || 1, 1), TOTAL_STEPS);
 
     reset(draftData);
     setStep(draftStep);
@@ -270,7 +266,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     setOperatoreFirmaFromProfile(false);
     setPendingDraft(null);
     setDraftResolved(true);
-    toast.success(`Bozza ripristinata — step ${draftStep} di 3`);
+    toast.success(`Bozza ripristinata — step ${draftStep} di ${TOTAL_STEPS}`);
   };
 
   const discardDraft = () => {
@@ -296,7 +292,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       const queryComposta = `${nome} ${cognome}`.trim();
       const hasSearchText = nome.length >= 2 || cognome.length >= 2 || queryComposta.length >= 3;
 
-      if (step === 2 && hasSearchText) {
+      if (step === 3 && hasSearchText) {
         setIsSearchingClienti(true);
         try {
           const response = await fetchWithAuth(
@@ -475,9 +471,12 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       nome: c.nome,
       cognome: c.cognome,
       ragioneSociale: (c.ragioneSociale as string | undefined) || cliente.ragioneSociale || '',
+      via: c.via || c.indirizzo || '',
+      numeroCivico: c.numeroCivico || '',
       indirizzo: c.indirizzo,
       citta: c.citta,
       cap: c.cap,
+      provincia: c.provincia || '',
       telefono: c.telefono,
       email: (c.email as string | undefined) || cliente.email || '',
       partitaIva: (c.partitaIva as string | undefined) || cliente.partitaIva || '',
@@ -501,6 +500,16 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     }
     if (step === 3) {
       const r = rapportinoStep3Schema.safeParse(v);
+      if (!r.success) toast.error(firstIssueMessage(r.error));
+      return r.success;
+    }
+    if (step === 4) {
+      const r = rapportinoStep4Schema.safeParse(v);
+      if (!r.success) toast.error(firstIssueMessage(r.error));
+      return r.success;
+    }
+    if (step === 5) {
+      const r = rapportinoStep5Schema.safeParse(v);
       if (!r.success) toast.error(firstIssueMessage(r.error));
       return r.success;
     }
@@ -532,12 +541,21 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       return;
     }
 
+    const clienteSalvato = {
+      ...fullCheck.data.cliente,
+      indirizzo: buildClienteIndirizzo(fullCheck.data.cliente),
+    };
+
     const rapportino: Rapportino = {
       id: initialRapportino?.id ?? `rapp_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       operatore: fullCheck.data.operatore,
-      cliente: fullCheck.data.cliente,
+      cliente: clienteSalvato,
       intervento: {
         ...fullCheck.data.intervento,
+        descrizione:
+          fullCheck.data.intervento.motivoChiamata ||
+          fullCheck.data.intervento.descrizione ||
+          '',
         materialiUtilizzati: materialiFinali || undefined,
       },
       dataCreazione: initialRapportino?.dataCreazione ?? new Date().toISOString(),
@@ -598,7 +616,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       {!initialRapportino && pendingDraft && (
         <div className="mb-6 flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-            Hai una bozza salvata allo step {pendingDraft.step || 1} di 3. Vuoi riprendere da dove avevi lasciato?
+            Hai una bozza salvata allo step {pendingDraft.step || 1} di {TOTAL_STEPS}. Vuoi riprendere da dove avevi lasciato?
           </p>
           <div className="flex gap-2">
             <button
@@ -693,18 +711,21 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       )}
 
       {step === 2 && (
+        <RapportinoStepTipologia intervento={intervento} setValue={setValue} />
+      )}
+
+      {step === 3 && (
         <div className="space-y-6">
-          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-md border border-surface-100 dark:border-surface-700/50">
-            <div className="shrink-0 p-2.5 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-xl shadow-inner">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <FormSectionHeader
+            iconClassName="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+            icon={
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-base sm:text-lg font-bold text-surface-900 dark:text-white">Dati Cliente</h3>
-              <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Inserisci le informazioni del cliente per cui viene eseguito l&apos;intervento</p>
-            </div>
-          </div>
+            }
+            title="Dati Cliente"
+            description="Inserisci le informazioni del cliente per cui viene eseguito l'intervento"
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="relative">
               <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
@@ -823,21 +844,32 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
                 className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
               />
             </div>
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Indirizzo <span className="text-red-500">*</span>
+                Via <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                value={cliente.indirizzo}
-                onChange={(e) => setValue('cliente.indirizzo', e.target.value)}
+                value={cliente.via || ''}
+                onChange={(e) => setValue('cliente.via', e.target.value)}
                 className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Città <span className="text-red-500">*</span>
+                Numero civico
+              </label>
+              <input
+                type="text"
+                value={cliente.numeroCivico || ''}
+                onChange={(e) => setValue('cliente.numeroCivico', e.target.value)}
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+                Località <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -849,14 +881,15 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             </div>
             <div>
               <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                CAP <span className="text-red-500">*</span>
+                Provincia
               </label>
               <input
                 type="text"
-                value={cliente.cap}
-                onChange={(e) => setValue('cliente.cap', e.target.value)}
-                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
-                required
+                value={cliente.provincia || ''}
+                onChange={(e) => setValue('cliente.provincia', e.target.value)}
+                maxLength={2}
+                placeholder="Es. MI"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground uppercase"
               />
             </div>
             <div>
@@ -908,540 +941,42 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
         </div>
       )}
 
-      {step === 3 && (
-        <div className="space-y-6">
-          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-md border border-surface-100 dark:border-surface-700/50">
-            <div className="shrink-0 p-2.5 sm:p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl shadow-inner">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-base sm:text-lg font-bold text-surface-900 dark:text-white">Dati Intervento</h3>
-              <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Inserisci i dettagli dell&apos;intervento eseguito</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Data <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={intervento.data}
-                onChange={(e) => setValue('intervento.data', e.target.value)}
-                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Ora <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                value={intervento.ora}
-                onChange={(e) => setValue('intervento.ora', e.target.value)}
-                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Tipo Stufa <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={intervento.tipoStufa}
-                onChange={(e) => setValue('intervento.tipoStufa', e.target.value as 'pellet' | 'legno')}
-                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background"
-                required
-              >
-                <option value="pellet" className="bg-white dark:bg-surface-800 text-surface-900 dark:text-white">Pellet</option>
-                <option value="legno" className="bg-white dark:bg-surface-800 text-surface-900 dark:text-white">Legno</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Marca <span className="text-red-500">*</span>
-              </label>
-              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
-                {!showMarcaInput ? (
-                  <>
-                    <select
-                      value={marcaId}
-                      onChange={async (e) => {
-                        const selectedId = e.target.value;
-                        if (selectedId === 'new') {
-                          setShowMarcaInput(true);
-                          setMarcaId('');
-                        } else {
-                          setMarcaId(selectedId);
-                          const selectedMarca = marche.find(m => m.id === selectedId);
-                          setValue('intervento.marca', selectedMarca?.nome || '');
-                        }
-                      }}
-                      className="flex-1 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background"
-                      required
-                    >
-                      <option value="">Seleziona marca...</option>
-                      {marche.map((marca) => (
-                        <option key={marca.id} value={marca.id} className="bg-white dark:bg-surface-800">
-                          {marca.nome}
-                        </option>
-                      ))}
-                      <option value="new" className="bg-white dark:bg-surface-800 font-bold">
-                        + Nuova marca
-                      </option>
-                    </select>
-                  </>
-                ) : (
-                  <div className="flex-1 flex flex-col sm:flex-row gap-2 min-w-0 w-full">
-                    <input
-                      type="text"
-                      value={intervento.marca}
-                      onChange={(e) => setValue('intervento.marca', e.target.value)}
-                      placeholder="Inserisci nuova marca"
-                      className="flex-1 min-w-0 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
-                      required
-                    />
-                    <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (intervento.marca.trim()) {
-                            try {
-                              const response = await fetchWithAuth('/api/marche', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ nome: intervento.marca.trim() }),
-                              });
-                              const data = await parseResponseBody<{ id?: string; nome?: string; error?: string }>(response);
-
-                              if (!response.ok) {
-                                toast.error(getApiErrorMessage(data, 'Errore nella creazione della marca'));
-                                return;
-                              }
-
-                              if (response.ok) {
-                                const newMarca = data as { id: string; nome: string } | null;
-                                if (newMarca) {
-                                  setMarche([...marche, newMarca]);
-                                  setMarcaId(newMarca.id);
-                                  setValue('intervento.marca', newMarca.nome);
-                                  setShowMarcaInput(false);
-                                }
-                              }
-                            } catch (error) {
-                              console.error('Errore creazione marca:', error);
-                              toast.error('Errore nella creazione della marca');
-                            }
-                          }
-                        }}
-                        className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold shadow-sm transition-all"
-                      >
-                        Salva
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowMarcaInput(false);
-                          setValue('intervento.marca', '');
-                        }}
-                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
-                      >
-                        Annulla
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Modello <span className="text-red-500">*</span>
-              </label>
-              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
-                {!showModelloInput ? (
-                  <>
-                    <select
-                      value={modelloId}
-                      onChange={async (e) => {
-                        const selectedId = e.target.value;
-                        if (selectedId === 'new') {
-                          setShowModelloInput(true);
-                          setModelloId('');
-                        } else {
-                          setModelloId(selectedId);
-                          const selectedModello = modelli.find(m => m.id === selectedId);
-                          setValue('intervento.modello', selectedModello?.nome || '');
-                        }
-                      }}
-                      disabled={!marcaId}
-                      className="flex-1 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background disabled:opacity-50 disabled:cursor-not-allowed"
-                      required
-                    >
-                      <option value="">{marcaId ? 'Seleziona modello...' : 'Seleziona prima una marca'}</option>
-                      {modelli.map((modello) => (
-                        <option key={modello.id} value={modello.id} className="bg-white dark:bg-surface-800">
-                          {modello.nome}
-                        </option>
-                      ))}
-                      {marcaId && (
-                        <option value="new" className="bg-white dark:bg-surface-800 font-bold">
-                          + Nuovo modello
-                        </option>
-                      )}
-                    </select>
-                  </>
-                ) : (
-                  <div className="flex-1 flex flex-col sm:flex-row gap-2 min-w-0 w-full">
-                    <input
-                      type="text"
-                      value={intervento.modello}
-                      onChange={(e) => setValue('intervento.modello', e.target.value)}
-                      placeholder={marcaId ? 'Inserisci nuovo modello' : 'Modello (marca non in catalogo)'}
-                      className="flex-1 min-w-0 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
-                      required
-                    />
-                    {marcaId && (
-                    <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (intervento.modello.trim() && marcaId) {
-                            try {
-                              const response = await fetchWithAuth('/api/modelli', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
-                              });
-                              const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
-
-                              if (!response.ok) {
-                                toast.error(getApiErrorMessage(data, 'Errore nella creazione del modello'));
-                                return;
-                              }
-
-                              if (response.ok) {
-                                const newModello = data as { id: string; nome: string; marca_id: string } | null;
-                                if (newModello) {
-                                  setModelli([...modelli, newModello]);
-                                  setModelloId(newModello.id);
-                                  setValue('intervento.modello', newModello.nome);
-                                  setShowModelloInput(false);
-                                }
-                              }
-                            } catch (error) {
-                              console.error('Errore creazione modello:', error);
-                              toast.error('Errore nella creazione del modello');
-                            }
-                          }
-                        }}
-                        className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold shadow-sm transition-all"
-                      >
-                        Salva
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowModelloInput(false);
-                          setValue('intervento.modello', '');
-                        }}
-                        className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
-                      >
-                        Annulla
-                      </button>
-                    </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Numero di Serie
-              </label>
-              <input
-                type="text"
-                value={intervento.numeroSerie}
-                onChange={(e) => setValue('intervento.numeroSerie', e.target.value)}
-                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Tipo Intervento <span className="text-red-500">*</span>
-              </label>
-              <div className="space-y-3">
-                <select
-                  value={intervento.tipoIntervento}
-                  onChange={(e) => setValue('intervento.tipoIntervento', e.target.value)}
-                  className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background"
-                  required
-                >
-                  {tipiIntervento.map((tipo) => (
-                    <option key={tipo} value={tipo} className="bg-white dark:bg-surface-800 text-surface-900 dark:text-white">
-                      {tipo}
-                    </option>
-                  ))}
-                </select>
-
-                {!showTipoInterventoInput ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowTipoInterventoInput(true)}
-                    className="w-full px-4 py-3 text-sm font-bold border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-md text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800/50 hover:border-primary-400 dark:hover:border-primary-600 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
-                  >
-                    + Aggiungi tipologia di intervento
-                  </button>
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={newTipoIntervento}
-                      onChange={(e) => setNewTipoIntervento(e.target.value)}
-                      placeholder="Nuova tipologia (es. Collaudo)"
-                      className="flex-1 px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nuovaTipologia = newTipoIntervento.trim();
-                        if (!nuovaTipologia) return;
-
-                        const esisteGia = tipiIntervento.some(
-                          (tipo) => tipo.toLowerCase() === nuovaTipologia.toLowerCase()
-                        );
-
-                        if (!esisteGia) {
-                          setTipiIntervento((prev) => [...prev, nuovaTipologia]);
-                        }
-
-                        setValue('intervento.tipoIntervento', nuovaTipologia);
-                        setNewTipoIntervento('');
-                        setShowTipoInterventoInput(false);
-                      }}
-                      className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold shadow-sm transition-all"
-                    >
-                      Salva
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowTipoInterventoInput(false);
-                        setNewTipoIntervento('');
-                      }}
-                      className="px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 font-bold transition-all"
-                    >
-                      Annulla
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Descrizione <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={intervento.descrizione}
-                onChange={(e) => setValue('intervento.descrizione', e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring text-foreground bg-background placeholder:text-muted-foreground resize-none"
-                required
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Materiali Utilizzati
-              </label>
-              <div className="space-y-3">
-                {/* Combobox multi-select per materiali */}
-                <div className="relative">
-                  <div className="min-h-[100px] max-h-[200px] overflow-y-auto border border-surface-200 dark:border-surface-700 rounded-md p-2 bg-background">
-                    {materiali.length > 0 ? (
-                      <div className="space-y-1">
-                        {materiali.map((materiale) => (
-                          <label
-                            key={materiale.id}
-                            className="flex items-center gap-3 p-3 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-xl cursor-pointer transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedMateriali.includes(materiale.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedMateriali([...selectedMateriali, materiale.id]);
-                                } else {
-                                  setSelectedMateriali(selectedMateriali.filter(id => id !== materiale.id));
-                                }
-                              }}
-                              className="w-5 h-5 text-primary-600 border-surface-300 dark:border-surface-600 rounded focus:ring-primary-500 bg-white/50 dark:bg-surface-800/50"
-                            />
-                            <span className="text-sm text-surface-900 dark:text-white">
-                              {materiale.nome}
-                              {materiale.descrizione && (
-                                <span className="text-xs text-surface-500 dark:text-surface-400 ml-2">
-                                  - {materiale.descrizione}
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-surface-500 dark:text-surface-400 text-center py-4">
-                        {modelloId ? 'Nessun materiale disponibile per questo modello' : 'Seleziona prima un modello'}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Pulsante per aggiungere nuovo materiale */}
-                  {modelloId && (
-                    <div className="mt-2">
-                      {!showMaterialeInput ? (
-                        <button
-                          type="button"
-                          onClick={() => setShowMaterialeInput(true)}
-                          className="w-full px-4 py-3 text-sm border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-md text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
-                        >
-                          + Aggiungi nuovo materiale
-                        </button>
-                      ) : (
-                        <div className="flex flex-col gap-2">
-                          <input
-                            type="text"
-                            value={newMaterialeNome}
-                            onChange={(e) => setNewMaterialeNome(e.target.value)}
-                            placeholder="Nome materiale"
-                            className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-background"
-                          />
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (newMaterialeNome.trim() && modelloId) {
-                                  try {
-                                    const response = await fetchWithAuth('/api/materiali', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ 
-                                        nome: newMaterialeNome.trim(), 
-                                        modello_id: modelloId 
-                                      }),
-                                    });
-                                    const data = await parseResponseBody<{ id?: string; nome?: string; descrizione?: string; modello_id?: string; error?: string }>(response);
-
-                                    if (!response.ok) {
-                                      toast.error(getApiErrorMessage(data, 'Errore nella creazione del materiale'));
-                                      return;
-                                    }
-
-                                    if (response.ok) {
-                                      const newMateriale = data as { id: string; nome: string; descrizione?: string; modello_id: string } | null;
-                                      if (newMateriale) {
-                                        setMateriali([...materiali, newMateriale]);
-                                        setSelectedMateriali([...selectedMateriali, newMateriale.id]);
-                                        setNewMaterialeNome('');
-                                        setShowMaterialeInput(false);
-                                      }
-                                    }
-                                  } catch (error) {
-                                    console.error('Errore creazione materiale:', error);
-                                    toast.error('Errore nella creazione del materiale');
-                                  }
-                                }
-                              }}
-                              className="w-full px-4 py-3 bg-emerald-500 text-white rounded-md hover:bg-emerald-600  transition-all font-medium"
-                            >
-                              Salva
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowMaterialeInput(false);
-                                setNewMaterialeNome('');
-                              }}
-                              className="w-full px-4 py-3 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-md hover:bg-surface-300 dark:hover:bg-surface-600 transition-all font-medium"
-                            >
-                              Annulla
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                {/* Input manuale per materiali aggiuntivi */}
-                <div>
-                  <label className="block text-xs text-surface-600 dark:text-surface-400 mb-1">
-                    Materiali aggiuntivi (opzionale)
-                  </label>
-                  <textarea
-                    value={intervento.materialiUtilizzati || ''}
-                    onChange={(e) => setValue('intervento.materialiUtilizzati', e.target.value)}
-                    placeholder="Inserisci materiali aggiuntivi non presenti nella lista..."
-                    rows={2}
-                    className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-background placeholder-surface-400 dark:placeholder-surface-500 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
-                Note Aggiuntive (opzionale)
-              </label>
-              <textarea
-                value={intervento.note}
-                onChange={(e) => setValue('intervento.note', e.target.value)}
-                placeholder="Inserisci eventuali note aggiuntive..."
-                rows={3}
-                className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent text-surface-900 dark:text-white bg-background placeholder-surface-400 dark:placeholder-surface-500"
-              />
-            </div>
-
-            <div className="md:col-span-2 mt-4 pb-4 sm:pb-0">
-              <div className="relative z-10 rounded-md border border-surface-200 dark:border-surface-700 bg-muted/30 p-4 sm:p-6">
-                <h4 className="text-base font-semibold text-surface-900 dark:text-white mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  Processo firme digitali
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SignaturePad
-                    label="Firma Operatore"
-                    value={intervento.firmaOperatore}
-                    required
-                    helperText={
-                      operatoreFirmaFromProfile && intervento.firmaOperatore
-                        ? 'Firma del profilo caricata automaticamente. Puoi modificarla se necessario.'
-                        : undefined
-                    }
-                    onChange={(firmaOperatore) => {
-                      setOperatoreFirmaFromProfile(false);
-                      setValue('intervento.firmaOperatore', firmaOperatore);
-                    }}
-                  />
-                  <SignaturePad
-                    label="Firma Cliente"
-                    value={intervento.firmaCliente}
-                    required
-                    onChange={(firmaCliente) => setValue('intervento.firmaCliente', firmaCliente)}
-                  />
-                </div>
-                <p className="mt-4 text-xs text-surface-600 dark:text-surface-400 flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Entrambe le firme sono obbligatorie per concludere e salvare il rapportino.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {step === 4 && (
+        <RapportinoStepIntervento
+          intervento={intervento}
+          setValue={setValue}
+          marche={marche}
+          modelli={modelli}
+          materiali={materiali}
+          marcaId={marcaId}
+          modelloId={modelloId}
+          showMarcaInput={showMarcaInput}
+          showModelloInput={showModelloInput}
+          selectedMateriali={selectedMateriali}
+          showMaterialeInput={showMaterialeInput}
+          newMaterialeNome={newMaterialeNome}
+          setMarcaId={setMarcaId}
+          setModelloId={setModelloId}
+          setShowMarcaInput={setShowMarcaInput}
+          setShowModelloInput={setShowModelloInput}
+          setMarche={setMarche}
+          setModelli={setModelli}
+          setMateriali={setMateriali}
+          setSelectedMateriali={setSelectedMateriali}
+          setShowMaterialeInput={setShowMaterialeInput}
+          setNewMaterialeNome={setNewMaterialeNome}
+        />
       )}
+
+      {step === 5 && (
+        <RapportinoStepFirme
+          intervento={intervento}
+          operatoreFirmaFromProfile={operatoreFirmaFromProfile}
+          setOperatoreFirmaFromProfile={setOperatoreFirmaFromProfile}
+          setValue={setValue}
+        />
+      )}
+
 
       <div
         className="sm:hidden"
@@ -1462,7 +997,7 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
             </svg>
             Indietro
           </button>
-          {step < 3 ? (
+          {step < TOTAL_STEPS ? (
             <button
               type="button"
               onClick={handleNextStep}

@@ -85,7 +85,8 @@ describe('Validation Schemas', () => {
       const result = clienteSchema.safeParse({
         nome: 'Mario',
         cognome: 'Rossi',
-        indirizzo: 'Via Roma 1',
+        via: 'Via Roma',
+        numeroCivico: '1',
         citta: 'Milano',
         cap: '20100',
         telefono: '0212345678',
@@ -93,13 +94,11 @@ describe('Validation Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should reject invalid CAP', () => {
+    it('should reject cliente without via or indirizzo', () => {
       const result = clienteSchema.safeParse({
         nome: 'Mario',
         cognome: 'Rossi',
-        indirizzo: 'Via Roma 1',
         citta: 'Milano',
-        cap: '123', // CAP troppo corto
         telefono: '0212345678',
       });
       expect(result.success).toBe(false);
@@ -111,11 +110,11 @@ describe('Validation Schemas', () => {
       const result = interventoSchema.safeParse({
         data: '2024-01-15',
         ora: '10:30',
+        tipologiaIntervento: 'manutenzione_annuale',
         tipoStufa: 'pellet',
         marca: 'MCZ',
         modello: 'Star',
-        tipoIntervento: 'Manutenzione ordinaria',
-        descrizione: 'Pulizia e controllo generale',
+        motivoChiamata: 'Pulizia e controllo generale',
       });
       expect(result.success).toBe(true);
     });
@@ -127,8 +126,7 @@ describe('Validation Schemas', () => {
         tipoStufa: 'gas', // Non valido
         marca: 'MCZ',
         modello: 'Star',
-        tipoIntervento: 'Manutenzione ordinaria',
-        descrizione: 'Pulizia e controllo generale',
+        motivoChiamata: 'Pulizia e controllo generale',
       });
       expect(result.success).toBe(false);
     });

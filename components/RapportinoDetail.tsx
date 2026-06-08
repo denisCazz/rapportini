@@ -4,6 +4,12 @@ import { Rapportino, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
 import { useEffect } from 'react';
 import { downloadPDF } from '@/lib/pdfGenerator';
+import {
+  CONTROLLO_GARANZIA_FIELDS,
+  formatSiNoNc,
+  formatTipologiaInstallazione,
+  formatTipologiaIntervento,
+} from '@/lib/rapportino-constants';
 
 interface RapportinoDetailProps {
   rapportino: Rapportino;
@@ -12,340 +18,181 @@ interface RapportinoDetailProps {
   onEdit?: () => void;
 }
 
+function DetailField({ label, value }: { label: string; value?: string | null }) {
+  if (!value?.trim()) return null;
+  return (
+    <div>
+      <p className="mb-1 text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm print:text-base">{label}</p>
+      <p className="font-bold text-surface-900 dark:text-white print:text-lg">{value}</p>
+    </div>
+  );
+}
+
 export default function RapportinoDetail({ rapportino, settings, onClose, onEdit }: RapportinoDetailProps) {
   useEffect(() => {
-    // Previene lo scroll del body quando il modal è aperto
     document.body.style.overflow = 'hidden';
-    
-    // Chiude il modal con il tasto ESC
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
-    
     document.addEventListener('keydown', handleEscape);
-    
     return () => {
       document.body.style.overflow = 'unset';
       document.removeEventListener('keydown', handleEscape);
     };
   }, [onClose]);
 
-  const handlePrint = async () => {
-    await downloadPDF(rapportino, settings);
-  };
-
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+  const { intervento, cliente } = rapportino;
+  const indirizzoCliente = [cliente.via, cliente.numeroCivico].filter(Boolean).join(' ') || cliente.indirizzo;
+  const localitaCliente = [cliente.citta, cliente.provincia, cliente.cap].filter(Boolean).join(' ');
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-2 sm:p-4 animate-fadeIn"
-      onClick={handleOverlayClick}
+    <div
+      className="fixed inset-0 z-50 flex animate-fadeIn items-start justify-center overflow-y-auto bg-black/50 p-2 sm:p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="saas-card my-4 w-full max-w-4xl sm:my-8 print:my-0 print:max-w-full print:rounded-none print:bg-white print:shadow-none">
         <div className="p-5 sm:p-8 print:p-8">
-          {/* Header con logo */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-surface-200 dark:border-surface-700 print:border-surface-800 gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 flex-1">
+          <div className="mb-6 flex flex-col items-start justify-between gap-4 border-b border-surface-200 pb-4 dark:border-surface-700 sm:mb-8 sm:flex-row sm:items-center sm:pb-6 print:border-surface-800">
+            <div className="flex flex-1 items-center gap-3 sm:gap-4">
               {settings.logo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={settings.logo}
-                  alt={settings.nomeAzienda || 'Logo Azienda'}
-                  className="h-12 w-auto sm:h-16 object-contain print:h-20 drop-shadow-sm"
-                />
+                <img src={settings.logo} alt={settings.nomeAzienda || 'Logo'} className="h-12 w-auto object-contain sm:h-16 print:h-20" />
               ) : (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logo.png"
-                    alt={settings.nomeAzienda || 'Logo Azienda'}
-                    className="h-12 w-auto sm:h-16 object-contain print:h-20 drop-shadow-sm"
-                    onError={(e) => {
-                      // Se il logo non esiste, mostra il fallback
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const fallback = target.nextElementSibling as HTMLElement;
-                      if (fallback) fallback.style.display = 'flex';
-                    }}
-                  />
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary sm:h-16 sm:w-16 print:h-20 print:w-20" style={{ display: 'none' }}>
-                    <span className="text-white font-bold text-xl sm:text-2xl print:text-3xl">R</span>
-                  </div>
-                </>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/logo.png" alt={settings.nomeAzienda || 'Logo'} className="h-12 w-auto object-contain sm:h-16 print:h-20" />
               )}
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-surface-900 dark:text-white print:text-3xl tracking-tight">
+                <h1 className="text-xl font-bold tracking-tight text-surface-900 dark:text-white sm:text-2xl print:text-3xl">
                   {settings.nomeAzienda || 'Bitora - Gestione Rapportini'}
                 </h1>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium">
-                  Sistema Gestione Interventi Stufe
+                <p className="text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm print:text-base">
+                  Rapportino e Attivazione Garanzie
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 print:hidden w-full sm:w-auto">
+            <div className="flex w-full flex-wrap gap-2 print:hidden sm:w-auto">
               {onEdit && (
-                <button
-                  onClick={onEdit}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted sm:flex-none"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
+                <button onClick={onEdit} className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted sm:flex-none">
                   Modifica
                 </button>
               )}
-              <button
-                onClick={handlePrint}
-                className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:flex-none"
-              >
-                🖨️ Stampa
+              <button onClick={() => downloadPDF(rapportino, settings)} className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:flex-none">
+                Stampa
               </button>
-              <button
-                onClick={onClose}
-                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted sm:flex-none"
-              >
+              <button onClick={onClose} className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted sm:flex-none">
                 Chiudi
               </button>
             </div>
           </div>
 
-          {/* Timeline sintetica intervento */}
-          <div className="mb-6 rounded-md border border-border bg-muted/50 p-4 print:hidden">
-            <p className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Flusso intervento</p>
-            <ol className="grid gap-3 sm:grid-cols-5 text-sm">
-              {[
-                { t: 'Operatore', d: `${rapportino.operatore.nome} ${rapportino.operatore.cognome}` },
-                { t: 'Cliente', d: `${rapportino.cliente.nome} ${rapportino.cliente.cognome}` },
-                { t: 'Stufa', d: `${rapportino.intervento.marca} ${rapportino.intervento.modello}` },
-                { t: 'Tipo', d: rapportino.intervento.tipoIntervento },
-                { t: 'Firme', d: rapportino.intervento.firmaCliente ? 'Cliente ✓' : '—' },
-              ].map((step, idx) => (
-                <li
-                  key={step.t}
-                  className="relative rounded-xl border border-border bg-card/80 px-3 py-2 shadow-sm"
-                >
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">{step.t}</span>
-                  <p className="mt-1 line-clamp-2 text-xs font-semibold text-foreground">{step.d}</p>
-                  <span className="absolute -top-2 -left-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    {idx + 1}
-                  </span>
-                </li>
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Tipologia intervento</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+              <DetailField label="Tipologia" value={formatTipologiaIntervento(intervento.tipologiaIntervento || intervento.tipoIntervento)} />
+              <DetailField label="Data richiesta" value={intervento.dataRichiesta ? format(new Date(intervento.dataRichiesta), 'dd/MM/yyyy') : undefined} />
+              <DetailField label="Data intervento" value={`${format(new Date(intervento.data), 'dd/MM/yyyy')} - ${intervento.ora}`} />
+            </div>
+          </section>
+
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Dati operatore (C.A.T.)</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+              <DetailField label="Nome e cognome" value={`${rapportino.operatore.nome} ${rapportino.operatore.cognome}`} />
+              <DetailField label="Qualifica" value={rapportino.operatore.qualifica} />
+              <DetailField label="Telefono" value={rapportino.operatore.telefono} />
+              <DetailField label="Email" value={rapportino.operatore.email} />
+            </div>
+          </section>
+
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Dati cliente</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+              <DetailField label="Cognome" value={cliente.cognome} />
+              <DetailField label="Nome" value={cliente.nome} />
+              <DetailField label="Via" value={indirizzoCliente} />
+              <DetailField label="Località" value={localitaCliente} />
+              <DetailField label="Telefono" value={cliente.telefono} />
+            </div>
+          </section>
+
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Dati apparecchio</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+              <DetailField label="Tipo stufa" value={intervento.tipoStufa === 'pellet' ? 'Pellet' : 'Legno'} />
+              <DetailField label="Marca" value={intervento.marca} />
+              <DetailField label="Modello" value={intervento.modello} />
+              <DetailField label="Matricola" value={intervento.numeroSerie} />
+              <DetailField label="Data acquisto" value={intervento.dataAcquisto ? format(new Date(intervento.dataAcquisto), 'dd/MM/yyyy') : undefined} />
+              <DetailField label="Rivenditore" value={intervento.rivenditore} />
+            </div>
+          </section>
+
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Relazione intervento</h2>
+            <div className="space-y-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+              <DetailField label="Motivo della chiamata" value={intervento.motivoChiamata || intervento.descrizione} />
+              <DetailField label="Verifiche" value={intervento.verifiche} />
+              <DetailField label="Installazione eseguita da" value={intervento.installazioneEseguitaDa} />
+              {intervento.materialiUtilizzati && <DetailField label="Materiali utilizzati" value={intervento.materialiUtilizzati} />}
+              {intervento.note && <DetailField label="Note" value={intervento.note} />}
+            </div>
+          </section>
+
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Controllo per avvio garanzia</h2>
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+              {CONTROLLO_GARANZIA_FIELDS.map((field) => (
+                <div key={field.key} className="flex flex-col gap-1 border-b border-surface-200/60 pb-3 last:border-0 last:pb-0 dark:border-surface-700/60 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm font-medium text-surface-700 dark:text-surface-300">{field.label}</p>
+                  <p className="font-bold text-surface-900 dark:text-white">{formatSiNoNc(intervento.controlloGaranzia?.[field.key])}</p>
+                </div>
               ))}
-            </ol>
-          </div>
+            </div>
+          </section>
 
-          {/* Dati Operatore */}
-          <div className="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-surface-200 dark:border-surface-700">
-            <h2 className="text-lg sm:text-xl font-bold text-surface-900 dark:text-white mb-4 sm:mb-5 print:text-2xl flex items-center gap-2">
-              <span className="p-1.5 bg-surface-100 dark:bg-surface-800 rounded-lg text-surface-500 dark:text-surface-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              </span>
-              Dati Operatore
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 bg-surface-100/85 dark:bg-surface-800/75 p-4 sm:p-6 rounded-2xl border border-surface-200/80 dark:border-surface-700/70">
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Nome e Cognome</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">
-                  {rapportino.operatore.nome} {rapportino.operatore.cognome}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Qualifica</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.operatore.qualifica}</p>
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Telefono</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.operatore.telefono}</p>
-              </div>
-              {rapportino.operatore.email && (
-                <div>
-                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Email</p>
-                  <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.operatore.email}</p>
-                </div>
-              )}
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Tipologia di installazione</h2>
+            <div className="space-y-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+              <DetailField label="Tipologia" value={formatTipologiaInstallazione(intervento.tipologiaInstallazione)} />
+              <DetailField label="Note di installazione" value={intervento.noteInstallazione} />
             </div>
-          </div>
+          </section>
 
-          {/* Dati Cliente */}
-          <div className="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-surface-200 dark:border-surface-700">
-            <h2 className="text-lg sm:text-xl font-bold text-surface-900 dark:text-white mb-4 sm:mb-5 print:text-2xl flex items-center gap-2">
-              <span className="p-1.5 bg-surface-100 dark:bg-surface-800 rounded-lg text-surface-500 dark:text-surface-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-              </span>
-              Dati Cliente
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 bg-surface-100/85 dark:bg-surface-800/75 p-4 sm:p-6 rounded-2xl border border-surface-200/80 dark:border-surface-700/70">
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Nome e Cognome</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">
-                  {rapportino.cliente.nome} {rapportino.cliente.cognome}
-                </p>
-              </div>
-              {rapportino.cliente.ragioneSociale && (
-                <div>
-                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Ragione Sociale</p>
-                  <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.cliente.ragioneSociale}</p>
-                </div>
-              )}
-              <div className="md:col-span-2">
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Indirizzo</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">
-                  {rapportino.cliente.indirizzo}, {rapportino.cliente.citta} ({rapportino.cliente.cap})
-                </p>
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Telefono</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.cliente.telefono}</p>
-              </div>
-              {rapportino.cliente.email && (
-                <div>
-                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Email</p>
-                  <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.cliente.email}</p>
-                </div>
-              )}
-              {rapportino.cliente.partitaIva && (
-                <div>
-                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Partita IVA</p>
-                  <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.cliente.partitaIva}</p>
-                </div>
-              )}
-              {rapportino.cliente.codiceFiscale && (
-                <div>
-                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Codice Fiscale</p>
-                  <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.cliente.codiceFiscale}</p>
-                </div>
-              )}
+          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Prossimo intervento</h2>
+            <div className="rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+              <DetailField
+                label="Termine previsto manutenzione"
+                value={intervento.prossimoIntervento ? format(new Date(intervento.prossimoIntervento), 'dd/MM/yyyy') : undefined}
+              />
             </div>
-          </div>
+          </section>
 
-          {/* Dati Intervento */}
-          <div className="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-surface-200 dark:border-surface-700">
-            <h2 className="text-lg sm:text-xl font-bold text-surface-900 dark:text-white mb-4 sm:mb-5 print:text-2xl flex items-center gap-2">
-              <span className="p-1.5 bg-surface-100 dark:bg-surface-800 rounded-lg text-surface-500 dark:text-surface-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              </span>
-              Dati Intervento
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 bg-surface-100/85 dark:bg-surface-800/75 p-4 sm:p-6 rounded-2xl border border-surface-200/80 dark:border-surface-700/70">
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Data e Ora</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">
-                  {format(new Date(rapportino.intervento.data), 'dd/MM/yyyy')} - {rapportino.intervento.ora}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Tipo Stufa</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg capitalize flex items-center gap-2">
-                  {rapportino.intervento.tipoStufa === 'pellet' ? '🔥 Pellet' : '🪵 Legno'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Marca</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.intervento.marca}</p>
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Modello</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.intervento.modello}</p>
-              </div>
-              {rapportino.intervento.numeroSerie && (
-                <div>
-                  <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Numero di Serie</p>
-                  <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.intervento.numeroSerie}</p>
+          <section className="mt-6 border-t border-surface-200 pt-4 dark:border-surface-700 sm:mt-8 sm:pt-6 print:border-surface-800">
+            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white">Firme</h2>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {[
+                { label: 'Firma cliente privacy', value: intervento.firmaClientePrivacy },
+                { label: 'Firma cliente', value: intervento.firmaCliente },
+                { label: 'Firma C.A.T.', value: intervento.firmaOperatore },
+              ].map((firma) => (
+                <div key={firma.label}>
+                  <p className="mb-3 text-sm font-medium text-surface-500 dark:text-surface-400">{firma.label}</p>
+                  <div className="flex h-20 items-end border-b-2 border-surface-300 dark:border-surface-600">
+                    {firma.value ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={firma.value} alt={firma.label} className="max-h-16 w-auto object-contain" />
+                    ) : null}
+                  </div>
                 </div>
-              )}
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-1">Tipo Intervento</p>
-                <p className="font-bold text-surface-900 dark:text-white print:text-lg">{rapportino.intervento.tipoIntervento}</p>
-              </div>
+              ))}
             </div>
-            <div className="mb-4 sm:mb-6 bg-surface-100/85 dark:bg-surface-800/75 p-4 sm:p-6 rounded-2xl border border-surface-200/80 dark:border-surface-700/70">
-              <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-2">Descrizione</p>
-              <p className="text-surface-900 dark:text-white whitespace-pre-wrap print:text-base font-medium">{rapportino.intervento.descrizione}</p>
-            </div>
-            {rapportino.intervento.materialiUtilizzati && (
-              <div className="mb-4 sm:mb-6 bg-surface-100/85 dark:bg-surface-800/75 p-4 sm:p-6 rounded-2xl border border-surface-200/80 dark:border-surface-700/70">
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-2">Materiali Utilizzati</p>
-                <p className="text-surface-900 dark:text-white whitespace-pre-wrap print:text-base font-medium">{rapportino.intervento.materialiUtilizzati}</p>
-              </div>
-            )}
-            {rapportino.intervento.note && (
-              <div className="bg-surface-100/85 dark:bg-surface-800/75 p-4 sm:p-6 rounded-2xl border border-surface-200/80 dark:border-surface-700/70">
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-2">Note Aggiuntive</p>
-                <p className="text-surface-900 dark:text-white whitespace-pre-wrap print:text-base font-medium">{rapportino.intervento.note}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-surface-200 dark:border-surface-700 print:border-surface-800">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-              <div>
-                <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 print:text-base font-medium mb-4">Firma Operatore</p>
-                <div className="h-20 border-b-2 border-surface-300 dark:border-surface-600 print:border-surface-800 flex items-end justify-start">
-                  {rapportino.intervento.firmaOperatore ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={rapportino.intervento.firmaOperatore}
-                      alt="Firma operatore"
-                      className="max-h-16 w-auto object-contain"
-                    />
-                  ) : null}
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 print:text-sm">
-                  {rapportino.operatore.nome} {rapportino.operatore.cognome}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 print:text-base mb-4">Firma Cliente</p>
-                <div className="h-20 border-b-2 border-gray-400 dark:border-gray-500 print:border-gray-800 flex items-end justify-start">
-                  {rapportino.intervento.firmaCliente ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={rapportino.intervento.firmaCliente}
-                      alt="Firma cliente"
-                      className="max-h-16 w-auto object-contain"
-                    />
-                  ) : null}
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 print:text-sm">
-                  {rapportino.cliente.nome} {rapportino.cliente.cognome}
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-6 text-center print:text-sm">
+            <p className="mt-6 text-center text-xs text-surface-500 dark:text-surface-400">
               Rapportino creato il {format(new Date(rapportino.dataCreazione), 'dd/MM/yyyy HH:mm')}
             </p>
-          </div>
+          </section>
         </div>
       </div>
-
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print\\:shadow-none,
-          .print\\:shadow-none * {
-            visibility: visible;
-          }
-          .print\\:shadow-none {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white;
-          }
-          @page {
-            margin: 1cm;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -38,9 +38,12 @@ model Clienti {
   nome           String    @db.VarChar(255)
   cognome        String    @db.VarChar(255)
   ragione_sociale String?  @db.VarChar(255)
+  via            String?   @db.VarChar(255)
+  numero_civico  String?   @db.VarChar(20)
   indirizzo      String    @db.VarChar(500)
   citta          String    @db.VarChar(255)
   cap            String    @db.VarChar(10)
+  provincia      String?   @db.VarChar(10)
   telefono       String    @db.VarChar(50)
   email          String?   @db.VarChar(255)
   partita_iva    String?   @db.VarChar(50)
@@ -59,16 +62,32 @@ model Rapportini {
   org_id              String    @default("default") @db.VarChar(100)
   utente_id           String    @db.Uuid
   cliente_id          String    @db.Uuid
+  data_richiesta      DateTime? @db.Date
   data_intervento     DateTime  @db.Date
   ora_intervento      DateTime  @db.Time(6)
+  tipologia_intervento String?  @db.VarChar(50)
   tipo_stufa          String    @db.VarChar(20)
   marca               String    @db.VarChar(255)
   modello             String    @db.VarChar(255)
   numero_serie        String?   @db.VarChar(255)
+  data_acquisto       DateTime? @db.Date
+  rivenditore         String?   @db.VarChar(255)
   tipo_intervento     String    @db.VarChar(255)
+  motivo_chiamata     String?
+  verifiche           String?
+  installazione_eseguita_da String? @db.VarChar(255)
   descrizione         String
+  spiegata_manutenzione String? @db.VarChar(5)
+  impianto_elettrico  String?   @db.VarChar(5)
+  condotto_fumi       String?   @db.VarChar(5)
+  installazione_uni10683 String? @db.VarChar(5)
+  controllo_parametri String?   @db.VarChar(5)
+  tipologia_installazione String? @db.VarChar(50)
+  note_installazione  String?
+  prossimo_intervento DateTime? @db.Date
   materiali_utilizzati String?
   note                String?
+  firma_cliente_privacy String?
   firma_operatore     String?
   firma_cliente       String?
   data_creazione      DateTime? @default(now()) @db.Timestamptz(6)
