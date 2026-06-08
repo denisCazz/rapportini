@@ -7,6 +7,7 @@ import { downloadPDF } from '@/lib/pdfGenerator';
 import CondizioniGaranziaSection from '@/components/rapportino/CondizioniGaranziaSection';
 import {
   CONTROLLO_GARANZIA_FIELDS,
+  formatCodiceErrore,
   formatSiNoNc,
   formatTipologiaInstallazione,
   formatTipologiaIntervento,
@@ -131,6 +132,9 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
           <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
             <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Relazione intervento</h2>
             <div className="space-y-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+              {intervento.codiceErrore && (
+                <DetailField label="Codice errore" value={formatCodiceErrore(intervento.codiceErrore)} />
+              )}
               <DetailField label="Motivo della chiamata" value={intervento.motivoChiamata || intervento.descrizione} />
               <DetailField label="Verifiche" value={intervento.verifiche} />
               <DetailField label="Installazione eseguita da" value={intervento.installazioneEseguitaDa} />

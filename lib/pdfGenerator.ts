@@ -6,6 +6,7 @@ import {
   CONDIZIONI_GARANZIA_INTRO,
   CONDIZIONI_GARANZIA_ITEMS,
   CONTROLLO_GARANZIA_FIELDS,
+  formatCodiceErrore,
   formatSiNoNc,
   formatTipologiaInstallazione,
   formatTipologiaIntervento,
@@ -468,6 +469,9 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
   yPos += 10;
 
   addSectionTitle('RELAZIONE INTERVENTO');
+  if (rapportino.intervento.codiceErrore) {
+    addFieldRow('Codice errore', formatCodiceErrore(rapportino.intervento.codiceErrore));
+  }
   addTextBlock('Motivo della chiamata', rapportino.intervento.motivoChiamata || rapportino.intervento.descrizione || '');
   addTextBlock('Verifiche', rapportino.intervento.verifiche || '');
   if (rapportino.intervento.installazioneEseguitaDa) {

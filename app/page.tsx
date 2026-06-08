@@ -13,7 +13,9 @@ import SidebarLayout from '@/components/SidebarLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorBanner from '@/components/ui/ErrorBanner';
-import { Flame, Trees, FileText } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Flame, Trees, FileText, Plus, Search } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 const RECENT_LIMIT = 10;
@@ -139,6 +141,35 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-6">
+            {isOperatore && (
+              <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-6 shadow-sm sm:p-8">
+                <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="max-w-xl">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">Azione rapida</p>
+                    <h2 className="mt-1 text-xl font-bold text-foreground sm:text-2xl">Nuovo rapportino</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Compila e invia un nuovo rapportino di intervento in pochi passaggi.
+                    </p>
+                  </div>
+                  <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+                    <Link
+                      href="/rapportini/nuovo"
+                      className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'w-full justify-center gap-2 sm:w-auto')}
+                    >
+                      <Plus className="h-5 w-5" />
+                      Nuovo rapportino
+                    </Link>
+                    <Link
+                      href="/rapportini"
+                      className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'w-full justify-center gap-2 sm:w-auto')}
+                    >
+                      <Search className="h-4 w-4" />
+                      Cerca rapportini
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="grid gap-4 md:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">

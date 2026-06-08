@@ -5,7 +5,9 @@ import FormSectionHeader from '@/components/rapportino/FormSectionHeader';
 import CondizioniGaranziaSection from '@/components/rapportino/CondizioniGaranziaSection';
 import SiNoNcField from '@/components/rapportino/SiNoNcField';
 import {
+  CODICI_ERRORE,
   CONTROLLO_GARANZIA_FIELDS,
+  getCodiceErroreDescrizione,
   TIPOLOGIA_INSTALLAZIONE_LABELS,
   TIPOLOGIA_INSTALLAZIONE_VALUES,
 } from '@/lib/rapportino-constants';
@@ -190,13 +192,48 @@ export default function RapportinoStepIntervento({
                 {marcaId && <option value="new">+ Nuovo modello</option>}
               </select>
             ) : (
-              <input
-                type="text"
-                value={intervento.modello}
-                onChange={(e) => setValue('intervento.modello', e.target.value)}
-                placeholder="Inserisci modello"
-                className="w-full rounded-md border border-input bg-background px-4 py-3 text-foreground focus:ring-2 focus:ring-ring"
-              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={intervento.modello}
+                  onChange={(e) => setValue('intervento.modello', e.target.value)}
+                  placeholder="Inserisci nuovo modello"
+                  className="flex-1 rounded-md border border-input bg-background px-4 py-3 text-foreground focus:ring-2 focus:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!intervento.modello.trim()) return;
+                    if (!marcaId) {
+                      toast.error('Salva prima la marca per aggiungere un nuovo modello');
+                      return;
+                    }
+                    try {
+                      const response = await fetchWithAuth('/api/modelli', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
+                      });
+                      const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
+                      if (!response.ok) {
+                        toast.error(getApiErrorMessage(data, 'Errore nella creazione del modello'));
+                        return;
+                      }
+                      const newModello = data as { id: string; nome: string; marca_id: string };
+                      setModelli([...modelli, newModello]);
+                      setModelloId(newModello.id);
+                      setValue('intervento.modello', newModello.nome);
+                      setShowModelloInput(false);
+                      toast.success('Modello salvato nel catalogo');
+                    } catch {
+                      toast.error('Errore nella creazione del modello');
+                    }
+                  }}
+                  className="rounded-md bg-green-600 px-4 py-3 font-bold text-white hover:bg-green-700"
+                >
+                  Salva
+                </button>
+              </div>
             )}
           </div>
 
@@ -244,6 +281,30 @@ export default function RapportinoStepIntervento({
           description="Descrivi il motivo della chiamata e le verifiche effettuate"
         />
         <div className="grid grid-cols-1 gap-5">
+          <div>
+            <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
+              Codice errore
+            </label>
+            <select
+              value={intervento.codiceErrore || ''}
+              onChange={(e) => setValue('intervento.codiceErrore', e.target.value || undefined)}
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-foreground focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Seleziona codice errore...</option>
+              {CODICI_ERRORE.map((errore) => (
+                <option key={errore.codice} value={errore.codice}>
+                  {errore.codice} — {errore.descrizione}
+                </option>
+              ))}
+            </select>
+            {intervento.codiceErrore && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{intervento.codiceErrore}</span>
+                {' — '}
+                {getCodiceErroreDescrizione(intervento.codiceErrore)}
+              </p>
+            )}
+          </div>
           <div>
             <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
               Motivo della chiamata <span className="text-red-500">*</span>

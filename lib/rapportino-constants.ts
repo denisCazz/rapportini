@@ -104,3 +104,28 @@ export function formatTipologiaInstallazione(value?: TipologiaInstallazione | st
   }
   return value;
 }
+
+/** Codici errore apparecchio (catalogo provvisorio) */
+export const CODICI_ERRORE = [
+  { codice: 'E01', descrizione: 'Mancanza accensione / fiamma' },
+  { codice: 'E02', descrizione: 'Errore ventola estrazione fumi' },
+  { codice: 'E03', descrizione: 'Sovratemperatura camera combustione' },
+  { codice: 'E04', descrizione: 'Sensore fumi difettoso' },
+  { codice: 'E05', descrizione: 'Alimentazione pellet insufficiente' },
+  { codice: 'E06', descrizione: 'Porta o guarnizione non a tenuta' },
+  { codice: 'E07', descrizione: 'Errore scheda elettronica' },
+  { codice: 'E08', descrizione: 'Pressostato aria bloccato' },
+] as const;
+
+export type CodiceErrore = (typeof CODICI_ERRORE)[number]['codice'];
+
+export function getCodiceErroreDescrizione(codice?: string | null): string | undefined {
+  if (!codice) return undefined;
+  return CODICI_ERRORE.find((e) => e.codice === codice)?.descrizione;
+}
+
+export function formatCodiceErrore(codice?: string | null): string {
+  if (!codice) return '—';
+  const desc = getCodiceErroreDescrizione(codice);
+  return desc ? `${codice} — ${desc}` : codice;
+}

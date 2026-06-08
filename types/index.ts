@@ -51,6 +51,7 @@ export interface Intervento {
   rivenditore?: string;
   tipoIntervento?: string;
   motivoChiamata?: string;
+  codiceErrore?: string;
   verifiche?: string;
   installazioneEseguitaDa?: string;
   descrizione?: string;

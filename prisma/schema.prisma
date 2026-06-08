@@ -74,6 +74,7 @@ model Rapportini {
   rivenditore         String?   @db.VarChar(255)
   tipo_intervento     String    @db.VarChar(255)
   motivo_chiamata     String?
+  codice_errore       String?   @db.VarChar(20)
   verifiche           String?
   installazione_eseguita_da String? @db.VarChar(255)
   descrizione         String
