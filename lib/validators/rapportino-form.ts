@@ -63,6 +63,7 @@ export const interventoSchema = z.object({
   rivenditore: optStr,
   tipoIntervento: optStr,
   motivoChiamata: req,
+  codiceErrore: optStr,
   verifiche: optStr,
   installazioneEseguitaDa: optStr,
   descrizione: optStr,
@@ -180,6 +181,7 @@ export function getDefaultRapportinoFormValues(initial?: Rapportino): Rapportino
           tipoIntervento: initial.intervento.tipoIntervento ?? '',
           motivoChiamata:
             initial.intervento.motivoChiamata || initial.intervento.descrizione || '',
+          codiceErrore: initial.intervento.codiceErrore ?? '',
           verifiche: initial.intervento.verifiche ?? '',
           installazioneEseguitaDa: initial.intervento.installazioneEseguitaDa ?? '',
           descrizione: initial.intervento.descrizione ?? '',
@@ -210,6 +212,7 @@ export function getDefaultRapportinoFormValues(initial?: Rapportino): Rapportino
           rivenditore: '',
           tipoIntervento: '',
           motivoChiamata: '',
+          codiceErrore: '',
           verifiche: '',
           installazioneEseguitaDa: '',
           descrizione: '',

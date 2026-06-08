@@ -84,6 +84,7 @@ export const interventoSchema = z.object({
   rivenditore: z.string().max(200, 'Rivenditore troppo lungo').optional().or(z.literal('')),
   tipoIntervento: z.string().max(100, 'Tipo intervento troppo lungo').optional().or(z.literal('')),
   motivoChiamata: z.string().max(2000, 'Motivo chiamata troppo lungo').optional().or(z.literal('')),
+  codiceErrore: z.string().max(20, 'Codice errore troppo lungo').optional().or(z.literal('')),
   verifiche: z.string().max(2000, 'Verifiche troppo lunghe').optional().or(z.literal('')),
   installazioneEseguitaDa: z.string().max(200, 'Campo troppo lungo').optional().or(z.literal('')),
   descrizione: z.string().max(2000, 'Descrizione troppo lunga').optional().or(z.literal('')),

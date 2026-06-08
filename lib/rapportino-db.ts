@@ -21,6 +21,7 @@ type RapportinoDbRow = {
   rivenditore?: string | null;
   tipo_intervento: string;
   motivo_chiamata?: string | null;
+  codice_errore?: string | null;
   verifiche?: string | null;
   installazione_eseguita_da?: string | null;
   descrizione: string;
@@ -132,6 +133,7 @@ export function mapDbRowToRapportino(r: RapportinoDbRow): Rapportino {
       rivenditore: r.rivenditore || '',
       tipoIntervento: r.tipo_intervento,
       motivoChiamata: r.motivo_chiamata || '',
+      codiceErrore: r.codice_errore || '',
       verifiche: r.verifiche || '',
       installazioneEseguitaDa: r.installazione_eseguita_da || '',
       descrizione: r.descrizione,
@@ -175,6 +177,7 @@ export function mapInterventoToDbData(intervento: Intervento) {
     rivenditore: intervento.rivenditore?.trim() || null,
     tipo_intervento: tipoInterventoLabel,
     motivo_chiamata: intervento.motivoChiamata?.trim() || null,
+    codice_errore: intervento.codiceErrore?.trim() || null,
     verifiche: intervento.verifiche?.trim() || null,
     installazione_eseguita_da: intervento.installazioneEseguitaDa?.trim() || null,
     descrizione: intervento.descrizione || intervento.motivoChiamata?.trim() || '',
