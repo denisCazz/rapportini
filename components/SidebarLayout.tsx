@@ -30,9 +30,20 @@ import {
   Settings,
   LogOut,
   Plus,
+  Calendar,
+  ClipboardList,
+  Bell,
+  Puzzle,
   Contact,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PAID_MODULES } from '@/lib/modules';
+
+const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  pianificazione_interventi: Calendar,
+  assegnazione_lavori: ClipboardList,
+  notifiche_scadenze: Bell,
+};
 
 interface SidebarLayoutProps {
   settings: AziendaSettings;
@@ -159,6 +170,28 @@ export default function SidebarLayout({
           Rapportini
         </Link>
 
+        {user?.ruolo === 'operatore' && (
+          <>
+            <p className="mt-4 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Moduli
+            </p>
+            {PAID_MODULES.map((modulo) => {
+              const Icon = MODULE_ICONS[modulo.code] ?? FileText;
+              return (
+                <Link
+                  key={modulo.code}
+                  href={modulo.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={navLinkClass(pathname === modulo.href || pathname.startsWith(`${modulo.href}/`))}
+                >
+                  <Icon className="h-4 w-4" aria-hidden />
+                  {modulo.nome}
+                </Link>
+              );
+            })}
+          </>
+        )}
+
         {user?.ruolo === 'admin' && (
           <>
             <p className="mt-4 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -191,6 +224,14 @@ export default function SidebarLayout({
             >
               <Settings className="h-4 w-4" aria-hidden />
               Impostazioni
+            </Link>
+            <Link
+              href="/admin/moduli"
+              onClick={() => setMobileOpen(false)}
+              className={navLinkClass(isActive('/admin/moduli'))}
+            >
+              <Puzzle className="h-4 w-4" aria-hidden />
+              Moduli
             </Link>
           </>
         )}

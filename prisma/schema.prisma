@@ -27,9 +27,40 @@ model Utenti {
 
   password_reset_tokens PasswordResetTokens[]
   rapportini            Rapportini[]
+  utente_moduli         UtenteModuli[]
 
   @@unique([org_id, username], map: "uq_utenti_org_id_username")
   @@map("utenti")
+}
+
+model Moduli {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique @db.VarChar(64)
+  nome        String    @db.VarChar(255)
+  descrizione String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  utente_moduli UtenteModuli[]
+
+  @@map("moduli")
+}
+
+model UtenteModuli {
+  id         String    @id @default(uuid()) @db.Uuid
+  org_id     String    @default("default") @db.VarChar(100)
+  utente_id  String    @db.Uuid
+  modulo_id  String    @db.Uuid
+  attivo     Boolean   @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  utenti Utenti @relation(fields: [utente_id], references: [id], onDelete: Cascade)
+  moduli Moduli @relation(fields: [modulo_id], references: [id], onDelete: Cascade)
+
+  @@unique([utente_id, modulo_id], map: "uq_utente_moduli_utente_modulo")
+  @@index([org_id], map: "idx_utente_moduli_org_id")
+  @@index([utente_id], map: "idx_utente_moduli_utente_id")
+  @@map("utente_moduli")
 }
 
 model Clienti {
