@@ -26,6 +26,8 @@ interface User {
   attivo: boolean;
   ultimo_accesso: string | null;
   created_at: string;
+  org_id?: string;
+  organizzazione?: string | null;
 }
 
 export default function UsersPage() {
@@ -55,6 +57,11 @@ export default function UsersPage() {
   const hasLoadedRef = useRef(false);
   const isCatAdminUser = auth.isCatAdmin();
   const isPlatformAdminUser = auth.isPlatformAdmin();
+  const currentOrgId = auth.getUser()?.org_id;
+
+  const isCatOrgUser = (user: User) =>
+    Boolean(user.organizzazione) ||
+    Boolean(user.org_id && currentOrgId && user.org_id !== currentOrgId);
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -278,6 +285,9 @@ export default function UsersPage() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Utente</th>
+                    {isPlatformAdminUser && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Organizzazione</th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ruolo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contatti</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stato</th>
@@ -294,6 +304,11 @@ export default function UsersPage() {
                           <div className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</div>
                         </div>
                       </td>
+                      {isPlatformAdminUser && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {user.organizzazione || 'Piattaforma'}
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           user.ruolo === 'admin' || user.ruolo === 'admin_cat'
@@ -459,7 +474,7 @@ export default function UsersPage() {
                     ))}
                   </select>
                 </div>
-                {!isCatAdminUser && (
+                {!isCatAdminUser && !(editingUser && isCatOrgUser(editingUser)) && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo *</label>
                     <select
@@ -475,6 +490,17 @@ export default function UsersPage() {
                       <option value="operatore">Operatore</option>
                       {isPlatformAdminUser && <option value="admin">Admin</option>}
                     </select>
+                  </div>
+                )}
+                {editingUser && isCatOrgUser(editingUser) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo</label>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      {editingUser.ruolo === 'admin_cat' ? 'admin CAT' : editingUser.ruolo}
+                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Il ruolo degli utenti CAT non può essere modificato da qui.
+                      </span>
+                    </p>
                   </div>
                 )}
                 {(isCatAdminUser || formData.ruolo === 'operatore') && (

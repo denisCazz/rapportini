@@ -3,12 +3,14 @@ import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { registerSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
-import { isCatAdmin, isOrgAdminRole } from '@/lib/roles';
+import { isCatAdmin, isOrgAdminRole, isPlatformAdmin } from '@/lib/roles';
+import { getCatOrgLabels, getPlatformAdminVisibleOrgIds } from '@/lib/user-scope';
 
 export const dynamic = 'force-dynamic';
 
 const userSelectPublic = {
   id: true,
+  org_id: true,
   username: true,
   ruolo: true,
   nome: true,
@@ -32,13 +34,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
+    const visibleOrgIds = isPlatformAdmin(userRole)
+      ? await getPlatformAdminVisibleOrgIds(orgId)
+      : [orgId];
+
     const utenti = await prisma.utenti.findMany({
-      where: { org_id: orgId },
+      where: { org_id: { in: visibleOrgIds } },
       orderBy: { created_at: 'desc' },
       select: userSelectPublic,
     });
 
-    return NextResponse.json({ data: utenti });
+    if (!isPlatformAdmin(userRole)) {
+      const data = utenti.map(({ org_id: _orgId, ...user }) => user);
+      return NextResponse.json({ data });
+    }
+
+    const orgLabels = await getCatOrgLabels(visibleOrgIds);
+    const data = utenti.map((user) => ({
+      ...user,
+      organizzazione:
+        user.org_id === orgId
+          ? null
+          : orgLabels.get(user.org_id) ?? user.org_id,
+    }));
+
+    return NextResponse.json({ data });
   } catch (error: unknown) {
     console.error('Error fetching users:', error);
     const message = error instanceof Error ? error.message : 'Errore nel recupero degli utenti';
