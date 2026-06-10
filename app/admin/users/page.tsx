@@ -11,11 +11,12 @@ import SidebarLayout from '@/components/SidebarLayout';
 import SignaturePad from '@/components/SignaturePad';
 import { api, parseResponseBody, fetchWithAuth } from '@/lib/api';
 import { AziendaSettings } from '@/types';
+import { OPERATOR_QUALIFICHE } from '@/lib/operator-qualifiche';
 
 interface User {
   id: string;
   username: string;
-  ruolo: 'admin' | 'operatore';
+  ruolo: 'admin' | 'admin_cat' | 'operatore';
   nome: string;
   cognome: string;
   telefono: string | null;
@@ -45,13 +46,15 @@ export default function UsersPage() {
     telefono: '',
     qualifica: '',
     firma: '',
-    ruolo: 'operatore' as 'admin' | 'operatore',
+    ruolo: 'operatore' as 'admin' | 'admin_cat' | 'operatore',
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const hasLoadedRef = useRef(false);
+  const isCatAdminUser = auth.isCatAdmin();
+  const isPlatformAdminUser = auth.isPlatformAdmin();
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -104,8 +107,19 @@ export default function UsersPage() {
       const method = editingUser ? 'PATCH' : 'POST';
 
       const body = editingUser
-        ? { nome: formData.nome, cognome: formData.cognome, email: formData.email, telefono: formData.telefono, qualifica: formData.qualifica, firma: formData.firma, ruolo: formData.ruolo }
-        : formData;
+        ? {
+            nome: formData.nome,
+            cognome: formData.cognome,
+            email: formData.email,
+            telefono: formData.telefono,
+            qualifica: formData.qualifica,
+            firma: formData.firma,
+            ...(isCatAdminUser ? {} : { ruolo: formData.ruolo }),
+          }
+        : {
+            ...formData,
+            ruolo: isCatAdminUser ? 'operatore' : formData.ruolo,
+          };
 
       const response = await fetchWithAuth(url, {
         method,
@@ -201,6 +215,10 @@ export default function UsersPage() {
   };
 
   const openEditModal = (user: User) => {
+    if (isCatAdminUser && user.ruolo !== 'operatore') {
+      toast.error('Puoi modificare solo gli operatori');
+      return;
+    }
     setEditingUser(user);
     setFormData({
       username: user.username,
@@ -278,11 +296,11 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          user.ruolo === 'admin' 
-                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200' 
+                          user.ruolo === 'admin' || user.ruolo === 'admin_cat'
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200'
                             : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200'
                         }`}>
-                          {user.ruolo}
+                          {user.ruolo === 'admin_cat' ? 'admin CAT' : user.ruolo}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -311,7 +329,8 @@ export default function UsersPage() {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => openEditModal(user)}
-                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400"
+                            disabled={isCatAdminUser && user.ruolo !== 'operatore'}
+                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Modifica"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,7 +348,8 @@ export default function UsersPage() {
                           </button>
                           <button
                             onClick={() => handleDelete(user)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400"
+                            disabled={isCatAdminUser && user.ruolo !== 'operatore'}
+                            className="text-red-600 hover:text-red-900 dark:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Elimina"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,28 +443,41 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Qualifica {formData.ruolo === 'operatore' && <span className="text-red-500">*</span>}
+                    Qualifica {(isCatAdminUser || formData.ruolo === 'operatore') && <span className="text-red-500">*</span>}
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.qualifica}
                     onChange={(e) => setFormData({ ...formData, qualifica: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    required={formData.ruolo === 'operatore'}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo *</label>
-                  <select
-                    value={formData.ruolo}
-                    onChange={(e) => setFormData({ ...formData, ruolo: e.target.value as 'admin' | 'operatore' })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    required={isCatAdminUser || formData.ruolo === 'operatore'}
                   >
-                    <option value="operatore">Operatore</option>
-                    <option value="admin">Admin</option>
+                    <option value="">Seleziona qualifica</option>
+                    {OPERATOR_QUALIFICHE.map((qualifica) => (
+                      <option key={qualifica} value={qualifica}>
+                        {qualifica}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                {formData.ruolo === 'operatore' && (
+                {!isCatAdminUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo *</label>
+                    <select
+                      value={formData.ruolo}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          ruolo: e.target.value as 'admin' | 'admin_cat' | 'operatore',
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="operatore">Operatore</option>
+                      {isPlatformAdminUser && <option value="admin">Admin</option>}
+                    </select>
+                  </div>
+                )}
+                {(isCatAdminUser || formData.ruolo === 'operatore') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Firma operatore</label>
                     <SignaturePad

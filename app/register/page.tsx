@@ -7,16 +7,7 @@ import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
 import { parseResponseBody } from '@/lib/api';
 import AuthSidePanel from '@/components/auth/AuthSidePanel';
-
-const QUALIFICHE = [
-  'Tecnico specializzato',
-  'Tecnico installatore',
-  'Tecnico manutentore',
-  'Tecnico riparatore',
-  'Tecnico qualificato',
-  'Installatore autorizzato',
-  'Manutentore autorizzato',
-];
+import { OPERATOR_QUALIFICHE } from '@/lib/operator-qualifiche';
 
 function RegisterPageContent() {
   const router = useRouter();
@@ -400,7 +391,7 @@ function RegisterPageContent() {
               className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-all disabled:opacity-50"
             >
               <option value="">Seleziona qualifica</option>
-              {QUALIFICHE.map((qualifica) => (
+              {OPERATOR_QUALIFICHE.map((qualifica) => (
                 <option key={qualifica} value={qualifica} className="bg-white dark:bg-gray-700">
                   {qualifica}
                 </option>

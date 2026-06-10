@@ -73,6 +73,22 @@ export async function PATCH(
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
+    const targetUser = await prisma.utenti.findFirst({
+      where: { id, org_id: orgId },
+      select: { ruolo: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
+    }
+
+    if (isCatAdmin(userRole) && targetUser.ruolo !== 'operatore') {
+      return NextResponse.json(
+        { error: 'Gli amministratori CAT possono modificare solo operatori' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     const validation = validateRequest(updateUserSchema, body);
@@ -86,6 +102,10 @@ export async function PATCH(
     if (!isAdmin) {
       delete updateData.ruolo;
       delete updateData.attivo;
+    }
+
+    if (isCatAdmin(userRole)) {
+      delete updateData.ruolo;
     }
 
     if (isSelf && updateData.attivo === false) {
@@ -111,11 +131,6 @@ export async function PATCH(
     if (updateData.firma !== undefined) prismaData.firma = (updateData.firma as string) || null;
     if (updateData.attivo !== undefined) prismaData.attivo = updateData.attivo as boolean;
     if (updateData.ruolo !== undefined) prismaData.ruolo = updateData.ruolo as string;
-
-    const existing = await prisma.utenti.findFirst({ where: { id, org_id: orgId }, select: { id: true } });
-    if (!existing) {
-      return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
-    }
 
     const updatedUser = await prisma.utenti.update({
       where: { id },

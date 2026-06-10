@@ -183,6 +183,10 @@ model Organizzazioni {
   tipo                    String    @default("default") @db.VarChar(20)
   stato                   String    @default("attivo") @db.VarChar(20)
   invite_token            String?   @unique @db.VarChar(64)
+  stripe_customer_id      String?   @db.VarChar(255)
+  stripe_subscription_id  String?   @db.VarChar(255)
+  stripe_subscription_status String? @db.VarChar(50)
+  licensed_operator_slots Int?
   created_at              DateTime? @default(now()) @db.Timestamptz(6)
   updated_at              DateTime? @default(now()) @db.Timestamptz(6)
 

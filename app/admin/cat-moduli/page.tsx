@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
@@ -46,17 +46,30 @@ interface CatModulesResponse {
       baseOperatorSlots: number;
       extraOperatorPriceEur: number;
     };
+    subscription: {
+      active: boolean;
+      status: string | null;
+      licensedOperatorSlots: number | null;
+    };
+    stripeEnabled: boolean;
   };
   error?: string;
 }
 
-export default function CatModuliPage() {
+function CatModuliPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [moduli, setModuli] = useState<ModuloCatalogo[]>([]);
   const [tecnici, setTecnici] = useState<TecnicoModuli[]>([]);
   const [pricingLabel, setPricingLabel] = useState('');
   const [inviteUrl, setInviteUrl] = useState('');
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [stripeEnabled, setStripeEnabled] = useState(false);
+  const [monthlyPriceEur, setMonthlyPriceEur] = useState(0);
+  const [operatorCount, setOperatorCount] = useState(0);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -76,7 +89,14 @@ export default function CatModuliPage() {
     setSettings(storage.getSettings());
     loadData();
     loadInviteLink();
-  }, [router]);
+
+    const checkout = searchParams.get('checkout');
+    if (checkout === 'success') {
+      toast.success('Pagamento avviato! I moduli saranno attivabili a breve.');
+    } else if (checkout === 'cancel') {
+      toast.message('Pagamento annullato');
+    }
+  }, [router, searchParams]);
 
   const loadInviteLink = async () => {
     try {
@@ -128,7 +148,13 @@ export default function CatModuliPage() {
       setModuli(data?.data?.moduli || []);
       setTecnici(data?.data?.tecnici || []);
       const count = data?.data?.pricing?.operatorCount ?? 0;
+      const price = data?.data?.pricing?.monthlyPriceEur ?? 0;
       setPricingLabel(formatCatLicensePrice(count));
+      setOperatorCount(count);
+      setMonthlyPriceEur(price);
+      setSubscriptionActive(Boolean(data?.data?.subscription?.active));
+      setSubscriptionStatus(data?.data?.subscription?.status ?? null);
+      setStripeEnabled(Boolean(data?.data?.stripeEnabled));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Errore nel caricamento');
     } finally {
@@ -176,6 +202,25 @@ export default function CatModuliPage() {
       toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio');
     } finally {
       setSavingKey(null);
+    }
+  };
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      const response = await fetchWithAuth('/api/cat/modules/checkout', { method: 'POST' });
+      const data = await parseResponseBody<{ data?: { url?: string }; error?: string }>(response);
+      if (!response.ok) {
+        throw new Error(data?.error || 'Errore nell\'avvio del pagamento');
+      }
+      if (data?.data?.url) {
+        window.location.href = data.data.url;
+        return;
+      }
+      throw new Error('URL di pagamento non disponibile');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nel pagamento');
+      setCheckoutLoading(false);
     }
   };
 
@@ -231,11 +276,45 @@ export default function CatModuliPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Pacchetto licenza</CardTitle>
+              <CardTitle>Pacchetto licenza moduli</CardTitle>
               <CardDescription>
                 {pricingLabel} — fino a 2 operatori inclusi a €30/mese, poi €5/mese per ogni operatore aggiuntivo.
+                {subscriptionActive
+                  ? ' Abbonamento attivo: puoi attivare i moduli per gli operatori.'
+                  : ' Sottoscrivi il pacchetto per attivare i moduli.'}
               </CardDescription>
             </CardHeader>
+            <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-muted-foreground">
+                {subscriptionActive ? (
+                  <span className="font-medium text-primary">Abbonamento attivo</span>
+                ) : subscriptionStatus ? (
+                  <span>Stato pagamento: {subscriptionStatus}</span>
+                ) : (
+                  <span>Nessun abbonamento attivo</span>
+                )}
+                {operatorCount > 0 && (
+                  <span className="block">Operatori attivi: {operatorCount} · €{monthlyPriceEur}/mese</span>
+                )}
+              </div>
+              {stripeEnabled && operatorCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {checkoutLoading
+                    ? 'Reindirizzamento...'
+                    : subscriptionActive
+                      ? 'Aggiorna abbonamento su Stripe'
+                      : 'Paga pacchetto con Stripe'}
+                </button>
+              )}
+              {!stripeEnabled && (
+                <p className="text-sm text-amber-600">Stripe non configurato — contatta il supporto.</p>
+              )}
+            </CardContent>
           </Card>
 
           {tecnici.length === 0 ? (
@@ -285,7 +364,7 @@ export default function CatModuliPage() {
                                   <input
                                     type="checkbox"
                                     checked={modulo.attivo}
-                                    disabled={isSaving || !tecnico.attivo}
+                                    disabled={isSaving || !tecnico.attivo || (!modulo.attivo && !subscriptionActive)}
                                     onChange={(e) =>
                                       handleToggle(tecnico.id, modulo.code, e.target.checked)
                                     }
@@ -309,5 +388,13 @@ export default function CatModuliPage() {
         </div>
       )}
     </SidebarLayout>
+  );
+}
+
+export default function CatModuliPage() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <CatModuliPageContent />
+    </Suspense>
   );
 }
