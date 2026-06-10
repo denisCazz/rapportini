@@ -1,5 +1,5 @@
 import { canManageModulesAdmin } from '@/lib/module-admin';
-import { isCatAdmin, isOrgAdminRole, isPlatformAdmin, UserRole } from '@/lib/roles';
+import { canCreateRapportini, isCatAdmin, isOrgAdminRole, isPlatformAdmin, UserRole } from '@/lib/roles';
 
 const STORAGE_KEY_AUTH = 'auth_token';
 const STORAGE_KEY_USER = 'user_data';
@@ -196,6 +196,11 @@ export const auth = {
   isOperatore: (): boolean => {
     const user = auth.getUser();
     return user?.ruolo === 'operatore';
+  },
+
+  canCreateRapportini: (): boolean => {
+    const user = auth.getUser();
+    return canCreateRapportini(user?.ruolo);
   },
 
   /** Gestione manuale moduli admin (solo super-admin). */

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { Rapportino } from '@/types';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
-import { isOrgAdminRole } from '@/lib/roles';
+import { canCreateRapportini, isOrgAdminRole } from '@/lib/roles';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
 import { syncDatabaseSchema } from '@/lib/db-schema-sync';
@@ -202,8 +202,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
     }
 
-    if (utente.ruolo !== 'operatore') {
-      return NextResponse.json({ error: 'Solo gli operatori possono creare rapportini' }, { status: 403 });
+    if (!canCreateRapportini(utente.ruolo)) {
+      return NextResponse.json({ error: 'Non hai i permessi per creare rapportini' }, { status: 403 });
     }
 
     const nomeNormalizzato = rapportino.cliente.nome.trim();

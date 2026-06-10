@@ -31,7 +31,7 @@ export default function InterventoPianificatoActions({
 }: InterventoPianificatoActionsProps) {
   const [confirmAction, setConfirmAction] = useState<'completa' | 'annulla' | null>(null);
   const [loading, setLoading] = useState<'completa' | 'annulla' | null>(null);
-  const isOperatore = auth.getUser()?.ruolo === 'operatore';
+  const canCreateRapportini = auth.canCreateRapportini();
 
   if (stato === 'completato') {
     return (
@@ -86,7 +86,7 @@ export default function InterventoPianificatoActions({
           className
         )}
       >
-        {isOperatore && (
+        {canCreateRapportini && (
           <Link
             href={`/rapportini/nuovo?interventoId=${interventoId}`}
             className={buttonVariants({
