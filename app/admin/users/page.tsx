@@ -227,7 +227,6 @@ export default function UsersPage() {
     <SidebarLayout
       settings={settings}
       pageTitle="Gestione Utenti"
-      pageSubtitle="Crea, modifica e gestisci gli utenti del sistema"
       onLogout={handleLogout}
       topActions={
         <button

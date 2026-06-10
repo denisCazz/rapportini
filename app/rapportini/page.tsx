@@ -90,7 +90,6 @@ export default function RapportiniSearchPage() {
     <SidebarLayout
       settings={settings}
       pageTitle="Rapportini"
-      pageSubtitle="Cerca e gestisci i rapportini"
       onLogout={handleLogout}
     >
       <RapportiniFilters onFilterChange={handleFilterChange} initialFilters={filters} />

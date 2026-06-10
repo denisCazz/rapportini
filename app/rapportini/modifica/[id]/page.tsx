@@ -95,7 +95,6 @@ export default function ModificaRapportinoPage() {
     <SidebarLayout
       settings={settings}
       pageTitle="Modifica Rapportino"
-      pageSubtitle={`Modifica rapportino del ${rapportino.intervento.data}`}
       onLogout={() => { auth.logout(); router.push('/login'); }}
     >
       <RapportinoForm

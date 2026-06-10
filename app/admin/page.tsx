@@ -144,7 +144,6 @@ export default function AdminPage() {
     <SidebarLayout
       settings={settings}
       pageTitle="Pannello Admin"
-      pageSubtitle="Statistiche avanzate clienti e rapportini"
       onLogout={handleLogout}
       topActions={
         <div className="flex flex-wrap gap-3 justify-end">
@@ -522,34 +521,12 @@ export default function AdminPage() {
         </div>
       )}
 
-      <footer className="mt-12 py-6 border-t border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
-              <p>
-                <a 
-                  href="https://bitora.it" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
-                >
-                  Bitora Software Gestionale Stufe
-                </a>
-                {' è un prodotto di '}
-                <a 
-                  href="https://bitora.it" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
-                >
-                  Bitora.it
-                </a>
-              </p>
-              <p className="text-xs mt-1">
-                © {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati
-              </p>
-            </div>
-          </div>
+      <footer className="mt-12 border-t border-gray-200 py-6 dark:border-gray-700">
+        <div className="flex flex-col items-center gap-2 text-center text-sm text-gray-600 dark:text-gray-400 sm:flex-row sm:justify-between">
+          <p className="text-xs font-medium">© {new Date().getFullYear()} {settings.nomeAzienda || 'EVA CALÒR'}</p>
+          <Link href="/privacy" className="text-xs text-primary-600 hover:underline dark:text-primary-400">
+            Privacy Policy
+          </Link>
         </div>
       </footer>
     </SidebarLayout>

@@ -57,7 +57,6 @@ export default function NuovoRapportinoPage() {
     <SidebarLayout
       settings={settings}
       pageTitle="Nuovo Rapportino"
-      pageSubtitle="Compila il form per creare un nuovo rapportino"
       onLogout={() => { auth.logout(); router.push('/login'); }}
     >
       <RapportinoForm onSave={handleSave} onCancel={handleCancel} />

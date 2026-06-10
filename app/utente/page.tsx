@@ -70,7 +70,6 @@ export default function UtentePage() {
     <SidebarLayout
       settings={settings}
       pageTitle="Profilo Utente"
-      pageSubtitle="Dati dell'operatore attualmente autenticato"
       onLogout={handleLogout}
     >
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">

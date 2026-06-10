@@ -364,32 +364,11 @@ export default function RegisterPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-            <p>
-              <a 
-                href="https://bitora.it" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-              >
-                Bitora Software di Gestione Specializzato
-              </a>
-              {' è un prodotto di '}
-              <a 
-                href="https://bitora.it" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
-              >
-                Bitora.it
-              </a>
-            </p>
-            <p>© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
-            <p>
-              <Link href="/privacy" className="hover:text-primary-600 transition-colors underline">
-                Privacy Policy
-              </Link>
-            </p>
+          <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <p>© {new Date().getFullYear()} EVA CALÒR</p>
+            <Link href="/privacy" className="hover:text-primary-600 transition-colors underline">
+              Privacy Policy
+            </Link>
           </div>
         </div>
       </div>

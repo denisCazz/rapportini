@@ -109,7 +109,6 @@ export default function ImpostazioniPage() {
     <SidebarLayout
       settings={settings}
       pageTitle="Impostazioni Azienda"
-      pageSubtitle="Configura nome, logo e dati dell'organizzazione"
       onLogout={handleLogout}
     >
       {loading ? (

@@ -15,9 +15,7 @@ export default function AuthSidePanel() {
               className="h-12 w-auto max-w-full object-contain"
             />
           </div>
-          <h2 className="mt-2 text-2xl font-semibold leading-snug">
-            Gestione rapportini d&apos;intervento per stufe pellet e legna
-          </h2>
+          <h2 className="mt-2 text-2xl font-semibold leading-snug">EVA CALÒR</h2>
         </div>
         <ul className="space-y-4 text-sm text-primary-100">
           <li className="flex items-start gap-3">

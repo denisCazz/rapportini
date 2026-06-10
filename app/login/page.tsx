@@ -175,17 +175,8 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          <div className="mt-8 text-center text-xs text-muted-foreground space-y-1">
-            <p>
-              <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                Bitora Software di Gestione Specializzato
-              </a>
-              {' · '}
-              <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                Bitora.it
-              </a>
-            </p>
-            <p>© {new Date().getFullYear()} Bitora.it</p>
+          <div className="mt-8 space-y-1 text-center text-xs text-muted-foreground">
+            <p>© {new Date().getFullYear()} EVA CALÒR</p>
             <Link href="/privacy" className="hover:text-primary hover:underline">
               Privacy Policy
             </Link>

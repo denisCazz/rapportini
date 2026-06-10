@@ -10,6 +10,13 @@ import { isTestEnv } from '@/lib/env';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -35,7 +42,6 @@ import { cn } from '@/lib/utils';
 interface SidebarLayoutProps {
   settings: AziendaSettings;
   pageTitle: string;
-  pageSubtitle?: string;
   children: React.ReactNode;
   onLogout?: () => void;
   onNewRapportino?: () => void;
@@ -54,7 +60,6 @@ const navLinkClass = (active: boolean) =>
 export default function SidebarLayout({
   settings,
   pageTitle,
-  pageSubtitle,
   children,
   onLogout,
   onExportPDF,
@@ -211,27 +216,18 @@ export default function SidebarLayout({
           {darkMode ? 'Tema scuro' : 'Tema chiaro'}
         </Button>
 
-        <Link
-          href="/utente"
-          onClick={() => setMobileOpen(false)}
-          className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-muted"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-            {user?.nome?.charAt(0)}{user?.cognome?.charAt(0)}
+        {user && (
+          <div className="flex items-center gap-3 rounded-md border border-border p-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+              {user.nome?.charAt(0)}{user.cognome?.charAt(0)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {user.nome} {user.cognome}
+              </p>
+              <p className="text-xs capitalize text-muted-foreground">{user.ruolo}</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">
-              {user?.nome} {user?.cognome}
-            </p>
-            <p className="text-xs capitalize text-muted-foreground">{user?.ruolo}</p>
-          </div>
-        </Link>
-
-        {onLogout && (
-          <Button variant="outline" className="w-full justify-center gap-2 text-destructive hover:text-destructive" onClick={onLogout}>
-            <LogOut className="h-4 w-4" />
-            Esci
-          </Button>
         )}
       </div>
     </>
@@ -273,27 +269,42 @@ export default function SidebarLayout({
                       TEST
                     </span>
                   )}
-                  <div className="ml-auto flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={toggleDarkMode}
-                      aria-label={darkMode ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
-                    >
-                      {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </Button>
-                    {user && (
-                      <Link
-                        href="/utente"
-                        aria-label="Profilo utente"
-                        className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}
-                      >
-                        <UserRound className="h-4 w-4" />
-                      </Link>
-                    )}
-                  </div>
+                  {user && (
+                    <div className="ml-auto">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label="Menu profilo"
+                            />
+                          }
+                        >
+                          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                            {user.nome?.charAt(0)}{user.cognome?.charAt(0)}
+                          </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem render={<Link href="/utente" />}>
+                            <UserRound className="h-4 w-4" />
+                            Visualizza profilo
+                          </DropdownMenuItem>
+                          {onLogout && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem variant="destructive" onClick={onLogout}>
+                                <LogOut className="h-4 w-4" />
+                                Esci
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </div>
                 <Breadcrumb className="mt-1">
                   <BreadcrumbList>
@@ -311,9 +322,6 @@ export default function SidebarLayout({
                     </BreadcrumbItem>
                   </BreadcrumbList>
                 </Breadcrumb>
-                {pageSubtitle && (
-                  <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{pageSubtitle}</p>
-                )}
               </div>
             </div>
           </div>
