@@ -3,10 +3,12 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
+import { assertClienteInOrg, assertUtenteInOrg } from '@/lib/tenant-context';
 import { mapInterventoPianificato } from '@/lib/interventi-pianificati';
 import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import { parseDateOnly, parseTimeForDb } from '@/lib/time-db';
 import type { EventoCalendario } from '@/types';
+import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
     const auth = await requireModuleAccess(request, MODULE_CODES.PIANIFICAZIONE_INTERVENTI);
     if (!auth.ok) return auth.response;
 
-    const { org_id: orgId } = auth.user;
+    const { org_id: orgId, id: userId, ruolo } = auth.user;
     const dataInizio = request.nextUrl.searchParams.get('dataInizio');
     const dataFine = request.nextUrl.searchParams.get('dataFine');
 
@@ -45,10 +47,31 @@ export async function GET(request: NextRequest) {
     const inizio = parseDateOnly(dataInizio);
     const fine = parseDateOnly(dataFine);
 
+    const pianificatiWhere =
+      ruolo === 'admin'
+        ? { org_id: orgId }
+        : {
+            org_id: orgId,
+            OR: [
+              { utente_id: userId },
+              { creato_da: userId },
+              { utente_id: null },
+            ],
+          };
+
+    const rapportiniWhere: Prisma.RapportiniWhereInput = {
+      org_id: orgId,
+      ...(ruolo !== 'admin' ? { utente_id: userId } : {}),
+      OR: [
+        { data_intervento: { gte: inizio, lte: fine } },
+        { prossimo_intervento: { gte: inizio, lte: fine } },
+      ],
+    };
+
     const [pianificati, rapportini] = await Promise.all([
       prisma.interventiPianificati.findMany({
         where: {
-          org_id: orgId,
+          ...pianificatiWhere,
           data_pianificata: { gte: inizio, lte: fine },
           stato: { not: 'annullato' },
         },
@@ -56,13 +79,7 @@ export async function GET(request: NextRequest) {
         orderBy: [{ data_pianificata: 'asc' }, { ora_pianificata: 'asc' }],
       }),
       prisma.rapportini.findMany({
-        where: {
-          org_id: orgId,
-          OR: [
-            { data_intervento: { gte: inizio, lte: fine } },
-            { prossimo_intervento: { gte: inizio, lte: fine } },
-          ],
-        },
+        where: rapportiniWhere,
         include: {
           utenti: { select: { nome: true, cognome: true } },
           clienti: { select: { nome: true, cognome: true } },
@@ -153,6 +170,20 @@ export async function POST(request: NextRequest) {
     }
 
     const { titolo, descrizione, dataPianificata, oraPianificata, clienteId, utenteId } = parsed.data;
+
+    if (clienteId) {
+      const ok = await assertClienteInOrg(clienteId, auth.user.org_id);
+      if (!ok) {
+        return NextResponse.json({ error: 'Cliente non appartenente alla tua organizzazione' }, { status: 403 });
+      }
+    }
+
+    if (utenteId) {
+      const ok = await assertUtenteInOrg(utenteId, auth.user.org_id, 'operatore');
+      if (!ok) {
+        return NextResponse.json({ error: 'Tecnico non appartenente alla tua organizzazione' }, { status: 403 });
+      }
+    }
 
     const created = await prisma.interventiPianificati.create({
       data: {

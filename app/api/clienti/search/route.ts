@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { resolveAuthenticatedTenant } from '@/lib/tenant-context';
 import { Prisma } from '@prisma/client';
 
 // GET - Cerca clienti esistenti per nome e cognome
 export async function GET(request: NextRequest) {
   try {
-    const orgId = getOrgIdFromRequest(request);
+    const tenant = await resolveAuthenticatedTenant(request);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
+    }
+    const orgId = tenant.org_id;
     const searchParams = request.nextUrl.searchParams;
     const nome = searchParams.get('nome')?.trim();
     const cognome = searchParams.get('cognome')?.trim();
