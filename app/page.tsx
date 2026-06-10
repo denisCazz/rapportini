@@ -113,7 +113,6 @@ export default function Home() {
       <SidebarLayout
         settings={settings}
         pageTitle="Dashboard"
-        pageSubtitle="Software di gestione specializzato per rapportini e attività operative"
         onLogout={handleLogout}
         onExportPDF={handleExportPDFs}
       >
@@ -255,21 +254,12 @@ export default function Home() {
           </div>
         )}
 
-        <footer className="mt-16 py-8 border-t border-surface-200 dark:border-surface-800">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-surface-500 dark:text-surface-400 text-center sm:text-left">
-              <p>
-                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-bold">
-                  Bitora Software di Gestione Specializzato
-                </a>
-                {' è un prodotto di '}
-                <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-bold">
-                  Bitora.it
-                </a>
-              </p>
-              <p className="text-xs mt-2 font-medium">© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
-              <Link href="/privacy" className="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block font-medium">Privacy Policy</Link>
-            </div>
+        <footer className="mt-16 border-t border-surface-200 py-6 dark:border-surface-800">
+          <div className="flex flex-col items-center gap-2 text-center text-sm text-surface-500 dark:text-surface-400 sm:flex-row sm:justify-between">
+            <p className="text-xs font-medium">© {new Date().getFullYear()} {settings.nomeAzienda || 'EVA CALÒR'}</p>
+            <Link href="/privacy" className="text-xs text-primary-600 hover:underline dark:text-primary-400">
+              Privacy Policy
+            </Link>
           </div>
         </footer>
       </SidebarLayout>
