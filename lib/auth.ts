@@ -72,25 +72,18 @@ export const auth = {
     }
   ): Promise<{ success: boolean; user?: User; error?: string; retryAfter?: number }> => {
     try {
-      const effectiveOrgId = (options?.orgId || process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || '').trim();
       const partitaIva = (options?.partitaIva || '').trim();
       const ragioneSociale = (options?.ragioneSociale || '').trim();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (effectiveOrgId) {
-        headers['X-Org-Id'] = effectiveOrgId;
-      }
+      const explicitOrgId = (options?.orgId || '').trim();
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers,
-        credentials: 'include', // Importante per i cookie
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           username,
           password,
-          org_id: effectiveOrgId || undefined,
+          org_id: explicitOrgId || undefined,
           partita_iva: partitaIva || undefined,
           ragione_sociale: ragioneSociale || undefined,
         }),
