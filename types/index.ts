@@ -164,3 +164,77 @@ export interface ClientiAdminResponse {
   summary: ClientiAdminSummary;
   clienti: ClienteAdminEntry[];
 }
+
+export type StatoInterventoPianificato = 'pianificato' | 'completato' | 'annullato';
+
+export interface InterventoPianificato {
+  id: string;
+  titolo: string;
+  descrizione?: string;
+  dataPianificata: string;
+  oraPianificata?: string;
+  stato: StatoInterventoPianificato;
+  cliente?: {
+    id: string;
+    nome: string;
+    cognome: string;
+    citta: string;
+    telefono: string;
+  };
+  tecnico?: {
+    id: string;
+    nome: string;
+    cognome: string;
+  };
+}
+
+export type TipoEventoCalendario = 'pianificato' | 'rapportino' | 'manutenzione';
+
+export interface EventoCalendario {
+  id: string;
+  tipo: TipoEventoCalendario;
+  titolo: string;
+  data: string;
+  ora?: string;
+  cliente?: string;
+  tecnico?: string;
+  stato?: string;
+  descrizione?: string;
+  rapportinoId?: string;
+  interventoId?: string;
+}
+
+export interface TecnicoCaricoLavoro {
+  id: string;
+  nome: string;
+  cognome: string;
+  qualifica?: string;
+  interventi: InterventoPianificato[];
+  totale: number;
+}
+
+export type UrgenzaScadenza = 'scaduto' | 'urgente' | 'prossimo' | 'ok';
+
+export interface ScadenzaManutenzione {
+  rapportinoId: string;
+  dataScadenza: string;
+  giorniRimanenti: number;
+  urgenza: UrgenzaScadenza;
+  notificato: boolean;
+  cliente: {
+    nome: string;
+    cognome: string;
+    citta: string;
+    telefono: string;
+  };
+  stufa: {
+    tipo: string;
+    marca: string;
+    modello: string;
+  };
+  ultimoIntervento: string;
+  operatore: {
+    nome: string;
+    cognome: string;
+  };
+}
