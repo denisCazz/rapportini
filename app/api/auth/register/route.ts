@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
+import { findCatOrgByInviteToken, resolveCatOrgId } from '@/lib/cat-org';
+import { CAT_STATO } from '@/lib/cat-status';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -22,19 +24,51 @@ export async function POST(request: NextRequest) {
       );
     }
     const payload = await request.json();
-    const orgId = (
+
+    let orgId = (
       payload?.org_id
       || payload?.idsocieta
-      || (await resolveAuthOrgId(request))
       || ''
     ).toString().trim();
 
+    const partitaIva = (payload?.partita_iva || '').toString().trim();
+    const ragioneSociale = (payload?.ragione_sociale || '').toString().trim();
+    const inviteToken = (payload?.invite || '').toString().trim();
+
+    if (inviteToken) {
+      const cat = await findCatOrgByInviteToken(inviteToken);
+      if (!cat) {
+        return NextResponse.json({ error: 'Link di invito non valido' }, { status: 400 });
+      }
+      if (cat.stato !== CAT_STATO.ATTIVO) {
+        return NextResponse.json(
+          { error: 'Il CAT non è attivo. Non è possibile registrarsi in questo momento.' },
+          { status: 403 }
+        );
+      }
+      orgId = cat.org_id;
+    } else if (partitaIva) {
+      const catResolution = await resolveCatOrgId({
+        partita_iva: partitaIva,
+        ragione_sociale: ragioneSociale || undefined,
+      });
+      if ('error' in catResolution) {
+        return NextResponse.json({ error: catResolution.error }, { status: 400 });
+      }
+      orgId = catResolution.orgId;
+    }
+
+    if (!orgId) {
+      orgId = ((await resolveAuthOrgId(request)) || '').toString().trim();
+    }
+
     if (!orgId) {
       return NextResponse.json(
-        { error: 'Organizzazione non configurata. Imposta DEFAULT_ORG_ID oppure invia header X-Org-Id.' },
+        { error: 'Specifica la Partita IVA del CAT oppure configura DEFAULT_ORG_ID.' },
         { status: 400 }
       );
     }
+
     const { username, password, nome, cognome, telefono, email, qualifica } = payload;
 
     // Validazione

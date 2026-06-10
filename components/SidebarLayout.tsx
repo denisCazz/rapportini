@@ -191,7 +191,7 @@ export default function SidebarLayout({
           </>
         )}
 
-        {user?.ruolo === 'admin' && (
+        {auth.isAdmin() && (
           <>
             <p className="mt-4 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Amministrazione
@@ -216,6 +216,16 @@ export default function SidebarLayout({
               <Users className="h-4 w-4" aria-hidden />
               Utenti
             </Link>
+            {auth.isPlatformAdmin() && (
+              <Link
+                href="/admin/cats"
+                onClick={() => setMobileOpen(false)}
+                className={navLinkClass(isActive('/admin/cats'))}
+              >
+                <Contact className="h-4 w-4" aria-hidden />
+                Gestione CAT
+              </Link>
+            )}
             <Link
               href="/admin/impostazioni"
               onClick={() => setMobileOpen(false)}
@@ -224,6 +234,16 @@ export default function SidebarLayout({
               <Settings className="h-4 w-4" aria-hidden />
               Impostazioni
             </Link>
+            {auth.isCatAdmin() && (
+              <Link
+                href="/admin/cat-moduli"
+                onClick={() => setMobileOpen(false)}
+                className={navLinkClass(isActive('/admin/cat-moduli'))}
+              >
+                <Puzzle className="h-4 w-4" aria-hidden />
+                Moduli operatori
+              </Link>
+            )}
             {auth.canManageModulesAdmin() && (
               <Link
                 href="/admin/moduli"

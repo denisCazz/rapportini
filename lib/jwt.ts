@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { getJwtSecretBytes } from '@/lib/jwt-secret';
+import { UserRole } from '@/lib/roles';
 
 const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minuti
 const REFRESH_TOKEN_EXPIRY = '7d'; // 7 giorni
@@ -9,7 +10,7 @@ export interface TokenPayload extends JWTPayload {
   username: string;
   org_id: string;
   idsocieta?: string;
-  ruolo: 'admin' | 'operatore';
+  ruolo: UserRole;
   type: 'access' | 'refresh';
   /** True = obbligo cambio password prima di usare l'app */
   must_change_password?: boolean;
@@ -43,7 +44,7 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
 export async function createTokenPair(user: {
   id: string;
   username: string;
-  ruolo: 'admin' | 'operatore';
+  ruolo: UserRole;
   org_id?: string;
   idsocieta?: string;
   must_change_password?: boolean;

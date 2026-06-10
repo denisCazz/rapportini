@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isModuleActiveForUser } from '@/lib/module-access';
 import { ModuleCode } from '@/lib/modules';
 import { requireAuthenticatedTenant } from '@/lib/tenant-context';
+import { isPlatformAdmin } from '@/lib/roles';
 
 export interface ModuleAuthUser {
   id: string;
@@ -24,7 +25,7 @@ export async function requireModuleAccess(
 
   const user = tenant.user;
 
-  if (user.ruolo === 'admin') {
+  if (isPlatformAdmin(user.ruolo)) {
     return { ok: true, user };
   }
 

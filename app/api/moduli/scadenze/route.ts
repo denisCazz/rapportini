@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
+import { isOrgAdminRole } from '@/lib/roles';
 import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import { parseDateOnly } from '@/lib/time-db';
 import type { ScadenzaManutenzione, UrgenzaScadenza } from '@/types';
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     const rapportini = await prisma.rapportini.findMany({
       where: {
         org_id: orgId,
-        ...(ruolo !== 'admin' ? { utente_id: userId } : {}),
+        ...(!isOrgAdminRole(ruolo) ? { utente_id: userId } : {}),
         prossimo_intervento: { not: null },
       },
       include: {

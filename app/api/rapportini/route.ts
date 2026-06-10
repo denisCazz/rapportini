@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { Rapportino } from '@/types';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
+import { isOrgAdminRole } from '@/lib/roles';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
 import { syncDatabaseSchema } from '@/lib/db-schema-sync';
@@ -29,7 +30,7 @@ function buildRapportiniWhere(
 ): Prisma.RapportiniWhereInput {
   const where: Prisma.RapportiniWhereInput = { org_id: orgId };
 
-  if (userRole !== 'admin' && userId) {
+  if (!isOrgAdminRole(userRole) && userId) {
     where.utente_id = userId;
   }
   if (filters.tipoStufa) {

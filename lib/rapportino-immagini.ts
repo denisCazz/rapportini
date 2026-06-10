@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { isOrgAdminRole } from '@/lib/roles';
 import { BUCKET_ACTIVE } from '@/lib/media-config';
 import { deleteFromAllBuckets } from '@/lib/media-storage';
 import type { RapportinoImmagine } from '@/types';
@@ -44,7 +45,7 @@ export async function assertRapportinoAccess(
     select: { id: true, utente_id: true },
   });
   if (!rapportino) return null;
-  if (userRole !== 'admin' && rapportino.utente_id !== userId) return null;
+  if (!isOrgAdminRole(userRole) && rapportino.utente_id !== userId) return null;
   return rapportino;
 }
 

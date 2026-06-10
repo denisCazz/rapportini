@@ -1,4 +1,5 @@
 import { canManageModulesAdmin } from '@/lib/module-admin';
+import { isCatAdmin, isOrgAdminRole, isPlatformAdmin, UserRole } from '@/lib/roles';
 
 const STORAGE_KEY_AUTH = 'auth_token';
 const STORAGE_KEY_USER = 'user_data';
@@ -9,7 +10,7 @@ export interface User {
   id: string;
   username: string;
   org_id?: string;
-  ruolo: 'admin' | 'operatore';
+  ruolo: UserRole;
   nome: string;
   cognome: string;
   telefono?: string;
@@ -61,9 +62,19 @@ async function refreshTokens(): Promise<boolean> {
 
 export const auth = {
   // Login tramite API
-  login: async (username: string, password: string, orgId?: string): Promise<{ success: boolean; user?: User; error?: string; retryAfter?: number }> => {
+  login: async (
+    username: string,
+    password: string,
+    options?: {
+      orgId?: string;
+      partitaIva?: string;
+      ragioneSociale?: string;
+    }
+  ): Promise<{ success: boolean; user?: User; error?: string; retryAfter?: number }> => {
     try {
-      const effectiveOrgId = (orgId || process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || '').trim();
+      const effectiveOrgId = (options?.orgId || process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || '').trim();
+      const partitaIva = (options?.partitaIva || '').trim();
+      const ragioneSociale = (options?.ragioneSociale || '').trim();
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -76,7 +87,13 @@ export const auth = {
         method: 'POST',
         headers,
         credentials: 'include', // Importante per i cookie
-        body: JSON.stringify({ username, password, org_id: effectiveOrgId || undefined }),
+        body: JSON.stringify({
+          username,
+          password,
+          org_id: effectiveOrgId || undefined,
+          partita_iva: partitaIva || undefined,
+          ragione_sociale: ragioneSociale || undefined,
+        }),
       });
 
       const data = await response.json();
@@ -169,7 +186,17 @@ export const auth = {
   // Verifica se l'utente è admin
   isAdmin: (): boolean => {
     const user = auth.getUser();
-    return user?.ruolo === 'admin';
+    return isOrgAdminRole(user?.ruolo);
+  },
+
+  isPlatformAdmin: (): boolean => {
+    const user = auth.getUser();
+    return isPlatformAdmin(user?.ruolo);
+  },
+
+  isCatAdmin: (): boolean => {
+    const user = auth.getUser();
+    return isCatAdmin(user?.ruolo);
   },
 
   // Verifica se l'utente è operatore
@@ -181,7 +208,7 @@ export const auth = {
   /** Gestione manuale moduli admin (solo super-admin). */
   canManageModulesAdmin: (): boolean => {
     const user = auth.getUser();
-    if (!user || user.ruolo !== 'admin') return false;
+    if (!user || !isPlatformAdmin(user.ruolo)) return false;
     return canManageModulesAdmin(user.email);
   },
 

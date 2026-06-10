@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
+import { isOrgAdminRole } from '@/lib/roles';
 
 function mapCliente(cliente: {
   id: string;
@@ -49,9 +50,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Autenticazione richiesta' }, { status: 401 });
     }
 
-    if (userRole !== 'admin') {
+    if (!isOrgAdminRole(userRole)) {
       return NextResponse.json(
-        { error: 'Accesso negato. Solo gli admin possono visualizzare i clienti.' },
+        { error: 'Accesso negato. Solo gli amministratori possono visualizzare i clienti.' },
         { status: 403 }
       );
     }

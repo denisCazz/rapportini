@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { changePasswordSchema, validateRequest } from '@/lib/validation';
 import { z } from 'zod';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { isOrgAdminRole } from '@/lib/roles';
 import { writeAuditLog } from '@/lib/audit-log';
 import { getClientIP } from '@/lib/rate-limit';
 
@@ -20,7 +21,7 @@ export async function POST(
     const currentUserId = request.headers.get('x-user-id');
     const orgId = getOrgIdFromRequest(request);
 
-    const isAdmin = userRole === 'admin';
+    const isAdmin = isOrgAdminRole(userRole);
     const isSelf = currentUserId === id;
 
     if (!isAdmin && !isSelf) {

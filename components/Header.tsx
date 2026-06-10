@@ -122,7 +122,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
                   <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
                     {user.ruolo}
                   </span>
-                  {user.ruolo === 'admin' && (
+                  {auth.isAdmin() && (
                     <span className="px-2 py-0.5 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-md text-xs font-medium">
                       Admin
                     </span>
@@ -165,7 +165,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
             </button>
           )}
           
-          {user?.ruolo === 'admin' && (
+          {auth.isAdmin() && (
             <Link
               href="/admin"
               onClick={() => setIsMobileMenuOpen(false)}
@@ -280,7 +280,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
                     </button>
                   )}
                   
-                  {user.ruolo === 'admin' && (
+                  {auth.isAdmin() && (
                     <Link
                       href="/admin"
                       className={`px-4 py-2.5 rounded-lg text-base font-semibold transition-all flex items-center gap-2 ${
@@ -333,7 +333,7 @@ export default function Header({ settings, onLogout, onNewRapportino, onExportPD
                         <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                           {user.ruolo}
                         </span>
-                        {user.ruolo === 'admin' && (
+                        {auth.isAdmin() && (
                           <span className="px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded text-xs font-medium">
                             Admin
                           </span>

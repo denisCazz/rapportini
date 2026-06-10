@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { isOrgAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,8 +50,8 @@ export async function PUT(request: NextRequest) {
     const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo');
 
-    if (userRole !== 'admin') {
-      return NextResponse.json({ error: 'Solo gli admin possono modificare le impostazioni' }, { status: 403 });
+    if (!isOrgAdminRole(userRole)) {
+      return NextResponse.json({ error: 'Solo gli amministratori possono modificare le impostazioni' }, { status: 403 });
     }
 
     const body = await request.json();

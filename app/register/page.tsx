@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
@@ -18,9 +18,15 @@ const QUALIFICHE = [
   'Manutentore autorizzato',
 ];
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [inviteToken, setInviteToken] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [catLabel, setCatLabel] = useState('');
   const [formData, setFormData] = useState({
+    partita_iva: '',
+    ragione_sociale: '',
     username: '',
     password: '',
     confirmPassword: '',
@@ -73,6 +79,34 @@ export default function RegisterPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    const token = searchParams.get('invite')?.trim();
+    if (!token) return;
+
+    setInviteToken(token);
+    setInviteLoading(true);
+
+    fetch(`/api/public/cat-invite?token=${encodeURIComponent(token)}`)
+      .then(async (res) => {
+        const data = await parseResponseBody<{
+          data?: { ragione_sociale?: string; partita_iva?: string };
+          error?: string;
+        }>(res);
+        if (!res.ok) {
+          setError(data?.error || 'Link di invito non valido');
+          return;
+        }
+        setFormData((prev) => ({
+          ...prev,
+          partita_iva: data?.data?.partita_iva || '',
+          ragione_sociale: data?.data?.ragione_sociale || '',
+        }));
+        setCatLabel(data?.data?.ragione_sociale || '');
+      })
+      .catch(() => setError('Impossibile caricare il link di invito'))
+      .finally(() => setInviteLoading(false));
+  }, [searchParams]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -93,6 +127,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!inviteToken && !formData.partita_iva.trim()) {
+      setError('Inserisci la Partita IVA del CAT oppure usa il link di invito');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -101,7 +140,7 @@ export default function RegisterPage() {
         'Content-Type': 'application/json',
       };
 
-      if (orgId) {
+      if (orgId && !formData.partita_iva.trim()) {
         headers['X-Org-Id'] = orgId;
       }
 
@@ -109,6 +148,9 @@ export default function RegisterPage() {
         method: 'POST',
         headers,
         body: JSON.stringify({
+          invite: inviteToken || undefined,
+          partita_iva: inviteToken ? undefined : formData.partita_iva.trim() || undefined,
+          ragione_sociale: inviteToken ? undefined : formData.ragione_sociale.trim() || undefined,
           username: formData.username,
           password: formData.password,
           nome: formData.nome,
@@ -116,7 +158,7 @@ export default function RegisterPage() {
           telefono: formData.telefono,
           email: formData.email,
           qualifica: formData.qualifica,
-          org_id: orgId || undefined,
+          org_id: formData.partita_iva.trim() ? undefined : orgId || undefined,
         }),
       });
 
@@ -162,10 +204,19 @@ export default function RegisterPage() {
             Software di Gestione Specializzato
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Crea il tuo accesso</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Onboarding rapido per operatori della piattaforma verticale</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            {catLabel
+              ? `Registrazione operatore per ${catLabel}`
+              : 'Onboarding rapido per operatori della piattaforma verticale'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {inviteLoading && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+              Caricamento dati CAT dall&apos;invito...
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 animate-slideUp">
               <div className="flex items-center gap-2">
@@ -176,6 +227,38 @@ export default function RegisterPage() {
               </div>
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              Partita IVA del CAT <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.partita_iva}
+              onChange={(e) => setFormData({ ...formData, partita_iva: e.target.value })}
+              required={!inviteToken}
+              disabled={isLoading || Boolean(inviteToken)}
+              readOnly={Boolean(inviteToken)}
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              placeholder="12345678901"
+              inputMode="numeric"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              Ragione sociale CAT
+            </label>
+            <input
+              type="text"
+              value={formData.ragione_sociale}
+              onChange={(e) => setFormData({ ...formData, ragione_sociale: e.target.value })}
+              disabled={isLoading || Boolean(inviteToken)}
+              readOnly={Boolean(inviteToken)}
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              placeholder="Assistenza Stufe S.r.l."
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -346,11 +429,17 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-2">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Hai già un account?{' '}
             <Link href="/login" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
               Accedi
+            </Link>
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Sei un CAT?{' '}
+            <Link href="/register-cat" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
+              Registra il centro assistenza
             </Link>
           </p>
         </div>
@@ -395,6 +484,20 @@ export default function RegisterPage() {
       </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+          Caricamento...
+        </div>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }
 
