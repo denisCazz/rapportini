@@ -22,7 +22,6 @@ import {
   Moon,
   Sun,
   X,
-  UserRound,
   Home,
   FileText,
   BarChart3,
@@ -328,27 +327,6 @@ export default function SidebarLayout({
                       TEST
                     </span>
                   )}
-                  <div className="ml-auto flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={toggleDarkMode}
-                      aria-label={darkMode ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
-                    >
-                      {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </Button>
-                    {user && (
-                      <Link
-                        href="/utente"
-                        aria-label="Profilo utente"
-                        className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}
-                      >
-                        <UserRound className="h-4 w-4" />
-                      </Link>
-                    )}
-                  </div>
                 </div>
                 <Breadcrumb className="mt-1">
                   <BreadcrumbList>

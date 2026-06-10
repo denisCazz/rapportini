@@ -1,4 +1,13 @@
-import { Rapportino, RapportinoImmagine, AziendaSettings, ClientiAdminResponse } from '@/types';
+import {
+  Rapportino,
+  RapportinoImmagine,
+  AziendaSettings,
+  ClientiAdminResponse,
+  EventoCalendario,
+  InterventoPianificato,
+  ScadenzaManutenzione,
+  TecnicoCaricoLavoro,
+} from '@/types';
 import { auth } from './auth';
 import { fetchWithAuth, getApiErrorMessage, getAuthHeaders, parseResponseBody } from './api-helpers';
 
@@ -299,6 +308,154 @@ export const api = {
       throw new Error(err.error || 'Errore nella cancellazione');
     }
     return response.json();
+  },
+
+  // Moduli — Pianificazione interventi
+  getPianificazione: async (dataInizio: string, dataFine: string): Promise<{
+    eventi: EventoCalendario[];
+    interventi: InterventoPianificato[];
+  }> => {
+    const params = new URLSearchParams({ dataInizio, dataFine });
+    const response = await fetchWithAuth(`${API_BASE}/moduli/pianificazione?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{ data?: { eventi: EventoCalendario[]; interventi: InterventoPianificato[] }; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero della pianificazione'));
+    }
+    return result?.data ?? { eventi: [], interventi: [] };
+  },
+
+  createInterventoPianificato: async (data: {
+    titolo: string;
+    descrizione?: string;
+    dataPianificata: string;
+    oraPianificata?: string;
+    clienteId?: string;
+    utenteId?: string;
+  }): Promise<InterventoPianificato> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/pianificazione`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await parseResponseBody<{ data?: InterventoPianificato; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nella creazione'));
+    }
+    return result!.data!;
+  },
+
+  updateInterventoPianificato: async (
+    id: string,
+    data: Partial<{
+      titolo: string;
+      descrizione: string | null;
+      dataPianificata: string;
+      oraPianificata: string | null;
+      clienteId: string | null;
+      utenteId: string | null;
+      stato: 'pianificato' | 'completato' | 'annullato';
+    }>
+  ): Promise<InterventoPianificato> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/pianificazione/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await parseResponseBody<{ data?: InterventoPianificato; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nell\'aggiornamento'));
+    }
+    return result!.data!;
+  },
+
+  deleteInterventoPianificato: async (id: string): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/pianificazione/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const result = await parseResponseBody<{ error?: string }>(response);
+      throw new Error(getApiErrorMessage(result, 'Errore nell\'eliminazione'));
+    }
+  },
+
+  // Moduli — Assegnazione lavori
+  getAssegnazioneLavori: async (): Promise<{
+    tecnici: TecnicoCaricoLavoro[];
+    nonAssegnati: InterventoPianificato[];
+    totaleInterventi: number;
+  }> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/assegnazione`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{
+      data?: { tecnici: TecnicoCaricoLavoro[]; nonAssegnati: InterventoPianificato[]; totaleInterventi: number };
+      error?: string;
+    }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero assegnazioni'));
+    }
+    return result?.data ?? { tecnici: [], nonAssegnati: [], totaleInterventi: 0 };
+  },
+
+  assegnaIntervento: async (interventoId: string, utenteId: string | null): Promise<InterventoPianificato> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/assegnazione`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ interventoId, utenteId }),
+    });
+    const result = await parseResponseBody<{ data?: InterventoPianificato; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nell\'assegnazione'));
+    }
+    return result!.data!;
+  },
+
+  // Moduli — Scadenze manutenzioni
+  getScadenze: async (filtro?: string): Promise<{
+    scadenze: ScadenzaManutenzione[];
+    riepilogo: { totale: number; scaduti: number; urgenti: number; prossimi: number; nonNotificati: number };
+  }> => {
+    const params = filtro ? `?filtro=${filtro}` : '';
+    const response = await fetchWithAuth(`${API_BASE}/moduli/scadenze${params}`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{
+      data?: {
+        scadenze: ScadenzaManutenzione[];
+        riepilogo: { totale: number; scaduti: number; urgenti: number; prossimi: number; nonNotificati: number };
+      };
+      error?: string;
+    }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero scadenze'));
+    }
+    return result?.data ?? { scadenze: [], riepilogo: { totale: 0, scaduti: 0, urgenti: 0, prossimi: 0, nonNotificati: 0 } };
+  },
+
+  segnaScadenzaNotificata: async (rapportinoId: string, dataScadenza: string): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/scadenze`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ rapportinoId, dataScadenza }),
+    });
+    if (!response.ok) {
+      const result = await parseResponseBody<{ error?: string }>(response);
+      throw new Error(getApiErrorMessage(result, 'Errore nella notifica'));
+    }
+  },
+
+  getTecniciModulo: async (): Promise<Array<{ id: string; nome: string; cognome: string; qualifica?: string | null }>> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/tecnici`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{ data?: Array<{ id: string; nome: string; cognome: string; qualifica?: string | null }>; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero tecnici'));
+    }
+    return result?.data ?? [];
   },
 
   // Ottieni documentazione API

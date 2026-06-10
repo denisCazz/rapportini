@@ -28,6 +28,9 @@ model Utenti {
   password_reset_tokens PasswordResetTokens[]
   rapportini            Rapportini[]
   utente_moduli         UtenteModuli[]
+  interventi_assegnati  InterventiPianificati[] @relation("InterventiPianificatiAssegnati")
+  interventi_creati     InterventiPianificati[] @relation("InterventiPianificatiCreati")
+  scadenze_notificate   ScadenzeNotificate[]
 
   @@unique([org_id, username], map: "uq_utenti_org_id_username")
   @@map("utenti")
@@ -82,7 +85,8 @@ model Clienti {
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
-  rapportini Rapportini[]
+  rapportini             Rapportini[]
+  interventi_pianificati InterventiPianificati[]
 
   @@unique([org_id, nome, cognome, telefono], map: "unique_cliente")
   @@map("clienti")
@@ -129,7 +133,8 @@ model Rapportini {
 
   utenti  Utenti  @relation(fields: [utente_id], references: [id], onDelete: Restrict)
   clienti Clienti @relation(fields: [cliente_id], references: [id], onDelete: Restrict)
-  immagini RapportinoImmagini[]
+  immagini              RapportinoImmagini[]
+  scadenze_notificate   ScadenzeNotificate[]
 
   @@index([cliente_id], map: "idx_rapportini_cliente")
   @@index([utente_id], map: "idx_rapportini_utente")
@@ -237,6 +242,45 @@ model Materiali {
   @@index([modello_id], map: "idx_materiali_modello")
   @@index([org_id], map: "idx_materiali_org_id")
   @@map("materiali")
+}
+
+model InterventiPianificati {
+  id              String    @id @default(uuid()) @db.Uuid
+  org_id          String    @default("default") @db.VarChar(100)
+  cliente_id      String?   @db.Uuid
+  utente_id       String?   @db.Uuid
+  titolo          String    @db.VarChar(255)
+  descrizione     String?
+  data_pianificata DateTime @db.Date
+  ora_pianificata DateTime? @db.Time(6)
+  stato           String    @default("pianificato") @db.VarChar(20)
+  creato_da       String?   @db.Uuid
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+
+  clienti Clienti? @relation(fields: [cliente_id], references: [id], onDelete: SetNull)
+  utenti  Utenti?  @relation("InterventiPianificatiAssegnati", fields: [utente_id], references: [id], onDelete: SetNull)
+  creatore Utenti? @relation("InterventiPianificatiCreati", fields: [creato_da], references: [id], onDelete: SetNull)
+
+  @@index([org_id, data_pianificata], map: "idx_interventi_pianificati_org_data")
+  @@index([utente_id], map: "idx_interventi_pianificati_utente")
+  @@map("interventi_pianificati")
+}
+
+model ScadenzeNotificate {
+  id             String    @id @default(uuid()) @db.Uuid
+  org_id         String    @default("default") @db.VarChar(100)
+  rapportino_id  String    @db.Uuid
+  utente_id      String    @db.Uuid
+  data_scadenza  DateTime  @db.Date
+  notificato_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  rapportini Rapportini @relation(fields: [rapportino_id], references: [id], onDelete: Cascade)
+  utenti     Utenti     @relation(fields: [utente_id], references: [id], onDelete: Cascade)
+
+  @@unique([rapportino_id, utente_id, data_scadenza], map: "uq_scadenze_notificate")
+  @@index([org_id], map: "idx_scadenze_notificate_org")
+  @@map("scadenze_notificate")
 }
 
 model AuditLog {
