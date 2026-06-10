@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 import PageLoader from '@/components/ui/PageLoader';
 import { ClipboardList, UserRound } from 'lucide-react';
+import InterventoPianificatoActions from '@/components/modules/InterventoPianificatoActions';
 
 function formatData(iso: string): string {
   const [y, m, d] = iso.split('-');
@@ -21,11 +22,13 @@ function InterventoCard({
   tecnici,
   onAssign,
   assigning,
+  onRefresh,
 }: {
   intervento: InterventoPianificato;
   tecnici: TecnicoCaricoLavoro[];
   onAssign: (interventoId: string, utenteId: string | null) => void;
   assigning: string | null;
+  onRefresh: () => void;
 }) {
   return (
     <div className="rounded-md border border-border bg-card p-3">
@@ -59,6 +62,12 @@ function InterventoCard({
           ))}
         </select>
       </div>
+      <InterventoPianificatoActions
+        interventoId={intervento.id}
+        stato={intervento.stato}
+        titolo={intervento.titolo}
+        onUpdated={onRefresh}
+      />
     </div>
   );
 }
@@ -148,6 +157,7 @@ export default function AssegnazioneLavori() {
                 tecnici={tecnici}
                 onAssign={handleAssign}
                 assigning={assigning}
+                onRefresh={loadData}
               />
             ))}
           </CardContent>
@@ -182,6 +192,7 @@ export default function AssegnazioneLavori() {
                     tecnici={tecnici}
                     onAssign={handleAssign}
                     assigning={assigning}
+                    onRefresh={loadData}
                   />
                 ))
               )}

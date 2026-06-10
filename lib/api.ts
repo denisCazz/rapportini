@@ -8,6 +8,7 @@ import {
   ScadenzaManutenzione,
   TecnicoCaricoLavoro,
 } from '@/types';
+import type { RapportinoFormValues } from '@/lib/validators/rapportino-form';
 import { auth } from './auth';
 import { fetchWithAuth, getApiErrorMessage, getAuthHeaders, parseResponseBody } from './api-helpers';
 
@@ -378,6 +379,42 @@ export const api = {
     if (!response.ok) {
       const result = await parseResponseBody<{ error?: string }>(response);
       throw new Error(getApiErrorMessage(result, 'Errore nell\'eliminazione'));
+    }
+  },
+
+  getInterventoPianificatoPrefill: async (id: string): Promise<{
+    interventoId: string;
+    titolo: string;
+    stato: string;
+    prefill: Partial<RapportinoFormValues>;
+  }> => {
+    const response = await fetchWithAuth(`${API_BASE}/interventi-pianificati/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{
+      data?: {
+        interventoId: string;
+        titolo: string;
+        stato: string;
+        prefill: Partial<RapportinoFormValues>;
+      };
+      error?: string;
+    }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero dell\'intervento'));
+    }
+    return result!.data!;
+  },
+
+  completaInterventoPianificato: async (id: string): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE}/interventi-pianificati/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ stato: 'completato' }),
+    });
+    if (!response.ok) {
+      const result = await parseResponseBody<{ error?: string }>(response);
+      throw new Error(getApiErrorMessage(result, 'Errore nel completamento'));
     }
   },
 
