@@ -30,6 +30,7 @@ import {
   Settings,
   LogOut,
   Plus,
+  Contact,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -166,6 +167,14 @@ export default function SidebarLayout({
             <Link href="/admin" onClick={() => setMobileOpen(false)} className={navLinkClass(isActive('/admin'))}>
               <BarChart3 className="h-4 w-4" aria-hidden />
               Statistiche
+            </Link>
+            <Link
+              href="/admin/clienti"
+              onClick={() => setMobileOpen(false)}
+              className={navLinkClass(isActive('/admin/clienti'))}
+            >
+              <Contact className="h-4 w-4" aria-hidden />
+              Clienti
             </Link>
             <Link
               href="/admin/gestione-utenti"

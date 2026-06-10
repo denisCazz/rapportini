@@ -96,3 +96,71 @@ export interface AziendaSettings {
   indirizzo?: string;
   partitaIva?: string;
 }
+
+export interface ClienteAdminOperatore {
+  id: string;
+  nome: string;
+  cognome: string;
+  count: number;
+}
+
+export interface ClienteAdminRapportino {
+  id: string;
+  dataIntervento: string;
+  tipoStufa: string;
+  tipoIntervento: string;
+  tipologiaIntervento: string;
+  marca: string;
+  modello: string;
+  operatore: { id: string; nome: string; cognome: string };
+}
+
+export interface ClienteAdminStatistiche {
+  totale: number;
+  pellet: number;
+  legno: number;
+  ultimoIntervento: string | null;
+  primoIntervento: string | null;
+  tipiIntervento: Record<string, number>;
+  marche: Record<string, number>;
+}
+
+export interface ClienteAdminDettaglio {
+  id: string;
+  nome: string;
+  cognome: string;
+  ragioneSociale: string;
+  via: string;
+  numeroCivico: string;
+  indirizzo: string;
+  citta: string;
+  cap: string;
+  provincia: string;
+  telefono: string;
+  email: string;
+  partitaIva: string;
+  codiceFiscale: string;
+  dataRegistrazione: string | null;
+}
+
+export interface ClienteAdminEntry {
+  cliente: ClienteAdminDettaglio;
+  rapportini: ClienteAdminRapportino[];
+  statistiche: ClienteAdminStatistiche;
+  operatori: ClienteAdminOperatore[];
+}
+
+export interface ClientiAdminSummary {
+  totaleClienti: number;
+  totaleRapportini: number;
+  totalePellet: number;
+  totaleLegno: number;
+  clientiConInterventoAnno: number;
+  mediaRapportiniPerCliente: number;
+  cittaPrincipali: Array<{ citta: string; count: number }>;
+}
+
+export interface ClientiAdminResponse {
+  summary: ClientiAdminSummary;
+  clienti: ClienteAdminEntry[];
+}
