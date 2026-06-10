@@ -39,6 +39,7 @@ import {
 
 interface RapportinoFormProps {
   initialRapportino?: Rapportino;
+  prefillInterventoId?: string;
   onSave: (rapportino: Rapportino, options?: { pendingImages?: File[] }) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -80,17 +81,22 @@ function syncMarcaModelloFromNames(
   return ui;
 }
 
-export default function RapportinoForm({ initialRapportino, onSave, onCancel }: RapportinoFormProps) {
+export default function RapportinoForm({
+  initialRapportino,
+  prefillInterventoId,
+  onSave,
+  onCancel,
+}: RapportinoFormProps) {
   const [step, setStep] = useState(1);
   const [maxReachableStep, setMaxReachableStep] = useState(1);
   const draftIdRef = useRef(initialRapportino ? `edit_${initialRapportino.id}` : NEW_RAPPORTINO_DRAFT_KEY);
   const clientiListRef = useRef<HTMLDivElement | null>(null);
   const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraft> | null>(() => {
-    if (initialRapportino || typeof window === 'undefined') return null;
+    if (initialRapportino || prefillInterventoId || typeof window === 'undefined') return null;
     return getDraft(NEW_RAPPORTINO_DRAFT_KEY);
   });
   const [draftResolved, setDraftResolved] = useState(() => {
-    if (initialRapportino) return true;
+    if (initialRapportino || prefillInterventoId) return true;
     if (typeof window === 'undefined') return true;
     return !getDraft(NEW_RAPPORTINO_DRAFT_KEY);
   });
@@ -178,6 +184,51 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       cancelled = true;
     };
   }, [initialRapportino, draftResolved, setValue, getValues]);
+
+  // Precarica dati da intervento pianificato (cliente, data, motivo)
+  useEffect(() => {
+    if (!prefillInterventoId || initialRapportino) return;
+
+    deleteDraft(NEW_RAPPORTINO_DRAFT_KEY);
+    setPendingDraft(null);
+    setDraftResolved(true);
+
+    let cancelled = false;
+
+    const loadPrefill = async () => {
+      try {
+        const { prefill, titolo } = await api.getInterventoPianificatoPrefill(prefillInterventoId);
+        if (cancelled) return;
+
+        if (prefill.cliente) {
+          for (const [key, value] of Object.entries(prefill.cliente)) {
+            setValue(`cliente.${key}` as `cliente.${keyof RapportinoFormValues['cliente'] & string}`, value, {
+              shouldDirty: false,
+            });
+          }
+        }
+
+        if (prefill.intervento) {
+          for (const [key, value] of Object.entries(prefill.intervento)) {
+            setValue(`intervento.${key}` as `intervento.${keyof RapportinoFormValues['intervento'] & string}`, value, {
+              shouldDirty: false,
+            });
+          }
+        }
+
+        toast.success(`Dati precaricati da "${titolo}"`);
+      } catch (err: unknown) {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : 'Errore nel precaricamento');
+        }
+      }
+    };
+
+    void loadPrefill();
+    return () => {
+      cancelled = true;
+    };
+  }, [prefillInterventoId, initialRapportino, setValue]);
   const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
   const [showClientiList, setShowClientiList] = useState(false);
   const [isSearchingClienti, setIsSearchingClienti] = useState(false);

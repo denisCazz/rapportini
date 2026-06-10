@@ -15,6 +15,7 @@ import ErrorBanner from '@/components/ui/ErrorBanner';
 import PageLoader from '@/components/ui/PageLoader';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import InterventoPianificatoActions from '@/components/modules/InterventoPianificatoActions';
 
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -165,26 +166,6 @@ export default function PianificazioneCalendar() {
       toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleCompleta = async (interventoId: string) => {
-    try {
-      await api.updateInterventoPianificato(interventoId, { stato: 'completato' });
-      toast.success('Intervento completato');
-      loadData();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Errore');
-    }
-  };
-
-  const handleAnnulla = async (interventoId: string) => {
-    try {
-      await api.deleteInterventoPianificato(interventoId);
-      toast.success('Intervento annullato');
-      loadData();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Errore');
     }
   };
 
@@ -359,22 +340,13 @@ export default function PianificazioneCalendar() {
                       </div>
                       {ev.cliente && <p className="truncate opacity-80">{ev.cliente}</p>}
                       {ev.tipo === 'pianificato' && ev.interventoId && (
-                        <div className="mt-1 flex gap-1">
-                          <button
-                            type="button"
-                            className="underline opacity-70 hover:opacity-100"
-                            onClick={() => handleCompleta(ev.interventoId!)}
-                          >
-                            Completa
-                          </button>
-                          <button
-                            type="button"
-                            className="underline opacity-70 hover:opacity-100"
-                            onClick={() => handleAnnulla(ev.interventoId!)}
-                          >
-                            Annulla
-                          </button>
-                        </div>
+                        <InterventoPianificatoActions
+                          interventoId={ev.interventoId}
+                          stato={ev.stato}
+                          titolo={ev.titolo}
+                          compact
+                          onUpdated={loadData}
+                        />
                       )}
                       {ev.rapportinoId && (
                         <Link
