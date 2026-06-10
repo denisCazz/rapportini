@@ -9,9 +9,11 @@ import {
   CAT_EXTRA_OPERATOR_PRICE_EUR,
   CAT_BASE_PRICE_EUR,
 } from '@/lib/cat-pricing';
+import { isCatBundleSubscriptionActive } from '@/lib/cat-subscription';
 import { MODULE_CODES, PAID_MODULES, ModuleCode } from '@/lib/modules';
 import { isCatAdmin } from '@/lib/roles';
 import { validateRequest } from '@/lib/validation';
+import { isStripeConfigured } from '@/lib/stripe';
 
 const updateModuleSchema = z.object({
   utente_id: z.string().uuid(),
@@ -64,7 +66,14 @@ export async function GET(request: NextRequest) {
       }),
       prisma.organizzazioni.findUnique({
         where: { org_id: orgId },
-        select: { nome_azienda: true, partita_iva: true },
+        select: {
+          nome_azienda: true,
+          partita_iva: true,
+          stato: true,
+          stripe_subscription_id: true,
+          stripe_subscription_status: true,
+          licensed_operator_slots: true,
+        },
       }),
     ]);
 
@@ -94,6 +103,8 @@ export async function GET(request: NextRequest) {
     const operatorCount = operatori.length;
     const monthlyPriceEur = calcCatLicensePriceEur(operatorCount);
 
+    const bundleActive = await isCatBundleSubscriptionActive(orgId);
+
     return NextResponse.json({
       data: {
         cat: org,
@@ -106,6 +117,12 @@ export async function GET(request: NextRequest) {
           baseOperatorSlots: CAT_BASE_OPERATOR_SLOTS,
           extraOperatorPriceEur: CAT_EXTRA_OPERATOR_PRICE_EUR,
         },
+        subscription: {
+          active: bundleActive,
+          status: org?.stripe_subscription_status ?? null,
+          licensedOperatorSlots: org?.licensed_operator_slots ?? null,
+        },
+        stripeEnabled: isStripeConfigured(),
       },
     });
   } catch (error) {
@@ -135,6 +152,16 @@ export async function PUT(request: NextRequest) {
 
     if (!operatore) {
       return NextResponse.json({ error: 'Operatore non trovato nel tuo CAT' }, { status: 404 });
+    }
+
+    if (attivo) {
+      const bundleActive = await isCatBundleSubscriptionActive(orgId);
+      if (!bundleActive) {
+        return NextResponse.json(
+          { error: 'Sottoscrivi il pacchetto moduli tramite Stripe prima di attivare i moduli.' },
+          { status: 402 }
+        );
+      }
     }
 
     await setModuleActiveForUser(

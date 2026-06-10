@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
-import { syncModuleSubscription } from '@/lib/module-access';
+import { syncModuleSubscription, isSubscriptionStatusActive } from '@/lib/module-access';
+import { syncCatBundleSubscription } from '@/lib/cat-subscription';
 import { getModuleByCode, ModuleCode } from '@/lib/modules';
-import { isSubscriptionStatusActive } from '@/lib/module-access';
 
 function getMetadataString(
   metadata: Stripe.Metadata | null | undefined,
@@ -14,6 +14,13 @@ function getMetadataString(
 export async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session
 ): Promise<void> {
+  const subscriptionType = getMetadataString(session.metadata, 'subscription_type');
+
+  if (subscriptionType === 'cat_bundle') {
+    await handleCatBundleCheckoutCompleted(session);
+    return;
+  }
+
   const userId = getMetadataString(session.metadata, 'user_id');
   const orgId = getMetadataString(session.metadata, 'org_id');
   const moduleCode = getMetadataString(session.metadata, 'module_code') as ModuleCode | null;
@@ -50,7 +57,55 @@ export async function handleCheckoutSessionCompleted(
   });
 }
 
+async function handleCatBundleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
+  const orgId = getMetadataString(session.metadata, 'org_id');
+  const operatorCountRaw = getMetadataString(session.metadata, 'operator_count');
+  const operatorCount = operatorCountRaw ? parseInt(operatorCountRaw, 10) : 0;
+
+  if (!orgId) {
+    console.error('[stripe] cat_bundle checkout: org_id mancante');
+    return;
+  }
+
+  const subscriptionId =
+    typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+
+  if (!subscriptionId) {
+    console.error('[stripe] cat_bundle checkout: subscription id mancante');
+    return;
+  }
+
+  const { getStripe } = await import('@/lib/stripe');
+  const stripe = getStripe();
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+  await syncCatBundleSubscription({
+    orgId,
+    subscriptionId: subscription.id,
+    subscriptionStatus: subscription.status,
+    operatorSlots: Number.isFinite(operatorCount) ? operatorCount : 0,
+  });
+}
+
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
+  const subscriptionType = getMetadataString(subscription.metadata, 'subscription_type');
+
+  if (subscriptionType === 'cat_bundle') {
+    const orgId = getMetadataString(subscription.metadata, 'org_id');
+    const operatorCountRaw = getMetadataString(subscription.metadata, 'operator_count');
+    const operatorCount = operatorCountRaw ? parseInt(operatorCountRaw, 10) : 0;
+
+    if (!orgId) return;
+
+    await syncCatBundleSubscription({
+      orgId,
+      subscriptionId: subscription.id,
+      subscriptionStatus: subscription.status,
+      operatorSlots: Number.isFinite(operatorCount) ? operatorCount : 0,
+    });
+    return;
+  }
+
   const userId = getMetadataString(subscription.metadata, 'user_id');
   const orgId = getMetadataString(subscription.metadata, 'org_id');
   const moduleCode = getMetadataString(subscription.metadata, 'module_code') as ModuleCode | null;
