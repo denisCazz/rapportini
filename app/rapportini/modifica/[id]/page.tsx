@@ -24,8 +24,8 @@ export default function ModificaRapportinoPage() {
       router.push('/login');
       return;
     }
-    if (auth.getUser()?.ruolo !== 'operatore') {
-      toast.error('Solo gli operatori possono modificare rapportini');
+    if (!auth.canCreateRapportini() && !auth.isAdmin()) {
+      toast.error('Non hai i permessi per modificare rapportini');
       router.push('/rapportini');
       return;
     }

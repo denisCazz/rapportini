@@ -258,9 +258,9 @@ export default function SidebarLayout({
         )}
       </nav>
 
-      {((user?.ruolo === 'operatore') || onExportPDF) && (
+      {((auth.canCreateRapportini()) || onExportPDF) && (
         <div className="space-y-2 border-t border-border px-3 py-3">
-          {user?.ruolo === 'operatore' && (
+          {auth.canCreateRapportini() && (
             <Link
               href="/rapportini/nuovo"
               onClick={() => setMobileOpen(false)}

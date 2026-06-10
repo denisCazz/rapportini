@@ -22,8 +22,8 @@ function NuovoRapportinoContent() {
       router.push('/login');
       return;
     }
-    if (auth.getUser()?.ruolo !== 'operatore') {
-      toast.error('Solo gli operatori possono creare rapportini');
+    if (!auth.canCreateRapportini()) {
+      toast.error('Non hai i permessi per creare rapportini');
       router.push('/');
       return;
     }

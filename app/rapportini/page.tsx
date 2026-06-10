@@ -80,7 +80,8 @@ export default function RapportiniSearchPage() {
     router.push('/login');
   };
 
-  const isOperatore = auth.getUser()?.ruolo === 'operatore';
+  const canCreateRapportini = auth.canCreateRapportini();
+  const canEditRapportini = canCreateRapportini || auth.isAdmin();
 
   if (!hasLoadedRef.current && !auth.isAuthenticated()) {
     return null;
@@ -101,9 +102,9 @@ export default function RapportiniSearchPage() {
         rapportini={rapportini}
         loading={loading}
         onDelete={handleDelete}
-        onEdit={isOperatore ? handleEdit : undefined}
+        onEdit={canEditRapportini ? handleEdit : undefined}
         settings={settings}
-        showCreateAction={isOperatore}
+        showCreateAction={canCreateRapportini}
       />
     </SidebarLayout>
   );

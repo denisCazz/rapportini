@@ -88,7 +88,8 @@ export default function Home() {
     router.push('/login');
   };
 
-  const isOperatore = auth.getUser()?.ruolo === 'operatore';
+  const canCreateRapportini = auth.canCreateRapportini();
+  const canEditRapportini = canCreateRapportini || auth.isAdmin();
 
   const kpi = useMemo(() => {
     const pellet = rapportini.filter((r) => r.intervento.tipoStufa === 'pellet').length;
@@ -140,7 +141,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-6">
-            {isOperatore && (
+            {canCreateRapportini && (
               <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-6 shadow-sm sm:p-8">
                 <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="max-w-xl">
@@ -246,9 +247,9 @@ export default function Home() {
               <RapportiniList
                 rapportini={rapportini}
                 onDelete={handleDeleteRapportino}
-                onEdit={isOperatore ? (r) => router.push(`/rapportini/modifica/${r.id}`) : undefined}
+                onEdit={canEditRapportini ? (r) => router.push(`/rapportini/modifica/${r.id}`) : undefined}
                 settings={settings}
-                showCreateAction={isOperatore}
+                showCreateAction={canCreateRapportini}
               />
             </div>
           </div>
