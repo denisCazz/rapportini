@@ -13,8 +13,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [partitaIva, setPartitaIva] = useState('');
-  const [ragioneSociale, setRagioneSociale] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -54,10 +52,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await auth.login(username, password, {
-        partitaIva: partitaIva.trim() || undefined,
-        ragioneSociale: ragioneSociale.trim() || undefined,
-      });
+      const result = await auth.login(username, password);
 
       if (result.success && result.user) {
         if (result.user.must_change_password) {
@@ -110,36 +105,6 @@ export default function LoginPage() {
                   {error}
                 </div>
               )}
-
-              <div className="space-y-2">
-                <Label htmlFor="partitaIva">Partita IVA CAT</Label>
-                <Input
-                  id="partitaIva"
-                  type="text"
-                  value={partitaIva}
-                  onChange={(e) => setPartitaIva(e.target.value)}
-                  disabled={isLoading}
-                  placeholder="12345678901"
-                  inputMode="numeric"
-                  autoComplete="off"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Obbligatoria per operatori e amministratori CAT. Lascia vuoto per accesso piattaforma.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ragioneSociale">Ragione sociale CAT</Label>
-                <Input
-                  id="ragioneSociale"
-                  type="text"
-                  value={ragioneSociale}
-                  onChange={(e) => setRagioneSociale(e.target.value)}
-                  disabled={isLoading}
-                  placeholder="Assistenza Stufe S.r.l."
-                  autoComplete="organization"
-                />
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="username">Username o email</Label>

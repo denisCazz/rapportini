@@ -4,7 +4,6 @@ import bcrypt from 'bcryptjs';
 import { createTokenPair } from '@/lib/jwt';
 import { loginSchema, validateRequest } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
-import { resolveAuthOrgId } from '@/lib/api-auth';
 import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-options';
 import { writeAuditLog } from '@/lib/audit-log';
 import { resolveCatOrgId } from '@/lib/cat-org';
@@ -60,13 +59,7 @@ export async function POST(request: NextRequest) {
 
     const { username, password, partita_iva, ragione_sociale } = validation.data;
 
-    let requestedOrgId = (
-      body?.org_id ||
-      body?.idsocieta ||
-      ''
-    )
-      .toString()
-      .trim();
+    let scopedOrgId: string | null = null;
 
     if (partita_iva?.trim()) {
       const catResolution = await resolveCatOrgId({
@@ -76,18 +69,17 @@ export async function POST(request: NextRequest) {
       if ('error' in catResolution) {
         return NextResponse.json({ error: catResolution.error }, { status: 400 });
       }
-      requestedOrgId = catResolution.orgId;
-    }
-
-    if (!requestedOrgId) {
-      requestedOrgId = ((await resolveAuthOrgId(request)) || '').toString().trim();
-    }
-
-    if (!requestedOrgId) {
-      return NextResponse.json(
-        { error: 'Specifica la Partita IVA del CAT oppure configura DEFAULT_ORG_ID.' },
-        { status: 400 }
-      );
+      scopedOrgId = catResolution.orgId;
+    } else {
+      const explicitOrgId = (
+        body?.org_id ||
+        body?.idsocieta ||
+        request.headers.get('x-org-id') ||
+        ''
+      )
+        .toString()
+        .trim();
+      scopedOrgId = explicitOrgId || null;
     }
 
     const isEmail = username.includes('@');
@@ -95,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     const candidati = await prisma.utenti.findMany({
       where: {
-        org_id: requestedOrgId,
+        ...(scopedOrgId ? { org_id: scopedOrgId } : {}),
         attivo: true,
         ...(isEmail
           ? { email: { equals: trimmed, mode: 'insensitive' as const } }
@@ -126,7 +118,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account disattivato' }, { status: 403 });
     }
 
-    const resolvedOrgId = utente.org_id || requestedOrgId;
+    const resolvedOrgId = utente.org_id || scopedOrgId;
     if (!resolvedOrgId) {
       return NextResponse.json(
         { error: 'Organizzazione utente non valida o non configurata' },
