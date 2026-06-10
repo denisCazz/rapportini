@@ -1,8 +1,9 @@
 'use client';
 
-import { Rapportino, AziendaSettings } from '@/types';
+import { Rapportino, RapportinoImmagine, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
 import { downloadPDF } from '@/lib/pdfGenerator';
 import CondizioniGaranziaSection from '@/components/rapportino/CondizioniGaranziaSection';
 import {
@@ -31,6 +32,16 @@ function DetailField({ label, value }: { label: string; value?: string | null })
 }
 
 export default function RapportinoDetail({ rapportino, settings, onClose, onEdit }: RapportinoDetailProps) {
+  const [immagini, setImmagini] = useState<RapportinoImmagine[]>(rapportino.immagini ?? []);
+
+  useEffect(() => {
+    if (rapportino.immagini?.length) {
+      setImmagini(rapportino.immagini);
+      return;
+    }
+    api.getRapportinoImmagini(rapportino.id).then(setImmagini).catch(() => {});
+  }, [rapportino.id, rapportino.immagini]);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     const handleEscape = (e: KeyboardEvent) => {
@@ -180,6 +191,32 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
               />
             </div>
           </section>
+
+          {immagini.length > 0 && (
+            <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8 print:break-inside-avoid">
+              <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">
+                Foto intervento
+              </h2>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {immagini.map((img) => (
+                  <a
+                    key={img.id}
+                    href={img.url || `/api/rapportini/${rapportino.id}/immagini/${img.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block aspect-square overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700 print:break-inside-avoid"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.url || `/api/rapportini/${rapportino.id}/immagini/${img.id}`}
+                      alt={img.caption || 'Foto intervento'}
+                      className="h-full w-full object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="mt-6 border-t border-surface-200 pt-4 dark:border-surface-700 sm:mt-8 sm:pt-6 print:border-surface-800">
             <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white">Firme</h2>

@@ -28,6 +28,9 @@ yarn-error.log*
 .env
 .env*.local
 
+# storage immagini rapportini (bucket locale)
+/data/media
+
 # vercel
 .vercel
 

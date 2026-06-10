@@ -129,6 +129,7 @@ model Rapportini {
 
   utenti  Utenti  @relation(fields: [utente_id], references: [id], onDelete: Restrict)
   clienti Clienti @relation(fields: [cliente_id], references: [id], onDelete: Restrict)
+  immagini RapportinoImmagini[]
 
   @@index([cliente_id], map: "idx_rapportini_cliente")
   @@index([utente_id], map: "idx_rapportini_utente")
@@ -138,6 +139,27 @@ model Rapportini {
   @@index([org_id, utente_id], map: "idx_rapportini_org_utente")
   @@index([org_id, data_intervento], map: "idx_rapportini_org_data")
   @@map("rapportini")
+}
+
+model RapportinoImmagini {
+  id             String    @id @default(uuid()) @db.Uuid
+  org_id         String    @default("default") @db.VarChar(100)
+  rapportino_id  String    @db.Uuid
+  storage_key    String    @db.VarChar(512)
+  bucket         String    @default("rapportini-active") @db.VarChar(100)
+  mime_type      String    @db.VarChar(100)
+  size_bytes     BigInt?
+  caption        String?
+  uploaded_by    String?   @db.Uuid
+  archived_at    DateTime? @db.Timestamptz(6)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  rapportini Rapportini @relation(fields: [rapportino_id], references: [id], onDelete: Cascade)
+
+  @@index([rapportino_id], map: "idx_rapportino_immagini_rapportino")
+  @@index([org_id], map: "idx_rapportino_immagini_org")
+  @@index([archived_at, created_at], map: "idx_rapportino_immagini_archive")
+  @@map("rapportino_immagini")
 }
 
 model Organizzazioni {

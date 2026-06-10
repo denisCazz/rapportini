@@ -7,7 +7,7 @@ import { AziendaSettings } from '@/types';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import { isTestEnv } from '@/lib/env';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetClose, SheetContent } from '@/components/ui/sheet';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Breadcrumb,
@@ -21,6 +21,7 @@ import {
   Menu,
   Moon,
   Sun,
+  X,
   UserRound,
   Home,
   FileText,
@@ -33,6 +34,7 @@ import {
   ClipboardList,
   Bell,
   Puzzle,
+  Contact,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PAID_MODULES } from '@/lib/modules';
@@ -134,15 +136,19 @@ export default function SidebarLayout({
             </p>
           </Link>
           {showCloseButton && (
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="lg:hidden grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted"
-              aria-label="Chiudi menu"
+            <SheetClose
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-muted-foreground"
+                  aria-label="Chiudi menu"
+                />
+              }
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              <X className="h-4 w-4" />
+            </SheetClose>
           )}
         </div>
       </div>
@@ -194,6 +200,14 @@ export default function SidebarLayout({
             <Link href="/admin" onClick={() => setMobileOpen(false)} className={navLinkClass(isActive('/admin'))}>
               <BarChart3 className="h-4 w-4" aria-hidden />
               Statistiche
+            </Link>
+            <Link
+              href="/admin/clienti"
+              onClick={() => setMobileOpen(false)}
+              className={navLinkClass(isActive('/admin/clienti'))}
+            >
+              <Contact className="h-4 w-4" aria-hidden />
+              Clienti
             </Link>
             <Link
               href="/admin/gestione-utenti"
@@ -285,7 +299,7 @@ export default function SidebarLayout({
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[min(88vw,320px)] p-0 lg:hidden">
+        <SheetContent side="left" showCloseButton={false} className="w-[min(88vw,320px)] gap-0 p-0 lg:hidden">
           <div className="flex h-full max-h-[100dvh] flex-col overflow-y-auto">
             <NavContent showCloseButton />
           </div>

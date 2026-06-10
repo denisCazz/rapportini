@@ -46,9 +46,12 @@ export default function ModificaRapportinoPage() {
     load();
   }, [id, router]);
 
-  const handleSave = async (r: Rapportino) => {
+  const handleSave = async (r: Rapportino, options?: { pendingImages?: File[] }) => {
     try {
       await api.updateRapportino(id, r);
+      if (options?.pendingImages?.length) {
+        await api.uploadRapportinoImmagini(id, options.pendingImages);
+      }
       toast.success('Rapportino aggiornato');
       router.push('/rapportini');
     } catch (err: unknown) {

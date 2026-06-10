@@ -8,6 +8,7 @@ import {
   mapDbRowToRapportino,
   mapInterventoToDbData,
 } from '@/lib/rapportino-db';
+import { deleteAllImmaginiStorage } from '@/lib/rapportino-immagini';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -171,6 +172,7 @@ export async function DELETE(
       }
     }
 
+    await deleteAllImmaginiStorage(id, orgId);
     await prisma.rapportini.deleteMany({
       where: { id, org_id: orgId },
     });
