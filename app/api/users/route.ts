@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { registerSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { isCatAdmin, isOrgAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 
-    if (userRole !== 'admin') {
+    if (!isOrgAdminRole(userRole)) {
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     const userRole = request.headers.get('x-user-ruolo');
     const orgId = getOrgIdFromRequest(request);
 
-    if (userRole !== 'admin') {
+    if (!isOrgAdminRole(userRole)) {
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
@@ -70,9 +71,16 @@ export async function POST(request: NextRequest) {
       email?: string | null;
       telefono?: string;
       qualifica?: string;
-      ruolo: 'admin' | 'operatore';
+      ruolo: 'admin' | 'admin_cat' | 'operatore';
       firma?: string;
     };
+
+    if (isCatAdmin(userRole) && ruolo !== 'operatore') {
+      return NextResponse.json(
+        { error: 'Gli amministratori CAT possono creare solo operatori' },
+        { status: 403 }
+      );
+    }
 
     const existingUser = await prisma.utenti.findFirst({
       where: { username, org_id: orgId },

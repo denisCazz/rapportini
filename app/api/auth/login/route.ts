@@ -7,6 +7,8 @@ import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } f
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-options';
 import { writeAuditLog } from '@/lib/audit-log';
+import { resolveCatOrgId } from '@/lib/cat-org';
+import { normalizeUserRole } from '@/lib/roles';
 
 const userLoginSelect = {
   id: true,
@@ -55,19 +57,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
     }
 
-    const { username, password } = validation.data;
-    const requestedOrgId = (
+    const { username, password, partita_iva, ragione_sociale } = validation.data;
+
+    let requestedOrgId = (
       body?.org_id ||
       body?.idsocieta ||
-      (await resolveAuthOrgId(request)) ||
       ''
     )
       .toString()
       .trim();
 
+    if (partita_iva?.trim()) {
+      const catResolution = await resolveCatOrgId({
+        partita_iva: partita_iva.trim(),
+        ragione_sociale: ragione_sociale?.trim(),
+      });
+      if ('error' in catResolution) {
+        return NextResponse.json({ error: catResolution.error }, { status: 400 });
+      }
+      requestedOrgId = catResolution.orgId;
+    }
+
+    if (!requestedOrgId) {
+      requestedOrgId = ((await resolveAuthOrgId(request)) || '').toString().trim();
+    }
+
     if (!requestedOrgId) {
       return NextResponse.json(
-        { error: 'Organizzazione non configurata. Imposta DEFAULT_ORG_ID o invia org_id.' },
+        { error: 'Specifica la Partita IVA del CAT oppure configura DEFAULT_ORG_ID.' },
         { status: 400 }
       );
     }
@@ -122,7 +139,7 @@ export async function POST(request: NextRequest) {
     });
 
     const mustChange = Boolean(utente.must_change_password);
-    const ruolo = utente.ruolo === 'admin' ? 'admin' : 'operatore';
+    const ruolo = normalizeUserRole(utente.ruolo);
 
     const { accessToken, refreshToken } = await createTokenPair({
       id: utente.id,

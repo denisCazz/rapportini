@@ -21,6 +21,8 @@ const QUALIFICHE = [
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    partita_iva: '',
+    ragione_sociale: '',
     username: '',
     password: '',
     confirmPassword: '',
@@ -101,7 +103,7 @@ export default function RegisterPage() {
         'Content-Type': 'application/json',
       };
 
-      if (orgId) {
+      if (orgId && !formData.partita_iva.trim()) {
         headers['X-Org-Id'] = orgId;
       }
 
@@ -109,6 +111,8 @@ export default function RegisterPage() {
         method: 'POST',
         headers,
         body: JSON.stringify({
+          partita_iva: formData.partita_iva.trim() || undefined,
+          ragione_sociale: formData.ragione_sociale.trim() || undefined,
           username: formData.username,
           password: formData.password,
           nome: formData.nome,
@@ -116,7 +120,7 @@ export default function RegisterPage() {
           telefono: formData.telefono,
           email: formData.email,
           qualifica: formData.qualifica,
-          org_id: orgId || undefined,
+          org_id: formData.partita_iva.trim() ? undefined : orgId || undefined,
         }),
       });
 
@@ -176,6 +180,36 @@ export default function RegisterPage() {
               </div>
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              Partita IVA del CAT <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.partita_iva}
+              onChange={(e) => setFormData({ ...formData, partita_iva: e.target.value })}
+              required
+              disabled={isLoading}
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              placeholder="12345678901"
+              inputMode="numeric"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              Ragione sociale CAT
+            </label>
+            <input
+              type="text"
+              value={formData.ragione_sociale}
+              onChange={(e) => setFormData({ ...formData, ragione_sociale: e.target.value })}
+              disabled={isLoading}
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              placeholder="Assistenza Stufe S.r.l."
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -346,11 +380,17 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-2">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Hai già un account?{' '}
             <Link href="/login" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
               Accedi
+            </Link>
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Sei un CAT?{' '}
+            <Link href="/register-cat" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
+              Registra il centro assistenza
             </Link>
           </p>
         </div>

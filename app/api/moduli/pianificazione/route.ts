@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
+import { isOrgAdminRole } from '@/lib/roles';
 import { assertClienteInOrg, assertUtenteInOrg } from '@/lib/tenant-context';
 import { mapInterventoPianificato } from '@/lib/interventi-pianificati';
 import { syncDatabaseSchema } from '@/lib/db-schema-sync';
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     const fine = parseDateOnly(dataFine);
 
     const pianificatiWhere =
-      ruolo === 'admin'
+      isOrgAdminRole(ruolo)
         ? { org_id: orgId }
         : {
             org_id: orgId,
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const rapportiniWhere: Prisma.RapportiniWhereInput = {
       org_id: orgId,
-      ...(ruolo !== 'admin' ? { utente_id: userId } : {}),
+      ...(!isOrgAdminRole(ruolo) ? { utente_id: userId } : {}),
       OR: [
         { data_intervento: { gte: inizio, lte: fine } },
         { prossimo_intervento: { gte: inizio, lte: fine } },

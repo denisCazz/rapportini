@@ -1,4 +1,5 @@
 import type { Cliente } from '@/types';
+import { isOrgAdminRole } from '@/lib/roles';
 import type { RapportinoFormValues } from '@/lib/validators/rapportino-form';
 import { getDefaultRapportinoFormValues } from '@/lib/validators/rapportino-form';
 
@@ -86,7 +87,7 @@ export function canAccessInterventoPianificato(
   row: { utente_id: string | null; creato_da: string | null },
   user: { id: string; ruolo: string }
 ): boolean {
-  if (user.ruolo === 'admin') return true;
+  if (isOrgAdminRole(user.ruolo)) return true;
   if (!row.utente_id || row.utente_id === user.id) return true;
   if (row.creato_da === user.id) return true;
   return false;

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
+import { resolveCatOrgId } from '@/lib/cat-org';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -22,19 +23,38 @@ export async function POST(request: NextRequest) {
       );
     }
     const payload = await request.json();
-    const orgId = (
+
+    let orgId = (
       payload?.org_id
       || payload?.idsocieta
-      || (await resolveAuthOrgId(request))
       || ''
     ).toString().trim();
 
+    const partitaIva = (payload?.partita_iva || '').toString().trim();
+    const ragioneSociale = (payload?.ragione_sociale || '').toString().trim();
+
+    if (partitaIva) {
+      const catResolution = await resolveCatOrgId({
+        partita_iva: partitaIva,
+        ragione_sociale: ragioneSociale || undefined,
+      });
+      if ('error' in catResolution) {
+        return NextResponse.json({ error: catResolution.error }, { status: 400 });
+      }
+      orgId = catResolution.orgId;
+    }
+
+    if (!orgId) {
+      orgId = ((await resolveAuthOrgId(request)) || '').toString().trim();
+    }
+
     if (!orgId) {
       return NextResponse.json(
-        { error: 'Organizzazione non configurata. Imposta DEFAULT_ORG_ID oppure invia header X-Org-Id.' },
+        { error: 'Specifica la Partita IVA del CAT oppure configura DEFAULT_ORG_ID.' },
         { status: 400 }
       );
     }
+
     const { username, password, nome, cognome, telefono, email, qualifica } = payload;
 
     // Validazione

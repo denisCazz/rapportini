@@ -2,16 +2,19 @@
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { getJwtSecretBytes } from '@/lib/jwt-secret';
+import { isOrgAdminRole } from '@/lib/roles';
 
 // Percorsi pubblici che non richiedono autenticazione
 const publicPaths = [
   '/login',
   '/register',
+  '/register-cat',
   '/forgot-password',
   '/reset-password',
   '/privacy',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/register-cat',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/refresh',
@@ -118,7 +121,7 @@ export async function middleware(request: NextRequest) {
 
   // Verifica permessi admin per percorsi protetti
   if (adminPaths.some(path => pathname.startsWith(path))) {
-    if (payload.ruolo !== 'admin') {
+    if (!isOrgAdminRole(payload.ruolo)) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
           { error: 'Accesso non autorizzato' },

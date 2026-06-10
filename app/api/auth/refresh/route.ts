@@ -3,6 +3,7 @@ import { verifyToken, createTokenPair } from '@/lib/jwt';
 import { prisma } from '@/lib/db';
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-options';
+import { normalizeUserRole } from '@/lib/roles';
 
 // POST - Refresh token
 export async function POST(request: NextRequest) {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    const ruolo = utente.ruolo === 'admin' ? 'admin' : 'operatore';
+    const ruolo = normalizeUserRole(utente.ruolo);
 
     const { accessToken, refreshToken: newRefreshToken } = await createTokenPair({
       id: utente.id,

@@ -9,6 +9,20 @@ import {
 export const loginSchema = z.object({
   username: z.string().min(1, 'Username obbligatorio').max(50, 'Username troppo lungo'),
   password: z.string().min(1, 'Password obbligatoria').max(100, 'Password troppo lunga'),
+  partita_iva: z.string().max(20).optional().or(z.literal('')),
+  ragione_sociale: z.string().max(255).optional().or(z.literal('')),
+});
+
+// Schema per registrazione CAT (admin_cat)
+export const registerCatSchema = z.object({
+  ragione_sociale: z.string().min(1, 'Ragione sociale obbligatoria').max(255),
+  partita_iva: z.string().min(11, 'Partita IVA non valida').max(20),
+  username: z.string().min(3, 'Username deve avere almeno 3 caratteri').max(50),
+  password: z.string().min(6, 'Password deve avere almeno 6 caratteri').max(100),
+  nome: z.string().min(1, 'Nome obbligatorio').max(100),
+  cognome: z.string().min(1, 'Cognome obbligatorio').max(100),
+  telefono: z.string().min(1, 'Telefono obbligatorio').max(20),
+  email: z.string().email('Email non valida').optional().or(z.literal('')).or(z.literal(null)),
 });
 
 // Schema per registrazione utente
@@ -20,7 +34,8 @@ export const registerSchema = z.object({
   email: z.string().email('Email non valida').optional().or(z.literal('')).or(z.literal(null)),
   telefono: z.string().max(20, 'Telefono troppo lungo').optional().or(z.literal('')),
   qualifica: z.string().max(100, 'Qualifica troppo lunga').optional().or(z.literal('')),
-  ruolo: z.enum(['admin', 'operatore']).default('operatore'),
+  ruolo: z.enum(['admin', 'admin_cat', 'operatore']).default('operatore'),
+  partita_iva: z.string().max(20).optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
   if (data.ruolo === 'operatore' && !data.qualifica?.trim()) {
     ctx.addIssue({
@@ -157,7 +172,7 @@ export const updateUserSchema = z.object({
   qualifica: z.string().max(100).optional().or(z.literal('')),
   firma: z.string().max(3000000).optional().or(z.literal('')),
   attivo: z.boolean().optional(),
-  ruolo: z.enum(['admin', 'operatore']).optional(),
+  ruolo: z.enum(['admin', 'admin_cat', 'operatore']).optional(),
 });
 
 // Schema per cambio password

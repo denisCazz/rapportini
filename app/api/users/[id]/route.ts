@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { updateUserSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { isCatAdmin, isOrgAdminRole } from '@/lib/roles';
 import { writeAuditLog } from '@/lib/audit-log';
 import { getClientIP } from '@/lib/rate-limit';
 
@@ -33,7 +34,7 @@ export async function GET(
     const currentUserId = request.headers.get('x-user-id');
     const orgId = getOrgIdFromRequest(request);
 
-    if (userRole !== 'admin' && currentUserId !== id) {
+    if (!isOrgAdminRole(userRole) && currentUserId !== id) {
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
@@ -65,7 +66,7 @@ export async function PATCH(
     const currentUserId = request.headers.get('x-user-id');
     const orgId = getOrgIdFromRequest(request);
 
-    const isAdmin = userRole === 'admin';
+    const isAdmin = isOrgAdminRole(userRole);
     const isSelf = currentUserId === id;
 
     if (!isAdmin && !isSelf) {
@@ -152,7 +153,7 @@ export async function DELETE(
     const currentUserId = request.headers.get('x-user-id');
     const orgId = getOrgIdFromRequest(request);
 
-    if (userRole !== 'admin') {
+    if (!isOrgAdminRole(userRole)) {
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
@@ -160,17 +161,27 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non puoi eliminare il tuo account' }, { status: 400 });
     }
 
-    const adminCount = await prisma.utenti.count({
-      where: { org_id: orgId, ruolo: 'admin', attivo: true },
-    });
-
     const userToDelete = await prisma.utenti.findFirst({
       where: { id, org_id: orgId },
       select: { ruolo: true },
     });
 
-    if (userToDelete?.ruolo === 'admin' && adminCount <= 1) {
-      return NextResponse.json({ error: "Non puoi eliminare l'ultimo admin" }, { status: 400 });
+    if (isCatAdmin(userRole) && userToDelete?.ruolo !== 'operatore') {
+      return NextResponse.json(
+        { error: 'Gli amministratori CAT possono eliminare solo operatori' },
+        { status: 403 }
+      );
+    }
+
+    const adminCount = await prisma.utenti.count({
+      where: { org_id: orgId, ruolo: { in: ['admin', 'admin_cat'] }, attivo: true },
+    });
+
+    if (
+      (userToDelete?.ruolo === 'admin' || userToDelete?.ruolo === 'admin_cat') &&
+      adminCount <= 1
+    ) {
+      return NextResponse.json({ error: "Non puoi eliminare l'ultimo amministratore" }, { status: 400 });
     }
 
     await prisma.utenti.deleteMany({

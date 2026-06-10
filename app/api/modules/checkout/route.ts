@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuthenticatedTenant } from '@/lib/tenant-context';
+import { isOrgAdminRole } from '@/lib/roles';
 import { isModuleActiveForUser, getOrCreateStripeCustomerId } from '@/lib/module-access';
 import { MODULE_CODES, getModuleByCode, ModuleCode } from '@/lib/modules';
 import {
@@ -29,9 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { id: userId, org_id: orgId, ruolo: userRole } = tenant.user;
-    if (userRole === 'admin') {
+    if (isOrgAdminRole(userRole)) {
       return NextResponse.json(
-        { error: 'Gli amministratori hanno già accesso ai moduli senza abbonamento' },
+        { error: 'Gli amministratori gestiscono i moduli tramite il pannello CAT, non tramite checkout personale' },
         { status: 400 }
       );
     }

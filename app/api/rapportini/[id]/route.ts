@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
+import { isOrgAdminRole } from '@/lib/roles';
 import { Rapportino } from '@/types';
 import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import {
@@ -34,7 +35,7 @@ export async function GET(
       id,
       org_id: orgId,
     };
-    if (userRole !== 'admin') {
+    if (!isOrgAdminRole(userRole)) {
       where.utente_id = userId;
     }
 
@@ -75,7 +76,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'ID utente non fornito. Effettua il login.' }, { status: 401 });
     }
 
-    if (userRole !== 'admin') {
+    if (!isOrgAdminRole(userRole)) {
       const existing = await prisma.rapportini.findFirst({
         where: { id, org_id: orgId },
         select: { utente_id: true, cliente_id: true },
@@ -157,7 +158,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID utente non fornito. Effettua il login.' }, { status: 401 });
     }
 
-    if (userRole !== 'admin') {
+    if (!isOrgAdminRole(userRole)) {
       const rapportino = await prisma.rapportini.findFirst({
         where: { id, org_id: orgId },
         select: { utente_id: true },
