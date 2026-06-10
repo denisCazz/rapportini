@@ -224,14 +224,16 @@ export default function SidebarLayout({
               <Settings className="h-4 w-4" aria-hidden />
               Impostazioni
             </Link>
-            <Link
-              href="/admin/moduli"
-              onClick={() => setMobileOpen(false)}
-              className={navLinkClass(isActive('/admin/moduli'))}
-            >
-              <Puzzle className="h-4 w-4" aria-hidden />
-              Moduli
-            </Link>
+            {auth.canManageModulesAdmin() && (
+              <Link
+                href="/admin/moduli"
+                onClick={() => setMobileOpen(false)}
+                className={navLinkClass(isActive('/admin/moduli'))}
+              >
+                <Puzzle className="h-4 w-4" aria-hidden />
+                Moduli
+              </Link>
+            )}
           </>
         )}
       </nav>
