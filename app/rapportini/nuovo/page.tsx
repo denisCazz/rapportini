@@ -30,9 +30,12 @@ export default function NuovoRapportinoPage() {
     setReady(true);
   }, [router]);
 
-  const handleSave = async (rapportino: Rapportino) => {
+  const handleSave = async (rapportino: Rapportino, options?: { pendingImages?: File[] }) => {
     try {
-      await api.createRapportino(rapportino);
+      const result = await api.createRapportino(rapportino);
+      if (options?.pendingImages?.length) {
+        await api.uploadRapportinoImmagini(result.id, options.pendingImages);
+      }
       toast.success('Rapportino creato');
       router.push('/rapportini');
     } catch (err: unknown) {

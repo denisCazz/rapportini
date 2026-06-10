@@ -10,8 +10,10 @@ import RapportinoStepIndicator from '@/components/rapportino/RapportinoStepIndic
 import RapportinoStepTipologia from '@/components/rapportino/steps/RapportinoStepTipologia';
 import RapportinoStepIntervento from '@/components/rapportino/steps/RapportinoStepIntervento';
 import RapportinoStepFirme from '@/components/rapportino/steps/RapportinoStepFirme';
+import RapportinoImageUpload, { type PendingImage } from '@/components/rapportino/RapportinoImageUpload';
+import type { RapportinoImmagine } from '@/types';
 import FormSectionHeader from '@/components/rapportino/FormSectionHeader';
-import { fetchWithAuth, parseResponseBody, getApiErrorMessage } from '@/lib/api';
+import { api, fetchWithAuth, parseResponseBody, getApiErrorMessage } from '@/lib/api';
 import { buildClienteIndirizzo } from '@/lib/rapportino-db';
 import { Card } from '@/components/ui/card';
 import {
@@ -37,7 +39,7 @@ import {
 
 interface RapportinoFormProps {
   initialRapportino?: Rapportino;
-  onSave: (rapportino: Rapportino) => void;
+  onSave: (rapportino: Rapportino, options?: { pendingImages?: File[] }) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -93,6 +95,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     return !getDraft(NEW_RAPPORTINO_DRAFT_KEY);
   });
   const [operatoreFirmaFromProfile, setOperatoreFirmaFromProfile] = useState(false);
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [existingImages, setExistingImages] = useState<RapportinoImmagine[]>([]);
   const { register, watch, setValue, getValues, reset, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
     defaultValues: getDefaultRapportinoFormValues(initialRapportino),
   });
@@ -104,6 +108,18 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
   useEffect(() => {
     reset(getDefaultRapportinoFormValues(initialRapportino));
   }, [initialRapportino?.id, reset, initialRapportino]);
+
+  useEffect(() => {
+    if (!initialRapportino?.id) {
+      setExistingImages([]);
+      return;
+    }
+    let cancelled = false;
+    api.getRapportinoImmagini(initialRapportino.id).then((imgs) => {
+      if (!cancelled) setExistingImages(imgs);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [initialRapportino?.id]);
 
   // Carica dati operatore + firma salvata (profilo / API) — solo se non c'è bozza in sospeso
   useEffect(() => {
@@ -562,7 +578,8 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
     };
 
     deleteDraft(draftIdRef.current);
-    onSave(rapportino);
+    const files = pendingImages.map((p) => p.file);
+    return onSave(rapportino, files.length ? { pendingImages: files } : undefined);
   };
 
   const handleConfirmSave = () => {
@@ -571,9 +588,9 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       return;
     }
     const toastId = toast.loading('Salvataggio rapportino…');
-    submitWithRhf((values) => {
+    submitWithRhf(async (values) => {
       try {
-        onSaveValid(values);
+        await onSaveValid(values);
         toast.success('Rapportino salvato', { id: toastId });
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Errore nel salvataggio', { id: toastId });
@@ -942,30 +959,41 @@ export default function RapportinoForm({ initialRapportino, onSave, onCancel }: 
       )}
 
       {step === 4 && (
-        <RapportinoStepIntervento
-          intervento={intervento}
-          setValue={setValue}
-          marche={marche}
-          modelli={modelli}
-          materiali={materiali}
-          marcaId={marcaId}
-          modelloId={modelloId}
-          showMarcaInput={showMarcaInput}
-          showModelloInput={showModelloInput}
-          selectedMateriali={selectedMateriali}
-          showMaterialeInput={showMaterialeInput}
-          newMaterialeNome={newMaterialeNome}
-          setMarcaId={setMarcaId}
-          setModelloId={setModelloId}
-          setShowMarcaInput={setShowMarcaInput}
-          setShowModelloInput={setShowModelloInput}
-          setMarche={setMarche}
-          setModelli={setModelli}
-          setMateriali={setMateriali}
-          setSelectedMateriali={setSelectedMateriali}
-          setShowMaterialeInput={setShowMaterialeInput}
-          setNewMaterialeNome={setNewMaterialeNome}
-        />
+        <>
+          <RapportinoStepIntervento
+            intervento={intervento}
+            setValue={setValue}
+            marche={marche}
+            modelli={modelli}
+            materiali={materiali}
+            marcaId={marcaId}
+            modelloId={modelloId}
+            showMarcaInput={showMarcaInput}
+            showModelloInput={showModelloInput}
+            selectedMateriali={selectedMateriali}
+            showMaterialeInput={showMaterialeInput}
+            newMaterialeNome={newMaterialeNome}
+            setMarcaId={setMarcaId}
+            setModelloId={setModelloId}
+            setShowMarcaInput={setShowMarcaInput}
+            setShowModelloInput={setShowModelloInput}
+            setMarche={setMarche}
+            setModelli={setModelli}
+            setMateriali={setMateriali}
+            setSelectedMateriali={setSelectedMateriali}
+            setShowMaterialeInput={setShowMaterialeInput}
+            setNewMaterialeNome={setNewMaterialeNome}
+          />
+          <div className="mt-6">
+            <RapportinoImageUpload
+              rapportinoId={initialRapportino?.id}
+              pendingImages={pendingImages}
+              onPendingImagesChange={setPendingImages}
+              existingImages={existingImages}
+              onExistingImagesChange={setExistingImages}
+            />
+          </div>
+        </>
       )}
 
       {step === 5 && (

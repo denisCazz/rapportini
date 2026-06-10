@@ -67,12 +67,26 @@ export interface Intervento {
   firmaCliente?: string;
 }
 
+export interface RapportinoImmagine {
+  id: string;
+  storageKey: string;
+  bucket: string;
+  mimeType: string;
+  sizeBytes?: number;
+  caption?: string;
+  archivedAt?: string;
+  createdAt: string;
+  /** URL API per visualizzazione (solo in risposte API) */
+  url?: string;
+}
+
 export interface Rapportino {
   id: string;
   operatore: Operatore;
   cliente: Cliente;
   intervento: Intervento;
   dataCreazione: string;
+  immagini?: RapportinoImmagine[];
 }
 
 export interface AziendaSettings {
