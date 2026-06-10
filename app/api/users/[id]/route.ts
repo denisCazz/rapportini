@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { updateUserSchema, validateRequest } from '@/lib/validation';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
-import { isCatAdmin, isOrgAdminRole } from '@/lib/roles';
+import { isCatAdmin, isOrgAdminRole, isPlatformAdmin } from '@/lib/roles';
+import { findUserAccessibleToAdmin } from '@/lib/user-scope';
 import { writeAuditLog } from '@/lib/audit-log';
 import { getClientIP } from '@/lib/rate-limit';
 
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 
 const userSelectPublic = {
   id: true,
+  org_id: true,
   username: true,
   ruolo: true,
   nome: true,
@@ -38,13 +40,20 @@ export async function GET(
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
-    const utente = await prisma.utenti.findFirst({
-      where: { id, org_id: orgId },
-      select: userSelectPublic,
-    });
+    const utente = isOrgAdminRole(userRole)
+      ? await findUserAccessibleToAdmin(id, userRole, orgId, userSelectPublic)
+      : await prisma.utenti.findFirst({
+          where: { id, org_id: orgId },
+          select: userSelectPublic,
+        });
 
     if (!utente) {
       return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
+    }
+
+    if (!isPlatformAdmin(userRole)) {
+      const { org_id: _orgId, ...publicUser } = utente;
+      return NextResponse.json({ data: publicUser });
     }
 
     return NextResponse.json({ data: utente });
@@ -73,10 +82,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
     }
 
-    const targetUser = await prisma.utenti.findFirst({
-      where: { id, org_id: orgId },
-      select: { ruolo: true },
-    });
+    const targetUser = isAdmin
+      ? await findUserAccessibleToAdmin(id, userRole, orgId, {
+          ruolo: true,
+          org_id: true,
+        })
+      : await prisma.utenti.findFirst({
+          where: { id, org_id: orgId },
+          select: { ruolo: true, org_id: true },
+        });
 
     if (!targetUser) {
       return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
@@ -105,6 +119,10 @@ export async function PATCH(
     }
 
     if (isCatAdmin(userRole)) {
+      delete updateData.ruolo;
+    }
+
+    if (isPlatformAdmin(userRole) && targetUser.org_id !== orgId) {
       delete updateData.ruolo;
     }
 
@@ -176,9 +194,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non puoi eliminare il tuo account' }, { status: 400 });
     }
 
-    const userToDelete = await prisma.utenti.findFirst({
-      where: { id, org_id: orgId },
-      select: { ruolo: true },
+    const userToDelete = await findUserAccessibleToAdmin(id, userRole, orgId, {
+      ruolo: true,
+      org_id: true,
     });
 
     if (isCatAdmin(userRole) && userToDelete?.ruolo !== 'operatore') {
@@ -188,8 +206,9 @@ export async function DELETE(
       );
     }
 
+    const targetOrgId = userToDelete?.org_id ?? orgId;
     const adminCount = await prisma.utenti.count({
-      where: { org_id: orgId, ruolo: { in: ['admin', 'admin_cat'] }, attivo: true },
+      where: { org_id: targetOrgId, ruolo: { in: ['admin', 'admin_cat'] }, attivo: true },
     });
 
     if (
@@ -200,11 +219,11 @@ export async function DELETE(
     }
 
     await prisma.utenti.deleteMany({
-      where: { id, org_id: orgId },
+      where: { id, org_id: targetOrgId },
     });
 
     void writeAuditLog({
-      org_id: orgId,
+      org_id: targetOrgId,
       user_id: currentUserId,
       action: 'user_delete',
       resource: `user:${id}`,

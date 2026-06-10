@@ -5,6 +5,7 @@ import { changePasswordSchema, validateRequest } from '@/lib/validation';
 import { z } from 'zod';
 import { getOrgIdFromRequest } from '@/lib/api-auth';
 import { isOrgAdminRole } from '@/lib/roles';
+import { findUserAccessibleToAdmin } from '@/lib/user-scope';
 import { writeAuditLog } from '@/lib/audit-log';
 import { getClientIP } from '@/lib/rate-limit';
 
@@ -40,19 +41,23 @@ export async function POST(
         return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
       }
 
-      const passwordHash = await bcrypt.hash(validation.data.newPassword, 12);
-
-      const updated = await prisma.utenti.updateMany({
-        where: { id, org_id: orgId },
-        data: { password_hash: passwordHash, must_change_password: false },
+      const targetUser = await findUserAccessibleToAdmin(id, userRole, orgId, {
+        org_id: true,
       });
 
-      if (updated.count === 0) {
+      if (!targetUser) {
         return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
       }
 
+      const passwordHash = await bcrypt.hash(validation.data.newPassword, 12);
+
+      await prisma.utenti.updateMany({
+        where: { id, org_id: targetUser.org_id },
+        data: { password_hash: passwordHash, must_change_password: false },
+      });
+
       void writeAuditLog({
-        org_id: orgId,
+        org_id: targetUser.org_id,
         user_id: currentUserId,
         action: 'password_change',
         resource: `user:${id}`,
