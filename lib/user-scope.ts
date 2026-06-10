@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { isCatOrgId } from '@/lib/cat-org';
 import { isCatAdmin, isPlatformAdmin } from '@/lib/roles';
@@ -27,22 +28,27 @@ export function canAdminAccessUserOrg(
   return false;
 }
 
-export async function findUserAccessibleToAdmin(
+export async function findUserAccessibleToAdmin<S extends Prisma.UtentiSelect>(
   userId: string,
   userRole: string | null | undefined,
   requesterOrgId: string,
-  select: Record<string, boolean>
-) {
+  select: S
+): Promise<(Prisma.UtentiGetPayload<{ select: S }> & { org_id: string }) | null> {
   const user = await prisma.utenti.findFirst({
     where: { id: userId },
-    select: { org_id: true, ...select },
+    select: { ...select, org_id: true } as Prisma.UtentiSelect,
   });
 
-  if (!user || !canAdminAccessUserOrg(userRole, requesterOrgId, user.org_id)) {
+  if (!user) {
     return null;
   }
 
-  return user;
+  const { org_id: targetOrgId } = user as { org_id: string };
+  if (!canAdminAccessUserOrg(userRole, requesterOrgId, targetOrgId)) {
+    return null;
+  }
+
+  return user as Prisma.UtentiGetPayload<{ select: S }> & { org_id: string };
 }
 
 export async function getCatOrgLabels(orgIds: string[]): Promise<Map<string, string>> {
