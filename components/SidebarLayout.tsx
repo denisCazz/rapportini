@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { AziendaSettings } from '@/types';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
-import InstallPWAButton from '@/components/InstallPWA';
 import { isTestEnv } from '@/lib/env';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -119,12 +118,9 @@ export default function SidebarLayout({
               alt={settings.nomeAzienda || 'EVA CALÒR'}
               className="h-10 w-auto max-w-[160px] object-contain"
             />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {settings.nomeAzienda || 'EVA CALÒR'}
-              </p>
-              <p className="text-xs text-muted-foreground">Gestione rapportini</p>
-            </div>
+            <p className="min-w-0 truncate text-sm font-semibold text-foreground">
+              {settings.nomeAzienda || 'EVA CALÒR'}
+            </p>
           </Link>
           {showCloseButton && (
             <button
@@ -210,7 +206,6 @@ export default function SidebarLayout({
       )}
 
       <div className="border-t border-border p-3 space-y-2">
-        <InstallPWAButton />
         <Button variant="outline" className="w-full justify-center gap-2" onClick={toggleDarkMode}>
           {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           {darkMode ? 'Tema scuro' : 'Tema chiaro'}
