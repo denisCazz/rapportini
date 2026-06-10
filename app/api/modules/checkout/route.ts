@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
+import { requireAuthenticatedTenant } from '@/lib/tenant-context';
 import { isModuleActiveForUser, getOrCreateStripeCustomerId } from '@/lib/module-access';
 import { MODULE_CODES, getModuleByCode, ModuleCode } from '@/lib/modules';
 import {
@@ -23,12 +23,12 @@ const checkoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
+    const tenant = await requireAuthenticatedTenant(request);
+    if (!tenant.ok) {
+      return tenant.response;
     }
 
-    const userRole = request.headers.get('x-user-ruolo');
+    const { id: userId, org_id: orgId, ruolo: userRole } = tenant.user;
     if (userRole === 'admin') {
       return NextResponse.json(
         { error: 'Gli amministratori hanno già accesso ai moduli senza abbonamento' },
@@ -54,8 +54,6 @@ export async function POST(request: NextRequest) {
     if (!modulo) {
       return NextResponse.json({ error: 'Modulo non trovato' }, { status: 404 });
     }
-
-    const orgId = getOrgIdFromRequest(request);
 
     const alreadyActive = await isModuleActiveForUser(userId, orgId, moduleCode);
     if (alreadyActive) {
