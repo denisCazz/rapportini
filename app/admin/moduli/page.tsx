@@ -61,6 +61,10 @@ export default function AdminModuliPage() {
       router.push('/');
       return;
     }
+    if (!auth.canManageModulesAdmin()) {
+      router.push('/admin');
+      return;
+    }
     hasLoadedRef.current = true;
     setSettings(storage.getSettings());
     loadData();

@@ -1,3 +1,5 @@
+import { canManageModulesAdmin } from '@/lib/module-admin';
+
 const STORAGE_KEY_AUTH = 'auth_token';
 const STORAGE_KEY_USER = 'user_data';
 const STORAGE_KEY_ACCESS_TOKEN = 'access_token';
@@ -174,6 +176,13 @@ export const auth = {
   isOperatore: (): boolean => {
     const user = auth.getUser();
     return user?.ruolo === 'operatore';
+  },
+
+  /** Gestione manuale moduli admin (solo super-admin). */
+  canManageModulesAdmin: (): boolean => {
+    const user = auth.getUser();
+    if (!user || user.ruolo !== 'admin') return false;
+    return canManageModulesAdmin(user.email);
   },
 
   // Refresh token

@@ -16,6 +16,7 @@ const publicPaths = [
   '/api/auth/reset-password',
   '/api/auth/refresh',
   '/api/auth/logout',
+  '/api/stripe/webhook',
   '/api/health',
   '/_next',
   '/favicon.ico',

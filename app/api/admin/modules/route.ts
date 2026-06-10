@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getOrgIdFromRequest } from '@/lib/api-auth';
+import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { prisma } from '@/lib/db';
+import { canManageModulesAdmin } from '@/lib/module-admin';
 import { setModuleActiveForUser } from '@/lib/module-access';
 import { MODULE_CODES, PAID_MODULES, ModuleCode } from '@/lib/modules';
 import { validateRequest } from '@/lib/validation';
@@ -16,12 +17,33 @@ const updateModuleSchema = z.object({
   attivo: z.boolean(),
 });
 
+async function assertModulesSuperAdmin(request: NextRequest): Promise<NextResponse | null> {
+  const userRole = request.headers.get('x-user-ruolo');
+  if (userRole !== 'admin') {
+    return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
+  }
+
+  const userId = getUserIdFromRequest(request);
+  if (!userId) {
+    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
+  }
+
+  const adminUser = await prisma.utenti.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+
+  if (!canManageModulesAdmin(adminUser?.email)) {
+    return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
+  }
+
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const userRole = request.headers.get('x-user-ruolo');
-    if (userRole !== 'admin') {
-      return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
-    }
+    const denied = await assertModulesSuperAdmin(request);
+    if (denied) return denied;
 
     const orgId = getOrgIdFromRequest(request);
 
@@ -88,10 +110,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const userRole = request.headers.get('x-user-ruolo');
-    if (userRole !== 'admin') {
-      return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
-    }
+    const denied = await assertModulesSuperAdmin(request);
+    if (denied) return denied;
 
     const body = await request.json();
     const validation = validateRequest(updateModuleSchema, body);
