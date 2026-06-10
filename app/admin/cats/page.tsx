@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
@@ -55,6 +55,15 @@ export default function AdminCatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingOrgId, setUpdatingOrgId] = useState<string | null>(null);
+  const [editingCat, setEditingCat] = useState<CatRow | null>(null);
+  const [editForm, setEditForm] = useState({
+    ragione_sociale: '',
+    indirizzo: '',
+    codice_fiscale: '',
+    pec: '',
+    codice_destinatario_sdi: '',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -87,6 +96,78 @@ export default function AdminCatsPage() {
       setError(err instanceof Error ? err.message : 'Errore nel caricamento');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditModal = (cat: CatRow) => {
+    setEditingCat(cat);
+    setEditForm({
+      ragione_sociale: cat.ragione_sociale || '',
+      indirizzo: cat.indirizzo || '',
+      codice_fiscale: cat.codice_fiscale || '',
+      pec: cat.pec || '',
+      codice_destinatario_sdi: cat.codice_destinatario_sdi || '',
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingCat(null);
+    setSavingEdit(false);
+  };
+
+  const saveCatDetails = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!editingCat) return;
+
+    setSavingEdit(true);
+    try {
+      const response = await fetchWithAuth('/api/admin/cats', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          org_id: editingCat.org_id,
+          ragione_sociale: editForm.ragione_sociale,
+          indirizzo: editForm.indirizzo,
+          codice_fiscale: editForm.codice_fiscale,
+          pec: editForm.pec,
+          codice_destinatario_sdi: editForm.codice_destinatario_sdi,
+        }),
+      });
+      const data = await parseResponseBody<{
+        error?: string;
+        data?: {
+          ragione_sociale: string | null;
+          indirizzo: string | null;
+          codice_fiscale: string | null;
+          pec: string | null;
+          codice_destinatario_sdi: string | null;
+        };
+      }>(response);
+      if (!response.ok) {
+        throw new Error(data?.error || 'Errore nell\'aggiornamento');
+      }
+
+      const updated = data?.data;
+      setCats((prev) =>
+        prev.map((cat) =>
+          cat.org_id === editingCat.org_id
+            ? {
+                ...cat,
+                ragione_sociale: updated?.ragione_sociale ?? editForm.ragione_sociale,
+                indirizzo: updated?.indirizzo ?? editForm.indirizzo,
+                codice_fiscale: updated?.codice_fiscale ?? editForm.codice_fiscale,
+                pec: updated?.pec ?? editForm.pec,
+                codice_destinatario_sdi:
+                  updated?.codice_destinatario_sdi ?? editForm.codice_destinatario_sdi,
+              }
+            : cat
+        )
+      );
+      toast.success('Dati CAT aggiornati');
+      closeEditModal();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nell\'aggiornamento');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -219,6 +300,14 @@ export default function AdminCatsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={updatingOrgId === cat.org_id}
+                      onClick={() => openEditModal(cat)}
+                    >
+                      Modifica dati
+                    </Button>
                     {cat.stato === 'in_attesa' && (
                       <Button
                         size="sm"
@@ -252,6 +341,107 @@ export default function AdminCatsPage() {
               </Card>
             ))
           )}
+        </div>
+      )}
+
+      {editingCat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-2xl dark:bg-gray-800">
+            <div className="p-6">
+              <h2 className="mb-1 text-xl font-bold text-gray-900 dark:text-white">Modifica CAT</h2>
+              <p className="mb-4 text-sm text-muted-foreground">
+                {editingCat.ragione_sociale || editingCat.org_id}
+              </p>
+              <form onSubmit={saveCatDetails} className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Partita IVA
+                  </label>
+                  <input
+                    type="text"
+                    value={editingCat.partita_iva || ''}
+                    readOnly
+                    className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-300"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    La Partita IVA non è modificabile perché identifica il CAT nel sistema.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Ragione sociale *
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.ragione_sociale}
+                    onChange={(e) => setEditForm({ ...editForm, ragione_sociale: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Indirizzo *
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.indirizzo}
+                    onChange={(e) => setEditForm({ ...editForm, indirizzo: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Codice fiscale *
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.codice_fiscale}
+                    onChange={(e) => setEditForm({ ...editForm, codice_fiscale: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    required
+                    maxLength={16}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    PEC *
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.pec}
+                    onChange={(e) => setEditForm({ ...editForm, pec: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Codice destinatario SDI *
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.codice_destinatario_sdi}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, codice_destinatario_sdi: e.target.value.toUpperCase() })
+                    }
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    required
+                    maxLength={7}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={closeEditModal} disabled={savingEdit}>
+                    Annulla
+                  </Button>
+                  <Button type="submit" disabled={savingEdit}>
+                    {savingEdit ? 'Salvataggio...' : 'Salva modifiche'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </SidebarLayout>

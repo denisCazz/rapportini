@@ -38,6 +38,38 @@ export const updateCatStatoSchema = z.object({
   stato: z.enum(['in_attesa', 'attivo', 'sospeso']),
 });
 
+export const updateCatSchema = z
+  .object({
+    org_id: z.string().min(1).max(100),
+    stato: z.enum(['in_attesa', 'attivo', 'sospeso']).optional(),
+    ragione_sociale: z.string().min(1, 'Ragione sociale obbligatoria').max(255).optional(),
+    indirizzo: z.string().min(1, 'Indirizzo obbligatorio').max(500).optional(),
+    codice_fiscale: z.string().min(11, 'Codice fiscale obbligatorio').max(16).optional(),
+    pec: z.string().email('PEC non valida').max(255).optional(),
+    codice_destinatario_sdi: z
+      .string()
+      .min(6, 'Codice destinatario SDI obbligatorio')
+      .max(7)
+      .regex(/^[A-Z0-9]{6,7}$/i, 'Codice SDI non valido')
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasUpdate =
+      data.stato !== undefined ||
+      data.ragione_sociale !== undefined ||
+      data.indirizzo !== undefined ||
+      data.codice_fiscale !== undefined ||
+      data.pec !== undefined ||
+      data.codice_destinatario_sdi !== undefined;
+
+    if (!hasUpdate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Specificare almeno un campo da aggiornare',
+      });
+    }
+  });
+
 // Schema per registrazione utente
 export const registerSchema = z.object({
   username: z.string().min(3, 'Username deve avere almeno 3 caratteri').max(50, 'Username troppo lungo'),

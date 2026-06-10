@@ -5,6 +5,7 @@ import {
   clienteSchema,
   interventoSchema,
   rapportinoSchema,
+  updateCatSchema,
   validateRequest,
 } from '@/lib/validation';
 
@@ -127,6 +128,32 @@ describe('Validation Schemas', () => {
         marca: 'MCZ',
         modello: 'Star',
         motivoChiamata: 'Pulizia e controllo generale',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('updateCatSchema', () => {
+    it('accepts stato-only updates', () => {
+      const result = updateCatSchema.safeParse({
+        org_id: 'cat-12345678901',
+        stato: 'attivo',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts fiscal field updates', () => {
+      const result = updateCatSchema.safeParse({
+        org_id: 'cat-12345678901',
+        ragione_sociale: 'Assistenza Srl',
+        pec: 'cat@pec.it',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects empty patch body', () => {
+      const result = updateCatSchema.safeParse({
+        org_id: 'cat-12345678901',
       });
       expect(result.success).toBe(false);
     });

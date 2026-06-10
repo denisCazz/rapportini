@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { CAT_STATO, CAT_STATO_LABELS, CatStato } from '@/lib/cat-status';
 import { buildOperatorInviteUrl } from '@/lib/cat-org';
 import { isPlatformAdmin } from '@/lib/roles';
-import { updateCatStatoSchema, validateRequest } from '@/lib/validation';
+import { updateCatSchema, validateRequest } from '@/lib/validation';
 import { writeAuditLog } from '@/lib/audit-log';
 import { getClientIP } from '@/lib/rate-limit';
 
@@ -112,31 +112,70 @@ export async function PATCH(request: NextRequest) {
     if (denied) return denied;
 
     const body = await request.json();
-    const validation = validateRequest(updateCatStatoSchema, body);
+    const validation = validateRequest(updateCatSchema, body);
     if (!validation.success) {
       return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
     }
 
-    const { org_id, stato } = validation.data;
+    const {
+      org_id,
+      stato,
+      ragione_sociale,
+      indirizzo,
+      codice_fiscale,
+      pec,
+      codice_destinatario_sdi,
+    } = validation.data;
     const adminUserId = getUserIdFromRequest(request);
     const adminOrgId = getOrgIdFromRequest(request);
 
     const cat = await prisma.organizzazioni.findFirst({
       where: { org_id, tipo: 'cat' },
-      select: { org_id: true, stato: true, nome_azienda: true },
+      select: {
+        org_id: true,
+        stato: true,
+        nome_azienda: true,
+        indirizzo: true,
+        codice_fiscale: true,
+        pec: true,
+        codice_destinatario_sdi: true,
+      },
     });
 
     if (!cat) {
       return NextResponse.json({ error: 'CAT non trovato' }, { status: 404 });
     }
 
+    const updateData: {
+      stato?: string;
+      nome_azienda?: string;
+      indirizzo?: string;
+      codice_fiscale?: string;
+      pec?: string;
+      codice_destinatario_sdi?: string;
+      updated_at: Date;
+    } = { updated_at: new Date() };
+
+    if (stato !== undefined) updateData.stato = stato;
+    if (ragione_sociale !== undefined) updateData.nome_azienda = ragione_sociale.trim();
+    if (indirizzo !== undefined) updateData.indirizzo = indirizzo.trim();
+    if (codice_fiscale !== undefined) updateData.codice_fiscale = codice_fiscale.trim().toUpperCase();
+    if (pec !== undefined) updateData.pec = pec.trim().toLowerCase();
+    if (codice_destinatario_sdi !== undefined) {
+      updateData.codice_destinatario_sdi = codice_destinatario_sdi.trim().toUpperCase();
+    }
+
     const updated = await prisma.organizzazioni.update({
       where: { org_id },
-      data: { stato, updated_at: new Date() },
+      data: updateData,
       select: {
         org_id: true,
         nome_azienda: true,
         partita_iva: true,
+        indirizzo: true,
+        codice_fiscale: true,
+        pec: true,
+        codice_destinatario_sdi: true,
         stato: true,
         updated_at: true,
       },
@@ -145,12 +184,27 @@ export async function PATCH(request: NextRequest) {
     void writeAuditLog({
       org_id: adminOrgId,
       user_id: adminUserId,
-      action: 'cat_stato_update',
+      action: stato !== undefined ? 'cat_stato_update' : 'cat_update',
       resource: `cat:${org_id}`,
       details: {
-        previous_stato: cat.stato,
-        new_stato: stato,
-        ragione_sociale: cat.nome_azienda,
+        previous: {
+          stato: cat.stato,
+          ragione_sociale: cat.nome_azienda,
+          indirizzo: cat.indirizzo,
+          codice_fiscale: cat.codice_fiscale,
+          pec: cat.pec,
+          codice_destinatario_sdi: cat.codice_destinatario_sdi,
+        },
+        updated: {
+          ...(stato !== undefined ? { stato } : {}),
+          ...(ragione_sociale !== undefined ? { ragione_sociale: updateData.nome_azienda } : {}),
+          ...(indirizzo !== undefined ? { indirizzo: updateData.indirizzo } : {}),
+          ...(codice_fiscale !== undefined ? { codice_fiscale: updateData.codice_fiscale } : {}),
+          ...(pec !== undefined ? { pec: updateData.pec } : {}),
+          ...(codice_destinatario_sdi !== undefined
+            ? { codice_destinatario_sdi: updateData.codice_destinatario_sdi }
+            : {}),
+        },
       },
       ip: getClientIP(request),
     });
@@ -161,6 +215,10 @@ export async function PATCH(request: NextRequest) {
         org_id: updated.org_id,
         ragione_sociale: updated.nome_azienda,
         partita_iva: updated.partita_iva,
+        indirizzo: updated.indirizzo,
+        codice_fiscale: updated.codice_fiscale,
+        pec: updated.pec,
+        codice_destinatario_sdi: updated.codice_destinatario_sdi,
         stato: updated.stato,
         stato_label: CAT_STATO_LABELS[updated.stato as CatStato] || updated.stato,
         updated_at: updated.updated_at?.toISOString() ?? null,
