@@ -3,7 +3,8 @@ import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
-import { resolveCatOrgId } from '@/lib/cat-org';
+import { findCatOrgByInviteToken, resolveCatOrgId } from '@/lib/cat-org';
+import { CAT_STATO } from '@/lib/cat-status';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -32,8 +33,21 @@ export async function POST(request: NextRequest) {
 
     const partitaIva = (payload?.partita_iva || '').toString().trim();
     const ragioneSociale = (payload?.ragione_sociale || '').toString().trim();
+    const inviteToken = (payload?.invite || '').toString().trim();
 
-    if (partitaIva) {
+    if (inviteToken) {
+      const cat = await findCatOrgByInviteToken(inviteToken);
+      if (!cat) {
+        return NextResponse.json({ error: 'Link di invito non valido' }, { status: 400 });
+      }
+      if (cat.stato !== CAT_STATO.ATTIVO) {
+        return NextResponse.json(
+          { error: 'Il CAT non è attivo. Non è possibile registrarsi in questo momento.' },
+          { status: 403 }
+        );
+      }
+      orgId = cat.org_id;
+    } else if (partitaIva) {
       const catResolution = await resolveCatOrgId({
         partita_iva: partitaIva,
         ragione_sociale: ragioneSociale || undefined,

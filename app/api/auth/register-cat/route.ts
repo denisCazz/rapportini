@@ -3,11 +3,13 @@ import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { registerCatSchema, validateRequest } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
+import { randomUUID } from 'crypto';
 import {
   buildCatOrgId,
   isValidPartitaIva,
   normalizePartitaIva,
 } from '@/lib/cat-org';
+import { CAT_STATO } from '@/lib/cat-status';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -35,6 +37,10 @@ export async function POST(request: NextRequest) {
     const {
       ragione_sociale,
       partita_iva,
+      indirizzo,
+      codice_fiscale,
+      pec,
+      codice_destinatario_sdi,
       username,
       password,
       nome,
@@ -81,7 +87,13 @@ export async function POST(request: NextRequest) {
           org_id: orgId,
           nome_azienda: ragione_sociale.trim(),
           partita_iva: normalizedPiva,
+          indirizzo: indirizzo.trim(),
+          codice_fiscale: codice_fiscale.trim().toUpperCase(),
+          pec: pec.trim().toLowerCase(),
+          codice_destinatario_sdi: codice_destinatario_sdi.trim().toUpperCase(),
           tipo: 'cat',
+          stato: CAT_STATO.IN_ATTESA,
+          invite_token: randomUUID(),
         },
       });
 
@@ -113,7 +125,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Registrazione CAT completata con successo',
+      message:
+        'Registrazione CAT inviata. Riceverai conferma dopo l\'approvazione dell\'amministratore piattaforma.',
+      pending_approval: true,
       user: {
         id: newUser.id,
         username: newUser.username,

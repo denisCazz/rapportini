@@ -17,12 +17,25 @@ export const loginSchema = z.object({
 export const registerCatSchema = z.object({
   ragione_sociale: z.string().min(1, 'Ragione sociale obbligatoria').max(255),
   partita_iva: z.string().min(11, 'Partita IVA non valida').max(20),
+  indirizzo: z.string().min(1, 'Indirizzo obbligatorio').max(500),
+  codice_fiscale: z.string().min(11, 'Codice fiscale obbligatorio').max(16),
+  pec: z.string().email('PEC non valida').max(255),
+  codice_destinatario_sdi: z
+    .string()
+    .min(6, 'Codice destinatario SDI obbligatorio')
+    .max(7)
+    .regex(/^[A-Z0-9]{6,7}$/i, 'Codice SDI non valido'),
   username: z.string().min(3, 'Username deve avere almeno 3 caratteri').max(50),
   password: z.string().min(6, 'Password deve avere almeno 6 caratteri').max(100),
   nome: z.string().min(1, 'Nome obbligatorio').max(100),
   cognome: z.string().min(1, 'Cognome obbligatorio').max(100),
   telefono: z.string().min(1, 'Telefono obbligatorio').max(20),
   email: z.string().email('Email non valida').optional().or(z.literal('')).or(z.literal(null)),
+});
+
+export const updateCatStatoSchema = z.object({
+  org_id: z.string().min(1).max(100),
+  stato: z.enum(['in_attesa', 'attivo', 'sospeso']),
 });
 
 // Schema per registrazione utente

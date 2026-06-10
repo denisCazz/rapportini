@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { resolveAuthOrgId } from '@/lib/api-auth';
 import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-options';
 import { normalizeUserRole } from '@/lib/roles';
+import { assertCatOrgAllowsAccess } from '@/lib/cat-status';
 
 // POST - Refresh token
 export async function POST(request: NextRequest) {
@@ -40,6 +41,14 @@ export async function POST(request: NextRequest) {
 
     if (!utente || !utente.attivo) {
       const response = NextResponse.json({ error: 'Utente non trovato o disattivato' }, { status: 401 });
+      response.cookies.delete('access_token');
+      response.cookies.delete('refresh_token');
+      return response;
+    }
+
+    const catAccess = await assertCatOrgAllowsAccess(utente.org_id || orgId);
+    if (!catAccess.ok) {
+      const response = NextResponse.json({ error: catAccess.error }, { status: 403 });
       response.cookies.delete('access_token');
       response.cookies.delete('refresh_token');
       return response;

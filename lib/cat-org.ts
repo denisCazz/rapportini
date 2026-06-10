@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { assertCatOrgAllowsAccess } from '@/lib/cat-status';
 
 export const CAT_ORG_PREFIX = 'cat-';
 
@@ -29,6 +30,8 @@ export async function findCatOrgByPartitaIva(partitaIva: string) {
       nome_azienda: true,
       partita_iva: true,
       tipo: true,
+      stato: true,
+      invite_token: true,
     },
   });
 }
@@ -50,7 +53,39 @@ export async function resolveCatOrgId(params: {
     }
   }
 
+  const access = await assertCatOrgAllowsAccess(org.org_id);
+  if (!access.ok) {
+    return { error: access.error };
+  }
+
   return { orgId: org.org_id };
+}
+
+export async function findCatOrgByInviteToken(token: string) {
+  const trimmed = token.trim();
+  if (!trimmed) return null;
+
+  return prisma.organizzazioni.findFirst({
+    where: {
+      tipo: 'cat',
+      invite_token: trimmed,
+    },
+    select: {
+      org_id: true,
+      nome_azienda: true,
+      partita_iva: true,
+      stato: true,
+    },
+  });
+}
+
+export function buildOperatorInviteUrl(inviteToken: string, baseUrl?: string): string {
+  const origin =
+    baseUrl ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    'http://localhost:3000';
+  return `${origin.replace(/\/$/, '')}/register?invite=${encodeURIComponent(inviteToken)}`;
 }
 
 export function isCatOrgId(orgId: string): boolean {

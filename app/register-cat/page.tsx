@@ -13,6 +13,10 @@ export default function RegisterCatPage() {
   const [formData, setFormData] = useState({
     ragione_sociale: '',
     partita_iva: '',
+    indirizzo: '',
+    codice_fiscale: '',
+    pec: '',
+    codice_destinatario_sdi: '',
     username: '',
     password: '',
     confirmPassword: '',
@@ -62,6 +66,10 @@ export default function RegisterCatPage() {
         body: JSON.stringify({
           ragione_sociale: formData.ragione_sociale,
           partita_iva: formData.partita_iva,
+          indirizzo: formData.indirizzo,
+          codice_fiscale: formData.codice_fiscale,
+          pec: formData.pec,
+          codice_destinatario_sdi: formData.codice_destinatario_sdi,
           username: formData.username,
           password: formData.password,
           nome: formData.nome,
@@ -79,7 +87,7 @@ export default function RegisterCatPage() {
         return;
       }
 
-      toast.success('CAT registrato! Ora puoi effettuare il login con la Partita IVA.');
+      toast.success('Richiesta inviata! Riceverai conferma dopo l\'approvazione dell\'amministratore.');
       router.push('/login');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Errore durante la registrazione');
@@ -134,6 +142,69 @@ export default function RegisterCatPage() {
                 className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                 placeholder="12345678901"
                 inputMode="numeric"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                Indirizzo sede <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.indirizzo}
+                onChange={(e) => setFormData({ ...formData, indirizzo: e.target.value })}
+                required
+                disabled={isLoading}
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                placeholder="Via Roma 1, 00100 Roma (RM)"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                  Codice fiscale <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.codice_fiscale}
+                  onChange={(e) => setFormData({ ...formData, codice_fiscale: e.target.value })}
+                  required
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                  Codice SDI <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.codice_destinatario_sdi}
+                  onChange={(e) =>
+                    setFormData({ ...formData, codice_destinatario_sdi: e.target.value.toUpperCase() })
+                  }
+                  required
+                  disabled={isLoading}
+                  maxLength={7}
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  placeholder="XXXXXXX"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                PEC <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={formData.pec}
+                onChange={(e) => setFormData({ ...formData, pec: e.target.value })}
+                required
+                disabled={isLoading}
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                placeholder="cat@pec.it"
               />
             </div>
 
@@ -275,8 +346,8 @@ export default function RegisterCatPage() {
 
           <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              La registrazione crea un account con ruolo <strong>admin_cat</strong>.
-              Potrai gestire operatori e attivare i moduli con pacchetto da €30 (fino a 2 utenti) + €5 per utente aggiuntivo.
+              La registrazione crea un account <strong>admin_cat</strong> in attesa di approvazione.
+              Dopo l&apos;approvazione potrai gestire operatori, condividere il link invito e attivare i moduli.
             </p>
           </div>
         </div>

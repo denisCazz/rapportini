@@ -56,6 +56,7 @@ export default function CatModuliPage() {
   const [moduli, setModuli] = useState<ModuloCatalogo[]>([]);
   const [tecnici, setTecnici] = useState<TecnicoModuli[]>([]);
   const [pricingLabel, setPricingLabel] = useState('');
+  const [inviteUrl, setInviteUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -74,7 +75,46 @@ export default function CatModuliPage() {
     hasLoadedRef.current = true;
     setSettings(storage.getSettings());
     loadData();
+    loadInviteLink();
   }, [router]);
+
+  const loadInviteLink = async () => {
+    try {
+      const response = await fetchWithAuth('/api/cat/invite');
+      const data = await parseResponseBody<{ data?: { invite_url?: string } }>(response);
+      if (response.ok && data?.data?.invite_url) {
+        setInviteUrl(data.data.invite_url);
+      }
+    } catch {
+      // non bloccante
+    }
+  };
+
+  const regenerateInviteLink = async () => {
+    try {
+      const response = await fetchWithAuth('/api/cat/invite', { method: 'POST' });
+      const data = await parseResponseBody<{ data?: { invite_url?: string }; error?: string }>(response);
+      if (!response.ok) {
+        throw new Error(data?.error || 'Errore nella rigenerazione');
+      }
+      if (data?.data?.invite_url) {
+        setInviteUrl(data.data.invite_url);
+        toast.success('Nuovo link invito generato');
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore nella rigenerazione');
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      toast.success('Link copiato negli appunti');
+    } catch {
+      toast.error('Impossibile copiare il link');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -157,6 +197,38 @@ export default function CatModuliPage() {
         <ErrorBanner message={error} onRetry={loadData} />
       ) : (
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Link invito operatori</CardTitle>
+              <CardDescription>
+                Condividi questo link con i tecnici: i dati del CAT verranno compilati automaticamente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                readOnly
+                value={inviteUrl}
+                className="flex-1 rounded-md border border-border bg-muted px-3 py-2 text-sm"
+                placeholder="Link invito non disponibile"
+              />
+              <button
+                type="button"
+                onClick={copyInviteLink}
+                disabled={!inviteUrl}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              >
+                Copia link
+              </button>
+              <button
+                type="button"
+                onClick={regenerateInviteLink}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium"
+              >
+                Rigenera
+              </button>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Pacchetto licenza</CardTitle>

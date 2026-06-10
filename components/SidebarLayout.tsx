@@ -216,6 +216,16 @@ export default function SidebarLayout({
               <Users className="h-4 w-4" aria-hidden />
               Utenti
             </Link>
+            {auth.isPlatformAdmin() && (
+              <Link
+                href="/admin/cats"
+                onClick={() => setMobileOpen(false)}
+                className={navLinkClass(isActive('/admin/cats'))}
+              >
+                <Contact className="h-4 w-4" aria-hidden />
+                Gestione CAT
+              </Link>
+            )}
             <Link
               href="/admin/impostazioni"
               onClick={() => setMobileOpen(false)}

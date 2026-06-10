@@ -9,6 +9,7 @@ import { authAccessCookieOptions, authRefreshCookieOptions } from '@/lib/cookie-
 import { writeAuditLog } from '@/lib/audit-log';
 import { resolveCatOrgId } from '@/lib/cat-org';
 import { normalizeUserRole } from '@/lib/roles';
+import { assertCatOrgAllowsAccess } from '@/lib/cat-status';
 
 const userLoginSelect = {
   id: true,
@@ -131,6 +132,11 @@ export async function POST(request: NextRequest) {
         { error: 'Organizzazione utente non valida o non configurata' },
         { status: 400 }
       );
+    }
+
+    const catAccess = await assertCatOrgAllowsAccess(resolvedOrgId);
+    if (!catAccess.ok) {
+      return NextResponse.json({ error: catAccess.error }, { status: 403 });
     }
 
     await prisma.utenti.updateMany({

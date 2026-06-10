@@ -21,6 +21,7 @@ const publicPaths = [
   '/api/auth/logout',
   '/api/stripe/webhook',
   '/api/health',
+  '/api/public/cat-invite',
   '/_next',
   '/favicon.ico',
   '/logo.png',
