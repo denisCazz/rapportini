@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/api-auth';
 import { isModuleActiveForUser } from '@/lib/module-access';
 import { ModuleCode } from '@/lib/modules';
+import { requireAuthenticatedTenant } from '@/lib/tenant-context';
 
 export interface ModuleAuthUser {
   id: string;
@@ -17,13 +17,12 @@ export async function requireModuleAccess(
   request: NextRequest,
   moduleCode: ModuleCode
 ): Promise<ModuleAuthResult> {
-  const user = await getUserFromRequest(request);
-  if (!user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Non autenticato' }, { status: 401 }),
-    };
+  const tenant = await requireAuthenticatedTenant(request);
+  if (!tenant.ok) {
+    return { ok: false, response: tenant.response };
   }
+
+  const user = tenant.user;
 
   if (user.ruolo === 'admin') {
     return { ok: true, user };

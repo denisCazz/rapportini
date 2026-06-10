@@ -53,18 +53,13 @@ export async function resolveAuthOrgId(request: NextRequest): Promise<string | n
 }
 
 /**
- * Ottiene i dati utente completi dalla richiesta
- * Richiede che l'ID utente sia passato nella richiesta
+ * Ottiene i dati utente completi dalla richiesta.
+ * L'org_id canonico proviene dal database (non dagli header JWT).
  */
 export async function getUserFromRequest(request: NextRequest): Promise<{ id: string; ruolo: string; org_id: string } | null> {
-  const userId = getUserIdFromRequest(request);
-  if (!userId) return null;
-
-  // Qui potresti fare una query al DB per ottenere i dati completi
-  // Per ora restituiamo solo l'ID e assumiamo che il ruolo sia passato
-  const ruolo = request.headers.get('x-user-ruolo') || 'operatore';
-  const org_id = getOrgIdFromRequest(request);
-  
-  return { id: userId, ruolo, org_id };
+  const { resolveAuthenticatedTenant } = await import('@/lib/tenant-context');
+  const user = await resolveAuthenticatedTenant(request);
+  if (!user) return null;
+  return { id: user.id, ruolo: user.ruolo, org_id: user.org_id };
 }
 

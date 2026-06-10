@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const auth = await requireModuleAccess(request, MODULE_CODES.NOTIFICHE_SCADENZE);
     if (!auth.ok) return auth.response;
 
-    const { org_id: orgId, id: userId } = auth.user;
+    const { org_id: orgId, id: userId, ruolo } = auth.user;
     const filtro = request.nextUrl.searchParams.get('filtro') || 'tutti';
 
     const oggi = new Date();
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     const rapportini = await prisma.rapportini.findMany({
       where: {
         org_id: orgId,
+        ...(ruolo !== 'admin' ? { utente_id: userId } : {}),
         prossimo_intervento: { not: null },
       },
       include: {

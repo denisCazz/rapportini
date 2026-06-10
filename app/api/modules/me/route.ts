@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { getActiveModuleCodesForUser } from '@/lib/module-access';
 import { PAID_MODULES } from '@/lib/modules';
+import { requireAuthenticatedTenant } from '@/lib/tenant-context';
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
+    const tenant = await requireAuthenticatedTenant(request);
+    if (!tenant.ok) {
+      return tenant.response;
     }
 
-    const orgId = getOrgIdFromRequest(request);
+    const { id: userId, org_id: orgId } = tenant.user;
     const activeCodes = await getActiveModuleCodesForUser(userId, orgId);
 
     const modules = PAID_MODULES.map((modulo) => ({

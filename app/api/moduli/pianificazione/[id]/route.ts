@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
+import { assertClienteInOrg, assertUtenteInOrg } from '@/lib/tenant-context';
 import { mapInterventoPianificato } from '@/lib/interventi-pianificati';
 import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import { parseDateOnly, parseTimeForDb } from '@/lib/time-db';
@@ -52,6 +53,20 @@ export async function PATCH(
     }
 
     const d = parsed.data;
+
+    if (d.clienteId) {
+      const ok = await assertClienteInOrg(d.clienteId, auth.user.org_id);
+      if (!ok) {
+        return NextResponse.json({ error: 'Cliente non appartenente alla tua organizzazione' }, { status: 403 });
+      }
+    }
+
+    if (d.utenteId) {
+      const ok = await assertUtenteInOrg(d.utenteId, auth.user.org_id, 'operatore');
+      if (!ok) {
+        return NextResponse.json({ error: 'Tecnico non appartenente alla tua organizzazione' }, { status: 403 });
+      }
+    }
     const updated = await prisma.interventiPianificati.update({
       where: { id },
       data: {
