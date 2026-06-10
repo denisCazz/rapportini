@@ -82,7 +82,6 @@ export function exportRapportini(rapportini: Rapportino[], options: ExportOption
 // Export statistiche clienti
 export function exportStatistiche(statistiche: any[], options: ExportOptions) {
   const { filename = `statistiche_${format(new Date(), 'yyyy-MM-dd')}`, format: fileFormat } = options;
-
   // Prepara i dati per l'export
   const data = statistiche.map((s) => ({
     'Cliente': `${s.cliente.nome} ${s.cliente.cognome}`,
@@ -126,6 +125,81 @@ export function exportStatistiche(statistiche: any[], options: ExportOptions) {
   ws['!cols'] = colWidths;
 
   // Export
+  if (fileFormat === 'xlsx') {
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `${filename}.xlsx`);
+  } else {
+    const csvContent = XLSX.utils.sheet_to_csv(ws);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    saveAs(blob, `${filename}.csv`);
+  }
+}
+
+// Export anagrafica clienti admin
+export function exportClientiAdmin(clienti: Array<{
+  cliente: {
+    nome: string;
+    cognome: string;
+    ragioneSociale: string;
+    indirizzo: string;
+    citta: string;
+    cap: string;
+    provincia: string;
+    telefono: string;
+    email: string;
+    partitaIva: string;
+    codiceFiscale: string;
+  };
+  statistiche: {
+    totale: number;
+    pellet: number;
+    legno: number;
+    primoIntervento: string | null;
+    ultimoIntervento: string | null;
+    tipiIntervento: Record<string, number>;
+  };
+  operatori: Array<{ nome: string; cognome: string; count: number }>;
+}>, options: ExportOptions) {
+  const { filename = `clienti_${format(new Date(), 'yyyy-MM-dd')}`, format: fileFormat } = options;
+
+  const data = clienti.map((entry) => ({
+    'Cliente': `${entry.cliente.nome} ${entry.cliente.cognome}`,
+    'Ragione Sociale': entry.cliente.ragioneSociale || '',
+    'Indirizzo': entry.cliente.indirizzo,
+    'Città': entry.cliente.citta,
+    'CAP': entry.cliente.cap,
+    'Provincia': entry.cliente.provincia || '',
+    'Telefono': entry.cliente.telefono,
+    'Email': entry.cliente.email || '',
+    'P. IVA': entry.cliente.partitaIva || '',
+    'Cod. Fiscale': entry.cliente.codiceFiscale || '',
+    'Totale Rapportini': entry.statistiche.totale,
+    'Stufe Pellet': entry.statistiche.pellet,
+    'Stufe Legno': entry.statistiche.legno,
+    'Primo Intervento': entry.statistiche.primoIntervento
+      ? format(new Date(entry.statistiche.primoIntervento), 'dd/MM/yyyy', { locale: it })
+      : '',
+    'Ultimo Intervento': entry.statistiche.ultimoIntervento
+      ? format(new Date(entry.statistiche.ultimoIntervento), 'dd/MM/yyyy', { locale: it })
+      : '',
+    'Operatori': entry.operatori.map((o) => `${o.nome} ${o.cognome} (${o.count})`).join(', '),
+    'Tipi Intervento': Object.entries(entry.statistiche.tipiIntervento)
+      .map(([tipo, count]) => `${tipo}: ${count}`)
+      .join(', '),
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Clienti');
+
+  ws['!cols'] = [
+    { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 8 },
+    { wch: 8 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 18 },
+    { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 15 },
+    { wch: 35 }, { wch: 50 },
+  ];
+
   if (fileFormat === 'xlsx') {
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

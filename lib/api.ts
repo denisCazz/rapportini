@@ -1,4 +1,4 @@
-import { Rapportino, AziendaSettings } from '@/types';
+import { Rapportino, AziendaSettings, ClientiAdminResponse } from '@/types';
 import { auth } from './auth';
 import { fetchWithAuth, getApiErrorMessage, getAuthHeaders, parseResponseBody } from './api-helpers';
 
@@ -145,6 +145,19 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Errore nel recupero delle statistiche');
+    }
+    return response.json();
+  },
+
+  // Ottieni elenco clienti con statistiche (admin)
+  getClientiAdmin: async (): Promise<ClientiAdminResponse> => {
+    const headers = getAuthHeaders();
+    const response = await fetchWithAuth(`${API_BASE}/admin/clienti`, {
+      headers,
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Errore nel recupero dei clienti');
     }
     return response.json();
   },
