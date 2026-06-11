@@ -43,14 +43,16 @@ function NuovoRapportinoContent() {
     });
     await registerBackgroundSync();
     await refreshPendingCount();
-    toast.success('Rapportino salvato in locale. Verrà inviato alla riconnessione.');
-    router.push('/rapportini');
+    router.replace('/rapportini');
+    return 'offline' as const;
   };
 
-  const handleSave = async (rapportino: Rapportino, options?: { pendingImages?: File[] }) => {
+  const handleSave = async (
+    rapportino: Rapportino,
+    options?: { pendingImages?: File[] }
+  ): Promise<'offline' | 'online'> => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      await saveOffline(rapportino, options);
-      return;
+      return saveOffline(rapportino, options);
     }
 
     try {
@@ -65,14 +67,12 @@ function NuovoRapportinoContent() {
           // Il rapportino è stato creato; il completamento può essere fatto manualmente
         }
       }
-      toast.success('Rapportino creato');
-      router.push('/rapportini');
+      router.replace('/rapportini');
+      return 'online';
     } catch (err: unknown) {
       if (isNetworkFailure(err)) {
-        await saveOffline(rapportino, options);
-        return;
+        return saveOffline(rapportino, options);
       }
-      toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio');
       throw err;
     }
   };

@@ -184,6 +184,10 @@ export default function LoginPage() {
             </p>
           </div>
 
+          <div className="mt-6">
+            <InstallPWAButton />
+          </div>
+
           <div className="mt-8 text-center text-xs text-muted-foreground space-y-1">
             <p>
               <a href="https://bitora.it" target="_blank" rel="noopener noreferrer" className="hover:text-primary">

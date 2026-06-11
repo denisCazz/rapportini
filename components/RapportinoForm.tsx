@@ -36,11 +36,21 @@ import {
   parseRapportinoDraftPayload,
   type RapportinoDraftUiState,
 } from '@/lib/drafts';
+import {
+  getCachedMarche,
+  getCachedModelli,
+  setCachedMarche,
+  setCachedModelli,
+} from '@/lib/catalog-cache';
+import { usePWA } from '@/lib/pwa-context';
 
 interface RapportinoFormProps {
   initialRapportino?: Rapportino;
   prefillInterventoId?: string;
-  onSave: (rapportino: Rapportino, options?: { pendingImages?: File[] }) => void | Promise<void>;
+  onSave: (
+    rapportino: Rapportino,
+    options?: { pendingImages?: File[] }
+  ) => void | Promise<void | 'offline' | 'online'>;
   onCancel: () => void;
 }
 
@@ -244,6 +254,7 @@ export default function RapportinoForm({
   const [showModelloInput, setShowModelloInput] = useState(false);
   const [showMaterialeInput, setShowMaterialeInput] = useState(false);
   const [newMaterialeNome, setNewMaterialeNome] = useState('');
+  const { isOnline } = usePWA();
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -413,8 +424,23 @@ export default function RapportinoForm({
     }
   }, [showClientiList, clientiEsistenti.length]);
 
-  // Carica marche al mount
+  // Offline: input testuale diretto per marca/modello (senza catalogo API)
   useEffect(() => {
+    if (!isOnline && !initialRapportino) {
+      setShowMarcaInput(true);
+      setShowModelloInput(true);
+    }
+  }, [isOnline, initialRapportino]);
+
+  // Carica marche (cache locale prima, poi API se online)
+  useEffect(() => {
+    const cached = getCachedMarche();
+    if (cached.length > 0) {
+      setMarche(cached);
+    }
+
+    if (!isOnline) return;
+
     const loadMarche = async () => {
       try {
         const response = await fetchWithAuth('/api/marche');
@@ -422,6 +448,7 @@ export default function RapportinoForm({
           const data = await parseResponseBody<Array<{ id: string; nome: string }>>(response);
           if (Array.isArray(data)) {
             setMarche(data);
+            setCachedMarche(data);
           }
         }
       } catch (error) {
@@ -429,7 +456,7 @@ export default function RapportinoForm({
       }
     };
     loadMarche();
-  }, []);
+  }, [isOnline]);
 
   // Dopo ripristino bozza: allinea marca/modello quando il catalogo è caricato
   useEffect(() => {
@@ -482,16 +509,24 @@ export default function RapportinoForm({
     }
   }, [initialRapportino?.intervento?.modello, modelli, marcaId]);
 
-  // Carica modelli quando cambia la marca
+  // Carica modelli quando cambia la marca (cache locale + API se online)
   useEffect(() => {
     const loadModelli = async () => {
       if (marcaId) {
+        const cached = getCachedModelli(marcaId);
+        if (cached.length > 0) {
+          setModelli(cached);
+        }
+
+        if (!isOnline) return;
+
         try {
           const response = await fetchWithAuth(`/api/modelli?marca_id=${marcaId}`);
           if (response.ok) {
             const data = await parseResponseBody<Array<{ id: string; nome: string; marca_id: string }>>(response);
             if (Array.isArray(data)) {
               setModelli(data);
+              setCachedModelli(marcaId, data);
             }
           }
         } catch (error) {
@@ -508,7 +543,7 @@ export default function RapportinoForm({
       }
     };
     loadModelli();
-  }, [marcaId, initialRapportino]);
+  }, [marcaId, initialRapportino, isOnline]);
 
   // Carica materiali quando cambia il modello
   useEffect(() => {
@@ -583,7 +618,7 @@ export default function RapportinoForm({
     return false;
   };
 
-  const onSaveValid = (values: RapportinoFormValues) => {
+  const onSaveValid = async (values: RapportinoFormValues): Promise<'offline' | 'online' | false> => {
     const materialiSelezionati = selectedMateriali
       .map((id) => {
         const materiale = materiali.find((m) => m.id === id);
@@ -605,7 +640,7 @@ export default function RapportinoForm({
     });
     if (!fullCheck.success) {
       toast.error(firstIssueMessage(fullCheck.error));
-      return;
+      return false;
     }
 
     const clienteSalvato = {
@@ -630,7 +665,8 @@ export default function RapportinoForm({
 
     deleteDraft(draftIdRef.current);
     const files = pendingImages.map((p) => p.file);
-    return onSave(rapportino, files.length ? { pendingImages: files } : undefined);
+    const result = await onSave(rapportino, files.length ? { pendingImages: files } : undefined);
+    return result === 'offline' ? 'offline' : 'online';
   };
 
   const handleConfirmSave = () => {
@@ -641,7 +677,15 @@ export default function RapportinoForm({
     const toastId = toast.loading('Salvataggio rapportino…');
     submitWithRhf(async (values) => {
       try {
-        await onSaveValid(values);
+        const result = await onSaveValid(values);
+        if (result === false) {
+          toast.dismiss(toastId);
+          return;
+        }
+        if (result === 'offline') {
+          toast.success('Rapportino salvato in locale. Verrà inviato alla riconnessione.', { id: toastId });
+          return;
+        }
         toast.success('Rapportino salvato', { id: toastId });
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Errore nel salvataggio', { id: toastId });

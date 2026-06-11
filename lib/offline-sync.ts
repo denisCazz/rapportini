@@ -21,7 +21,7 @@ export function isNetworkFailure(error: unknown): boolean {
     return true;
   }
   if (error instanceof Error) {
-    return /failed to fetch|network|load failed|fetch/i.test(error.message);
+    return /failed to fetch|network|load failed|offline|non raggiungibile|503/i.test(error.message);
   }
   return false;
 }

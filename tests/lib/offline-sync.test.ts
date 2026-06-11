@@ -33,4 +33,8 @@ describe('isNetworkFailure', () => {
   it('returns false for application errors', () => {
     expect(isNetworkFailure(new Error('Validazione fallita'))).toBe(false);
   });
+
+  it('returns true for service worker offline responses', () => {
+    expect(isNetworkFailure(new Error('Offline'))).toBe(true);
+  });
 });
