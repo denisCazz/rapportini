@@ -12,6 +12,9 @@ import {
   TIPOLOGIA_INSTALLAZIONE_VALUES,
 } from '@/lib/rapportino-constants';
 import { fetchWithAuth, getApiErrorMessage, parseResponseBody } from '@/lib/api';
+import { addLocalMarca, addLocalModello } from '@/lib/catalog-cache';
+import { isNetworkFailure } from '@/lib/offline-sync';
+import { usePWA } from '@/lib/pwa-context';
 import type { RapportinoFormValues } from '@/lib/validators/rapportino-form';
 import type { ControlloGaranziaKey, SiNoNc } from '@/lib/rapportino-constants';
 import type { UseFormSetValue } from 'react-hook-form';
@@ -65,8 +68,118 @@ export default function RapportinoStepIntervento({
   setShowMaterialeInput,
   setNewMaterialeNome,
 }: Props) {
+  const { isOnline } = usePWA();
+  const hasMarcaTesto = Boolean(intervento.marca?.trim());
+  const canEditModello = Boolean(marcaId || hasMarcaTesto || showModelloInput || !isOnline);
+
   const setControllo = (key: ControlloGaranziaKey, value: SiNoNc) => {
     setValue(`intervento.controlloGaranzia.${key}`, value);
+  };
+
+  const confirmMarca = async () => {
+    const nome = intervento.marca.trim();
+    if (!nome) return;
+
+    if (!isOnline) {
+      const localMarca = addLocalMarca(nome);
+      setMarche([...marche.filter((m) => m.id !== localMarca.id), localMarca]);
+      setMarcaId(localMarca.id);
+      setValue('intervento.marca', localMarca.nome);
+      setShowMarcaInput(false);
+      setShowModelloInput(true);
+      toast.success('Marca registrata in locale');
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth('/api/marche', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome }),
+      });
+      const data = await parseResponseBody<{ id?: string; nome?: string; error?: string }>(response);
+      if (!response.ok) {
+        toast.error(getApiErrorMessage(data, 'Errore nella creazione della marca'));
+        return;
+      }
+      const newMarca = data as { id: string; nome: string };
+      setMarche([...marche, newMarca]);
+      setMarcaId(newMarca.id);
+      setValue('intervento.marca', newMarca.nome);
+      setShowMarcaInput(false);
+    } catch (error) {
+      if (isNetworkFailure(error)) {
+        const localMarca = addLocalMarca(nome);
+        setMarche([...marche.filter((m) => m.id !== localMarca.id), localMarca]);
+        setMarcaId(localMarca.id);
+        setValue('intervento.marca', localMarca.nome);
+        setShowMarcaInput(false);
+        setShowModelloInput(true);
+        toast.success('Marca salvata in locale');
+        return;
+      }
+      toast.error('Errore nella creazione della marca');
+    }
+  };
+
+  const confirmModello = async () => {
+    const nome = intervento.modello.trim();
+    if (!nome) return;
+
+    let effectiveMarcaId = marcaId;
+    if (!effectiveMarcaId && hasMarcaTesto) {
+      const localMarca = addLocalMarca(intervento.marca.trim());
+      setMarche([...marche.filter((m) => m.id !== localMarca.id), localMarca]);
+      effectiveMarcaId = localMarca.id;
+      setMarcaId(localMarca.id);
+      setValue('intervento.marca', localMarca.nome);
+      setShowMarcaInput(false);
+    }
+
+    if (!effectiveMarcaId) {
+      toast.error('Inserisci prima la marca');
+      return;
+    }
+
+    if (!isOnline) {
+      const localModello = addLocalModello(effectiveMarcaId, nome);
+      setModelli([...modelli.filter((m) => m.id !== localModello.id), localModello]);
+      setModelloId(localModello.id);
+      setValue('intervento.modello', localModello.nome);
+      setShowModelloInput(false);
+      toast.success('Modello registrato in locale');
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth('/api/modelli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, marca_id: effectiveMarcaId }),
+      });
+      const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
+      if (!response.ok) {
+        toast.error(getApiErrorMessage(data, 'Errore nella creazione del modello'));
+        return;
+      }
+      const newModello = data as { id: string; nome: string; marca_id: string };
+      setModelli([...modelli, newModello]);
+      setModelloId(newModello.id);
+      setValue('intervento.modello', newModello.nome);
+      setShowModelloInput(false);
+      toast.success('Modello salvato nel catalogo');
+    } catch (error) {
+      if (isNetworkFailure(error)) {
+        const localModello = addLocalModello(effectiveMarcaId, nome);
+        setModelli([...modelli.filter((m) => m.id !== localModello.id), localModello]);
+        setModelloId(localModello.id);
+        setValue('intervento.modello', localModello.nome);
+        setShowModelloInput(false);
+        toast.success('Modello salvato in locale');
+        return;
+      }
+      toast.error('Errore nella creazione del modello');
+    }
   };
 
   return (
@@ -101,7 +214,12 @@ export default function RapportinoStepIntervento({
             <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
               Marca <span className="text-red-500">*</span>
             </label>
-            {!showMarcaInput ? (
+            {!isOnline && (
+              <p className="mb-2 text-xs text-amber-700 dark:text-amber-300">
+                Modalità offline: inserisci marca e modello come testo libero.
+              </p>
+            )}
+            {!showMarcaInput && isOnline ? (
               <select
                 value={marcaId}
                 onChange={(e) => {
@@ -134,31 +252,10 @@ export default function RapportinoStepIntervento({
                 />
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!intervento.marca.trim()) return;
-                    try {
-                      const response = await fetchWithAuth('/api/marche', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome: intervento.marca.trim() }),
-                      });
-                      const data = await parseResponseBody<{ id?: string; nome?: string; error?: string }>(response);
-                      if (!response.ok) {
-                        toast.error(getApiErrorMessage(data, 'Errore nella creazione della marca'));
-                        return;
-                      }
-                      const newMarca = data as { id: string; nome: string };
-                      setMarche([...marche, newMarca]);
-                      setMarcaId(newMarca.id);
-                      setValue('intervento.marca', newMarca.nome);
-                      setShowMarcaInput(false);
-                    } catch {
-                      toast.error('Errore nella creazione della marca');
-                    }
-                  }}
+                  onClick={() => void confirmMarca()}
                   className="rounded-md bg-green-600 px-4 py-3 font-bold text-white hover:bg-green-700"
                 >
-                  Salva
+                  {isOnline ? 'Salva' : 'Conferma'}
                 </button>
               </div>
             )}
@@ -168,7 +265,7 @@ export default function RapportinoStepIntervento({
             <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
               Modello <span className="text-red-500">*</span>
             </label>
-            {!showModelloInput ? (
+            {!showModelloInput && isOnline ? (
               <select
                 value={modelloId}
                 onChange={(e) => {
@@ -182,14 +279,16 @@ export default function RapportinoStepIntervento({
                     setValue('intervento.modello', selectedModello?.nome || '');
                   }
                 }}
-                disabled={!marcaId}
+                disabled={!canEditModello}
                 className="w-full rounded-md border border-input bg-background px-4 py-3 text-foreground focus:ring-2 focus:ring-ring disabled:opacity-50"
               >
-                <option value="">{marcaId ? 'Seleziona modello...' : 'Seleziona prima una marca'}</option>
+                <option value="">
+                  {canEditModello ? 'Seleziona modello...' : 'Inserisci prima la marca'}
+                </option>
                 {modelli.map((modello) => (
                   <option key={modello.id} value={modello.id}>{modello.nome}</option>
                 ))}
-                {marcaId && <option value="new">+ Nuovo modello</option>}
+                {canEditModello && <option value="new">+ Nuovo modello</option>}
               </select>
             ) : (
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -202,36 +301,10 @@ export default function RapportinoStepIntervento({
                 />
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!intervento.modello.trim()) return;
-                    if (!marcaId) {
-                      toast.error('Salva prima la marca per aggiungere un nuovo modello');
-                      return;
-                    }
-                    try {
-                      const response = await fetchWithAuth('/api/modelli', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome: intervento.modello.trim(), marca_id: marcaId }),
-                      });
-                      const data = await parseResponseBody<{ id?: string; nome?: string; marca_id?: string; error?: string }>(response);
-                      if (!response.ok) {
-                        toast.error(getApiErrorMessage(data, 'Errore nella creazione del modello'));
-                        return;
-                      }
-                      const newModello = data as { id: string; nome: string; marca_id: string };
-                      setModelli([...modelli, newModello]);
-                      setModelloId(newModello.id);
-                      setValue('intervento.modello', newModello.nome);
-                      setShowModelloInput(false);
-                      toast.success('Modello salvato nel catalogo');
-                    } catch {
-                      toast.error('Errore nella creazione del modello');
-                    }
-                  }}
+                  onClick={() => void confirmModello()}
                   className="rounded-md bg-green-600 px-4 py-3 font-bold text-white hover:bg-green-700"
                 >
-                  Salva
+                  {isOnline ? 'Salva' : 'Conferma'}
                 </button>
               </div>
             )}
