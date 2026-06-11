@@ -23,6 +23,7 @@ const RECENT_LIMIT = 10;
 export default function Home() {
   const router = useRouter();
   const [rapportini, setRapportini] = useState<Rapportino[]>([]);
+  const [summary, setSummary] = useState({ total: 0, pellet: 0, legno: 0 });
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,8 +48,12 @@ export default function Home() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getRapportini({ limit: RECENT_LIMIT });
+      const [data, kpiData] = await Promise.all([
+        api.getRapportini({ limit: RECENT_LIMIT }),
+        api.getRapportiniSummary(),
+      ]);
       setRapportini(data);
+      setSummary(kpiData);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Errore nel caricamento dei rapportini');
       console.error('Error loading rapportini:', err);
@@ -91,11 +96,7 @@ export default function Home() {
   const canCreateRapportini = auth.canCreateRapportini();
   const canEditRapportini = canCreateRapportini || auth.isAdmin();
 
-  const kpi = useMemo(() => {
-    const pellet = rapportini.filter((r) => r.intervento.tipoStufa === 'pellet').length;
-    const legno = rapportini.filter((r) => r.intervento.tipoStufa === 'legno').length;
-    return { total: rapportini.length, pellet, legno };
-  }, [rapportini]);
+  const kpi = summary;
 
   const pieData = useMemo(
     () => [
@@ -173,12 +174,12 @@ export default function Home() {
             <div className="grid gap-4 md:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Rapportini (lista)</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Rapportini totali</CardTitle>
                   <FileText className="h-4 w-4 text-primary-600" aria-hidden />
                 </CardHeader>
                 <CardContent>
                   <p className="font-heading text-3xl font-bold text-foreground">{kpi.total}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Ultimi {RECENT_LIMIT} caricati</p>
+                  <p className="text-xs text-muted-foreground mt-1">Tutti i rapportini registrati</p>
                 </CardContent>
               </Card>
               <Card>

@@ -4,7 +4,6 @@ import { prisma } from '@/lib/db';
 import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
 import { isOrgAdminRole } from '@/lib/roles';
-import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import { parseDateOnly } from '@/lib/time-db';
 import type { ScadenzaManutenzione, UrgenzaScadenza } from '@/types';
 
@@ -31,7 +30,6 @@ function giorniTra(oggi: Date, scadenza: Date): number {
 
 export async function GET(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.NOTIFICHE_SCADENZE);
     if (!auth.ok) return auth.response;
 
@@ -126,7 +124,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.NOTIFICHE_SCADENZE);
     if (!auth.ok) return auth.response;
 

@@ -6,7 +6,6 @@ import { requireModuleAccess } from '@/lib/module-api-auth';
 import { isOrgAdminRole } from '@/lib/roles';
 import { assertClienteInOrg, assertUtenteInOrg } from '@/lib/tenant-context';
 import { mapInterventoPianificato } from '@/lib/interventi-pianificati';
-import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import { parseDateOnly, parseTimeForDb } from '@/lib/time-db';
 import type { EventoCalendario } from '@/types';
 import { Prisma } from '@prisma/client';
@@ -33,7 +32,6 @@ const interventoInclude = {
 
 export async function GET(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.PIANIFICAZIONE_INTERVENTI);
     if (!auth.ok) return auth.response;
 
@@ -160,7 +158,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.PIANIFICAZIONE_INTERVENTI);
     if (!auth.ok) return auth.response;
 

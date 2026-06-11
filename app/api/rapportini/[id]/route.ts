@@ -3,7 +3,6 @@ import { prisma } from '@/lib/db';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { isOrgAdminRole } from '@/lib/roles';
 import { Rapportino } from '@/types';
-import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import {
   mapClienteToDbData,
   mapDbRowToRapportino,
@@ -20,7 +19,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await syncDatabaseSchema();
 
     const { id } = await params;
     const userId = getUserIdFromRequest(request);

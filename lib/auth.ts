@@ -3,8 +3,15 @@ import { canCreateRapportini, isCatAdmin, isOrgAdminRole, isPlatformAdmin, UserR
 
 const STORAGE_KEY_AUTH = 'auth_token';
 const STORAGE_KEY_USER = 'user_data';
-const STORAGE_KEY_ACCESS_TOKEN = 'access_token';
-const STORAGE_KEY_REFRESH_TOKEN = 'refresh_token';
+/** Legacy keys — rimossi al login/logout per migrazione da versioni precedenti */
+const LEGACY_ACCESS_TOKEN_KEY = 'access_token';
+const LEGACY_REFRESH_TOKEN_KEY = 'refresh_token';
+
+function clearLegacyTokenStorage(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+}
 
 export interface User {
   id: string;
@@ -39,13 +46,7 @@ async function refreshTokens(): Promise<boolean> {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data.accessToken) {
-          localStorage.setItem(STORAGE_KEY_ACCESS_TOKEN, data.accessToken);
-        }
-        if (data.refreshToken) {
-          localStorage.setItem(STORAGE_KEY_REFRESH_TOKEN, data.refreshToken);
-        }
+        clearLegacyTokenStorage();
         return true;
       }
       return false;
@@ -107,13 +108,7 @@ export const auth = {
           };
           localStorage.setItem(STORAGE_KEY_AUTH, 'authenticated');
           localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(userPayload));
-          // Salva anche i token per retrocompatibilità
-          if (data.accessToken) {
-            localStorage.setItem(STORAGE_KEY_ACCESS_TOKEN, data.accessToken);
-          }
-          if (data.refreshToken) {
-            localStorage.setItem(STORAGE_KEY_REFRESH_TOKEN, data.refreshToken);
-          }
+          clearLegacyTokenStorage();
         }
         return {
           success: true,
@@ -143,8 +138,7 @@ export const auth = {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_KEY_AUTH);
         localStorage.removeItem(STORAGE_KEY_USER);
-        localStorage.removeItem(STORAGE_KEY_ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEY_REFRESH_TOKEN);
+        clearLegacyTokenStorage();
       }
     }
   },
@@ -213,11 +207,8 @@ export const auth = {
   // Refresh token
   refreshTokens,
 
-  // Ottieni access token
-  getAccessToken: (): string | null => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(STORAGE_KEY_ACCESS_TOKEN);
-  },
+  /** @deprecated I token vivono solo nei cookie HttpOnly; non usare per nuove integrazioni. */
+  getAccessToken: (): string | null => null,
 };
 
 // Dati operatore predefiniti (solo per test/demo - non usare in produzione)

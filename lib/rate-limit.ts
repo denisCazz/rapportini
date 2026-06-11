@@ -33,9 +33,9 @@ export const RATE_LIMIT_CONFIGS = {
   // API generiche: 100 richieste al minuto
   api: { maxRequests: 100, windowMs: 60 * 1000 },
   // Creazione rapportini: 30 al minuto
-  createRapportino: { maxRequests: 30, windowMs: 60 * 100 },
+  createRapportino: { maxRequests: 30, windowMs: 60 * 1000 },
   // Ricerca: 60 richieste al minuto
-  search: { maxRequests: 60, windowMs: 60 * 100 },
+  search: { maxRequests: 60, windowMs: 60 * 1000 },
 } as const;
 
 export interface RateLimitResult {

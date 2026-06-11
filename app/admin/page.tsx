@@ -50,6 +50,9 @@ interface ClienteStatistiche {
 export default function AdminPage() {
   const router = useRouter();
   const [statistiche, setStatistiche] = useState<ClienteStatistiche[]>([]);
+  const [trendMensile, setTrendMensile] = useState<Array<{ month: string; pellet: number; legno: number }>>([]);
+  const [clientRapportini, setClientRapportini] = useState<Record<string, ClienteStatistiche['rapportini']>>({});
+  const [loadingClientRapportini, setLoadingClientRapportini] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
@@ -93,7 +96,9 @@ export default function AdminPage() {
       setLoading(true);
       setError(null);
       const data = await api.getStatistics();
-      setStatistiche(data);
+      setStatistiche(data.clienti);
+      setTrendMensile(data.trendMensile);
+      setClientRapportini({});
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Errore nel caricamento delle statistiche');
       console.error('Error loading statistics:', err);
@@ -105,6 +110,34 @@ export default function AdminPage() {
   const handleLogout = () => {
     auth.logout();
     router.push('/login');
+  };
+
+  const handleClientExpand = async (clienteId: string) => {
+    if (expandedClient === clienteId) {
+      setExpandedClient(null);
+      return;
+    }
+    setExpandedClient(clienteId);
+    if (clientRapportini[clienteId]) return;
+
+    try {
+      setLoadingClientRapportini(clienteId);
+      const rows = await api.getRapportini({ clienteId, limit: 100 });
+      setClientRapportini((prev) => ({
+        ...prev,
+        [clienteId]: rows.map((r) => ({
+          id: r.id,
+          dataIntervento: r.intervento.data,
+          tipoStufa: r.intervento.tipoStufa,
+          tipoIntervento: r.intervento.tipoIntervento ?? '',
+        })),
+      }));
+    } catch (err: unknown) {
+      console.error('Error loading client rapportini:', err);
+      toast.error(err instanceof Error ? err.message : 'Errore nel caricamento dello storico');
+    } finally {
+      setLoadingClientRapportini(null);
+    }
   };
 
   const handleRapportinoClick = async (rapportinoId: string) => {
@@ -269,7 +302,7 @@ export default function AdminPage() {
                   <p className="mt-4 text-surface-600 dark:text-surface-300">Caricamento grafici...</p>
                 </div>
               }>
-                <StatisticsCharts data={statistiche} />
+                <StatisticsCharts data={statistiche} trendMensile={trendMensile} />
               </Suspense>
             )}
           </div>
@@ -341,7 +374,7 @@ export default function AdminPage() {
               >
                 <div
                   className="p-6 cursor-pointer"
-                  onClick={() => setExpandedClient(expandedClient === stat.cliente.id ? null : stat.cliente.id)}
+                  onClick={() => handleClientExpand(stat.cliente.id)}
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex-1">
@@ -449,15 +482,17 @@ export default function AdminPage() {
 
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                        Storico Rapportini ({stat.rapportini.length})
+                        Storico Rapportini ({stat.statistiche.totale})
                       </h4>
-                      {stat.rapportini.length === 0 ? (
+                      {loadingClientRapportini === stat.cliente.id ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">Caricamento storico...</p>
+                      ) : (clientRapportini[stat.cliente.id] ?? []).length === 0 ? (
                         <p className="text-sm text-gray-500 dark:text-gray-400 italic">
                           Nessun rapportino disponibile
                         </p>
                       ) : (
                         <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {stat.rapportini
+                          {(clientRapportini[stat.cliente.id] ?? [])
                             .sort((a, b) => {
                               // Ordina per data (più recenti prima), poi per tipo intervento
                               const dateDiff = new Date(b.dataIntervento).getTime() - new Date(a.dataIntervento).getTime();

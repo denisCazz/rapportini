@@ -4,7 +4,6 @@ import { prisma } from '@/lib/db';
 import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
 import { mapInterventoPianificato } from '@/lib/interventi-pianificati';
-import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import type { TecnicoCaricoLavoro } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +24,6 @@ const interventoInclude = {
 
 export async function GET(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.ASSEGNAZIONE_LAVORI);
     if (!auth.ok) return auth.response;
 
@@ -84,7 +82,6 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.ASSEGNAZIONE_LAVORI);
     if (!auth.ok) return auth.response;
 

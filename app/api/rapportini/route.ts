@@ -5,7 +5,7 @@ import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { canCreateRapportini, isOrgAdminRole } from '@/lib/roles';
 import { rapportiniFilterSchema, rapportinoSchema, validateRequest, validateQueryParams } from '@/lib/validation';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, getClientIP, createRateLimitKey } from '@/lib/rate-limit';
-import { syncDatabaseSchema } from '@/lib/db-schema-sync';
+import { getSafeErrorMessage } from '@/lib/api-error';
 import { mapClienteToDbData, mapDbRowToRapportino, mapInterventoToDbData } from '@/lib/rapportino-db';
 import { parseDateOnly } from '@/lib/time-db';
 import { Prisma } from '@prisma/client';
@@ -79,8 +79,6 @@ function buildRapportiniWhere(
 // GET - Ottieni tutti i rapportini (filtrati per utente se operatore)
 export async function GET(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
-
     const userId = getUserIdFromRequest(request);
     const orgId = getOrgIdFromRequest(request);
     const userRole = request.headers.get('x-user-ruolo') || 'operatore';
@@ -146,8 +144,10 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error('Error fetching rapportini:', error);
-    const message = error instanceof Error ? error.message : 'Errore nel recupero dei rapportini';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error, 'Errore nel recupero dei rapportini') },
+      { status: 500 }
+    );
   }
 }
 
@@ -283,7 +283,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ id: newRapportino.id, success: true });
   } catch (error: unknown) {
     console.error('Error creating rapportino:', error);
-    const message = error instanceof Error ? error.message : 'Errore nella creazione del rapportino';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error, 'Errore nella creazione del rapportino') },
+      { status: 500 }
+    );
   }
 }

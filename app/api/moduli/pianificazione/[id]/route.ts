@@ -5,7 +5,6 @@ import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
 import { assertClienteInOrg, assertUtenteInOrg } from '@/lib/tenant-context';
 import { mapInterventoPianificato } from '@/lib/interventi-pianificati';
-import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 import { parseDateOnly, parseTimeForDb } from '@/lib/time-db';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +33,6 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.PIANIFICAZIONE_INTERVENTI);
     if (!auth.ok) return auth.response;
 
@@ -97,7 +95,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await syncDatabaseSchema();
     const auth = await requireModuleAccess(request, MODULE_CODES.PIANIFICAZIONE_INTERVENTI);
     if (!auth.ok) return auth.response;
 

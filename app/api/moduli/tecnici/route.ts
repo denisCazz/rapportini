@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireModuleAccess } from '@/lib/module-api-auth';
 import { MODULE_CODES } from '@/lib/modules';
-import { syncDatabaseSchema } from '@/lib/db-schema-sync';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    await syncDatabaseSchema();
 
     const pianificazione = await requireModuleAccess(request, MODULE_CODES.PIANIFICAZIONE_INTERVENTI);
     if (pianificazione.ok) {

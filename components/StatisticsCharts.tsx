@@ -18,7 +18,7 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import { format, eachMonthOfInterval, subMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 interface ClienteStatistiche {
@@ -41,8 +41,15 @@ interface ClienteStatistiche {
   };
 }
 
+interface MonthlyTrendPoint {
+  month: string;
+  pellet: number;
+  legno: number;
+}
+
 interface StatisticsChartsProps {
   data: ClienteStatistiche[];
+  trendMensile?: MonthlyTrendPoint[];
 }
 
 // Palette con colori ad alto contrasto
@@ -60,7 +67,7 @@ const CHART_COLORS = {
 // Colori per barre multiple (alto contrasto)
 const BAR_COLORS = ['#ea580c', '#c2410c', '#92400e', '#f97316', '#fb923c', '#9a3412', '#78716c', '#431407'];
 
-export default function StatisticsCharts({ data }: StatisticsChartsProps) {
+export default function StatisticsCharts({ data, trendMensile = [] }: StatisticsChartsProps) {
   // Dati per grafico a torta tipo stufa
   const pieData = useMemo(() => {
     const totalPellet = data.reduce((sum, s) => sum + s.statistiche.pellet, 0);
@@ -93,22 +100,15 @@ export default function StatisticsCharts({ data }: StatisticsChartsProps) {
       end: now,
     });
 
-    return months.map((month) => {
-      const monthStart = startOfMonth(month);
-      const monthEnd = endOfMonth(month);
-      
-      let pellet = 0;
-      let legno = 0;
+    const trendByMonth = new Map(
+      trendMensile.map((row) => [row.month, { pellet: row.pellet, legno: row.legno }])
+    );
 
-      data.forEach((stat) => {
-        stat.rapportini.forEach((r) => {
-          const date = parseISO(r.dataIntervento);
-          if (date >= monthStart && date <= monthEnd) {
-            if (r.tipoStufa === 'pellet') pellet++;
-            else legno++;
-          }
-        });
-      });
+    return months.map((month) => {
+      const monthKey = format(month, 'yyyy-MM');
+      const fromApi = trendByMonth.get(monthKey);
+      const pellet = fromApi?.pellet ?? 0;
+      const legno = fromApi?.legno ?? 0;
 
       return {
         name: format(month, 'MMM yy', { locale: it }),
@@ -117,7 +117,7 @@ export default function StatisticsCharts({ data }: StatisticsChartsProps) {
         totale: pellet + legno,
       };
     });
-  }, [data]);
+  }, [trendMensile]);
 
   // Top 5 clienti per numero di rapportini
   const topClienti = useMemo(() => {

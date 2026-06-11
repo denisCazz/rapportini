@@ -25,9 +25,47 @@ export interface RapportiniFilters {
   dataFine?: string;
   marca?: string;
   modello?: string;
+  clienteId?: string;
   search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface RapportiniSummary {
+  total: number;
+  pellet: number;
+  legno: number;
+}
+
+export interface AdminStatisticsResponse {
+  clienti: Array<{
+    cliente: {
+      id: string;
+      nome: string;
+      cognome: string;
+      ragioneSociale: string;
+      indirizzo: string;
+      citta: string;
+      cap: string;
+      telefono: string;
+      email: string;
+    };
+    rapportini: Array<{
+      id: string;
+      dataIntervento: string;
+      tipoStufa: string;
+      tipoIntervento: string;
+    }>;
+    statistiche: {
+      totale: number;
+      pellet: number;
+      legno: number;
+      ultimoIntervento: string | null;
+      primoIntervento: string | null;
+      tipiIntervento: Record<string, number>;
+    };
+  }>;
+  trendMensile: Array<{ month: string; pellet: number; legno: number }>;
 }
 
 // Interfaccia per la risposta paginata
@@ -208,17 +246,33 @@ export const api = {
     }
   },
 
+  // KPI dashboard (conteggi globali, non limitati alla pagina corrente)
+  getRapportiniSummary: async (): Promise<RapportiniSummary> => {
+    const response = await fetchWithAuth(`${API_BASE}/rapportini/summary`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<RapportiniSummary & { error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero del riepilogo'));
+    }
+    return result as RapportiniSummary;
+  },
+
   // Ottieni statistiche admin
-  getStatistics: async () => {
+  getStatistics: async (): Promise<AdminStatisticsResponse> => {
     const headers = getAuthHeaders();
     const response = await fetchWithAuth(`${API_BASE}/admin/statistics`, {
       headers,
     });
+    const result = await parseResponseBody<AdminStatisticsResponse & { error?: string } | unknown[]>(response);
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Errore nel recupero delle statistiche');
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero delle statistiche'));
     }
-    return response.json();
+    // Retrocompatibilità: risposta legacy (array puro)
+    if (Array.isArray(result)) {
+      return { clienti: result as AdminStatisticsResponse['clienti'], trendMensile: [] };
+    }
+    return result as AdminStatisticsResponse;
   },
 
   // Ottieni elenco clienti con statistiche (admin)
