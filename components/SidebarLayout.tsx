@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PAID_MODULES } from '@/lib/modules';
+import InstallPWAButton from '@/components/InstallPWA';
 
 const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   pianificazione_interventi: Calendar,
@@ -282,6 +283,8 @@ export default function SidebarLayout({
       )}
 
       <div className="border-t border-border p-3 space-y-2">
+        <InstallPWAButton />
+
         <Button variant="outline" className="w-full justify-center gap-2" onClick={toggleDarkMode}>
           {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           {darkMode ? 'Tema scuro' : 'Tema chiaro'}
