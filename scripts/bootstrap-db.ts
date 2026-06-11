@@ -47,6 +47,15 @@ async function main() {
   });
   if (push.status !== 0) process.exit(push.status ?? 1);
 
+  console.log('→ db:sync (patch SQL idempotenti)…');
+  const sync = spawnSync('npx', ['tsx', 'scripts/db-sync.ts'], {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+    shell: process.platform === 'win32',
+  });
+  if (sync.status !== 0) process.exit(sync.status ?? 1);
+
   if (process.env.SEED_ADMIN_PASSWORD?.trim()) {
     console.log('→ prisma db seed…');
     const seed = spawnSync('npx', ['tsx', 'scripts/prisma-with-database-url.ts', 'db', 'seed'], {

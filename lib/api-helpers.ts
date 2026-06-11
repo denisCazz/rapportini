@@ -46,11 +46,6 @@ export function getAuthHeaders(options?: { skipContentType?: boolean }): Record<
     }
   }
 
-  const accessToken = auth.getAccessToken();
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-
   return headers;
 }
 

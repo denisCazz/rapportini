@@ -16,7 +16,7 @@
     "db:create": "npx tsx scripts/create-database.ts",
     "hash-passwords": "npx tsx scripts/hash-passwords.ts",
     "media:archive": "npx tsx scripts/archive-rapportini-immagini.ts",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
