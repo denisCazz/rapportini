@@ -9,11 +9,15 @@ import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import SidebarLayout from '@/components/SidebarLayout';
 import RapportinoForm from '@/components/RapportinoForm';
+import { enqueueRapportino } from '@/lib/offline-queue';
+import { isNetworkFailure, registerBackgroundSync } from '@/lib/offline-sync';
+import { usePWA } from '@/lib/pwa-context';
 
 function NuovoRapportinoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const interventoId = searchParams.get('interventoId') ?? undefined;
+  const { refreshPendingCount } = usePWA();
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [ready, setReady] = useState(false);
 
@@ -32,7 +36,23 @@ function NuovoRapportinoContent() {
     setReady(true);
   }, [router]);
 
+  const saveOffline = async (rapportino: Rapportino, options?: { pendingImages?: File[] }) => {
+    await enqueueRapportino(rapportino, {
+      pendingImages: options?.pendingImages,
+      interventoId,
+    });
+    await registerBackgroundSync();
+    await refreshPendingCount();
+    toast.success('Rapportino salvato in locale. Verrà inviato alla riconnessione.');
+    router.push('/rapportini');
+  };
+
   const handleSave = async (rapportino: Rapportino, options?: { pendingImages?: File[] }) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      await saveOffline(rapportino, options);
+      return;
+    }
+
     try {
       const result = await api.createRapportino(rapportino);
       if (options?.pendingImages?.length) {
@@ -48,6 +68,10 @@ function NuovoRapportinoContent() {
       toast.success('Rapportino creato');
       router.push('/rapportini');
     } catch (err: unknown) {
+      if (isNetworkFailure(err)) {
+        await saveOffline(rapportino, options);
+        return;
+      }
       toast.error(err instanceof Error ? err.message : 'Errore nel salvataggio');
       throw err;
     }

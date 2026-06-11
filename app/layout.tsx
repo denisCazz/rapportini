@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import CookieConsent from '@/components/CookieConsent';
 import { PWAProvider } from '@/lib/pwa-context';
+import OfflineStatusBanner from '@/components/OfflineStatusBanner';
 import './globals.css';
 import Script from 'next/script';
 import { cn } from '@/lib/utils';
@@ -76,6 +77,7 @@ export default function RootLayout({
       </head>
       <body className={cn(inter.className, 'antialiased')}>
         <PWAProvider>
+          <OfflineStatusBanner />
           {children}
           <Toaster richColors position="top-center" closeButton />
           <CookieConsent />

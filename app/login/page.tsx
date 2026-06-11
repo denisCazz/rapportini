@@ -8,6 +8,7 @@ import AuthSidePanel from '@/components/auth/AuthSidePanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import InstallPWAButton from '@/components/InstallPWA';
 
 export default function LoginPage() {
   const router = useRouter();
