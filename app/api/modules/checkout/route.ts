@@ -7,10 +7,12 @@ import { ALL_MODULE_CODES, getModuleByCode, ModuleCode } from '@/lib/modules';
 import {
   buildModuleCheckoutMetadata,
   buildUserBundleCheckoutMetadata,
-  getAppBaseUrl,
+  checkoutCancelUrl,
+  checkoutSuccessUrl,
   getStripe,
   isStripeConfigured,
   moduleSubscriptionLineItem,
+  subscriptionCheckoutDefaults,
   userBundleSubscriptionLineItem,
   MODULE_SUBSCRIPTION_TRIAL_DAYS,
 } from '@/lib/stripe';
@@ -52,10 +54,11 @@ export async function POST(request: NextRequest) {
     const { target } = validation.data;
     const { customerId } = await getOrCreateStripeCustomerId(userId, orgId);
     const stripe = getStripe();
-    const baseUrl = getAppBaseUrl();
+    const checkoutDefaults = subscriptionCheckoutDefaults();
 
     if (target === 'bundle') {
       const session = await stripe.checkout.sessions.create({
+        ...checkoutDefaults,
         mode: 'subscription',
         customer: customerId,
         line_items: [await userBundleSubscriptionLineItem()],
@@ -64,8 +67,8 @@ export async function POST(request: NextRequest) {
           metadata: buildUserBundleCheckoutMetadata({ userId, orgId }),
         },
         metadata: buildUserBundleCheckoutMetadata({ userId, orgId }),
-        success_url: `${baseUrl}/utente/abbonamento?checkout=success`,
-        cancel_url: `${baseUrl}/moduli/pianificazione-interventi?checkout=cancel`,
+        success_url: checkoutSuccessUrl('/utente/abbonamento'),
+        cancel_url: checkoutCancelUrl('/moduli/pianificazione-interventi'),
         allow_promotion_codes: true,
       });
 
@@ -92,6 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await stripe.checkout.sessions.create({
+      ...checkoutDefaults,
       mode: 'subscription',
       customer: customerId,
       line_items: [await moduleSubscriptionLineItem(moduleCode, modulo.nome)],
@@ -100,8 +104,8 @@ export async function POST(request: NextRequest) {
         metadata: buildModuleCheckoutMetadata({ userId, orgId, moduleCode }),
       },
       metadata: buildModuleCheckoutMetadata({ userId, orgId, moduleCode }),
-      success_url: `${baseUrl}${modulo.href}?checkout=success`,
-      cancel_url: `${baseUrl}${modulo.href}?checkout=cancel`,
+      success_url: checkoutSuccessUrl(modulo.href),
+      cancel_url: checkoutCancelUrl(modulo.href),
       allow_promotion_codes: true,
     });
 

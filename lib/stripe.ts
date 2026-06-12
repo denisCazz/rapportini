@@ -44,6 +44,36 @@ export function getAppBaseUrl(): string {
 
 export const MODULE_SUBSCRIPTION_TRIAL_DAYS = SUBSCRIPTION_TRIAL_DAYS;
 
+/** Solo carta: evita redirect Satispay/Klarna/Link su abbonamenti (SetupIntent async). */
+export function subscriptionCheckoutDefaults(): Pick<
+  Stripe.Checkout.SessionCreateParams,
+  'payment_method_types' | 'locale'
+> {
+  return {
+    payment_method_types: ['card'],
+    locale: 'it',
+  };
+}
+
+export function checkoutSuccessUrl(path: string): string {
+  const base = getAppBaseUrl();
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalized}?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+}
+
+export function checkoutCancelUrl(path: string): string {
+  const base = getAppBaseUrl();
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalized}?checkout=cancel`;
+}
+
+/** @deprecated usa subscriptionCheckoutDefaults() */
+export const SUBSCRIPTION_CHECKOUT_OPTIONS = subscriptionCheckoutDefaults();
+/** @deprecated usa checkoutSuccessUrl() */
+export const subscriptionCheckoutSuccessUrl = checkoutSuccessUrl;
+/** @deprecated usa checkoutCancelUrl() */
+export const subscriptionCheckoutCancelUrl = checkoutCancelUrl;
+
 export function buildModuleCheckoutMetadata(params: {
   userId: string;
   orgId: string;

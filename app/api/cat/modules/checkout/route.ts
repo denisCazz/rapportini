@@ -9,9 +9,11 @@ import { isCatAdmin } from '@/lib/roles';
 import {
   buildCatBundleCheckoutMetadata,
   catBundleSubscriptionLineItems,
-  getAppBaseUrl,
+  checkoutCancelUrl,
+  checkoutSuccessUrl,
   getStripe,
   isStripeConfigured,
+  subscriptionCheckoutDefaults,
   MODULE_SUBSCRIPTION_TRIAL_DAYS,
 } from '@/lib/stripe';
 import { CAT_STATO } from '@/lib/cat-status';
@@ -57,9 +59,9 @@ export async function POST(request: NextRequest) {
 
     const { customerId } = await getOrCreateCatStripeCustomer(orgId, userId);
     const stripe = getStripe();
-    const baseUrl = getAppBaseUrl();
 
     const session = await stripe.checkout.sessions.create({
+      ...subscriptionCheckoutDefaults(),
       mode: 'subscription',
       customer: customerId,
       line_items: await catBundleSubscriptionLineItems({ operatorCount }),
@@ -76,8 +78,8 @@ export async function POST(request: NextRequest) {
         adminUserId: userId,
         operatorCount,
       }),
-      success_url: `${baseUrl}/admin/cat-moduli?checkout=success`,
-      cancel_url: `${baseUrl}/admin/cat-moduli?checkout=cancel`,
+      success_url: checkoutSuccessUrl('/admin/cat-moduli'),
+      cancel_url: checkoutCancelUrl('/admin/cat-moduli'),
       allow_promotion_codes: true,
     });
 

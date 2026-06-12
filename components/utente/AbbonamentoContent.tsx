@@ -62,10 +62,32 @@ export default function AbbonamentoContent() {
   }, [load]);
 
   useEffect(() => {
-    if (searchParams.get('checkout') === 'success') {
+    const checkout = searchParams.get('checkout');
+    if (checkout !== 'success') return;
+
+    const sessionId = searchParams.get('session_id');
+    const finalize = async () => {
+      if (sessionId) {
+        try {
+          const res = await fetchWithAuth('/api/modules/checkout/confirm', {
+            method: 'POST',
+            body: JSON.stringify({ session_id: sessionId }),
+          });
+          if (!res.ok) {
+            const data = await parseResponseBody<{ error?: string }>(res);
+            toast.error(data?.error || 'Conferma pagamento fallita');
+            return;
+          }
+        } catch {
+          toast.error('Errore conferma pagamento');
+          return;
+        }
+      }
       toast.success(`Abbonamento attivato! Hai ${MODULE_TRIAL_DAYS} giorni di prova gratuita.`);
-    }
-  }, [searchParams]);
+      load();
+    };
+    void finalize();
+  }, [searchParams, load]);
 
   const openPortal = async () => {
     setPortalLoading(true);
