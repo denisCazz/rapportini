@@ -4,16 +4,13 @@ import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/api-auth';
 import { prisma } from '@/lib/db';
 import { canManageModulesAdmin } from '@/lib/module-admin';
 import { setModuleActiveForUser } from '@/lib/module-access';
-import { MODULE_CODES, PAID_MODULES, ModuleCode } from '@/lib/modules';
+import { ALL_MODULE_CODES, PAID_MODULES, ModuleCode } from '@/lib/modules';
+import { getCatOrgLabels, getPlatformAdminVisibleOrgIds } from '@/lib/user-scope';
 import { validateRequest } from '@/lib/validation';
 
 const updateModuleSchema = z.object({
   utente_id: z.string().uuid(),
-  module_code: z.enum([
-    MODULE_CODES.PIANIFICAZIONE_INTERVENTI,
-    MODULE_CODES.ASSEGNAZIONE_LAVORI,
-    MODULE_CODES.NOTIFICHE_SCADENZE,
-  ]),
+  module_code: z.enum(ALL_MODULE_CODES as [ModuleCode, ...ModuleCode[]]),
   attivo: z.boolean(),
 });
 
@@ -46,17 +43,20 @@ export async function GET(request: NextRequest) {
     if (denied) return denied;
 
     const orgId = getOrgIdFromRequest(request);
+    const visibleOrgIds = await getPlatformAdminVisibleOrgIds(orgId);
 
-    const [moduli, operatori, attivazioni] = await Promise.all([
+    const [moduli, operatori, attivazioni, orgLabels] = await Promise.all([
       prisma.moduli.findMany({
         orderBy: { nome: 'asc' },
         select: { id: true, code: true, nome: true, descrizione: true },
       }),
       prisma.utenti.findMany({
-        where: { org_id: orgId, ruolo: 'operatore' },
-        orderBy: [{ cognome: 'asc' }, { nome: 'asc' }],
+        where: { org_id: { in: visibleOrgIds }, ruolo: { in: ['operatore', 'admin_cat'] } },
+        orderBy: [{ org_id: 'asc' }, { cognome: 'asc' }, { nome: 'asc' }],
         select: {
           id: true,
+          org_id: true,
+          ruolo: true,
           nome: true,
           cognome: true,
           username: true,
@@ -64,18 +64,24 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.utenteModuli.findMany({
-        where: { org_id: orgId },
+        where: { org_id: { in: visibleOrgIds } },
         select: {
           utente_id: true,
           attivo: true,
+          stripe_subscription_status: true,
           moduli: { select: { code: true } },
         },
       }),
+      getCatOrgLabels(visibleOrgIds),
     ]);
 
     const activationMap = new Map<string, boolean>();
     for (const row of attivazioni) {
-      activationMap.set(`${row.utente_id}:${row.moduli.code}`, row.attivo);
+      const active =
+        row.attivo ||
+        row.stripe_subscription_status === 'active' ||
+        row.stripe_subscription_status === 'trialing';
+      activationMap.set(`${row.utente_id}:${row.moduli.code}`, active);
     }
 
     const catalog = moduli.length > 0
@@ -87,8 +93,10 @@ export async function GET(request: NextRequest) {
           descrizione: m.descrizione,
         }));
 
-    const tecnici = operatori.map((operatore) => ({
+    const tecnici = operatori.map(({ org_id: userOrgId, ...operatore }) => ({
       ...operatore,
+      organizzazione:
+        userOrgId === orgId ? 'Sede principale' : orgLabels.get(userOrgId) ?? userOrgId,
       moduli: catalog.map((modulo) => ({
         code: modulo.code,
         nome: modulo.nome,
@@ -121,10 +129,15 @@ export async function PUT(request: NextRequest) {
 
     const { utente_id, module_code, attivo } = validation.data;
     const orgId = getOrgIdFromRequest(request);
+    const visibleOrgIds = await getPlatformAdminVisibleOrgIds(orgId);
 
     const operatore = await prisma.utenti.findFirst({
-      where: { id: utente_id, org_id: orgId, ruolo: 'operatore' },
-      select: { id: true },
+      where: {
+        id: utente_id,
+        org_id: { in: visibleOrgIds },
+        ruolo: { in: ['operatore', 'admin_cat'] },
+      },
+      select: { id: true, org_id: true },
     });
 
     if (!operatore) {
@@ -133,7 +146,7 @@ export async function PUT(request: NextRequest) {
 
     await setModuleActiveForUser(
       utente_id,
-      orgId,
+      operatore.org_id,
       module_code as ModuleCode,
       attivo
     );

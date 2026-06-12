@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isModuleActiveForUser } from '@/lib/module-access';
+import { isCatBundleSubscriptionActive } from '@/lib/cat-subscription';
 import { ModuleCode } from '@/lib/modules';
 import { requireAuthenticatedTenant } from '@/lib/tenant-context';
-import { isPlatformAdmin } from '@/lib/roles';
+import { isCatAdmin, isPlatformAdmin } from '@/lib/roles';
 
 export interface ModuleAuthUser {
   id: string;
@@ -26,6 +27,11 @@ export async function requireModuleAccess(
   const user = tenant.user;
 
   if (isPlatformAdmin(user.ruolo)) {
+    return { ok: true, user };
+  }
+
+  // Admin CAT: accesso ai moduli se il pacchetto CAT dell'org è attivo.
+  if (isCatAdmin(user.ruolo) && (await isCatBundleSubscriptionActive(user.org_id))) {
     return { ok: true, user };
   }
 

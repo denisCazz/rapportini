@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { getStripe, isStripeConfigured } from '@/lib/stripe';
 import {
   handleCheckoutSessionCompleted,
+  handleInvoicePaymentFailed,
   handleSubscriptionUpdated,
 } from '@/lib/module-stripe-webhook';
 
@@ -45,9 +46,15 @@ export async function POST(request: NextRequest) {
         break;
       }
       case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
+      case 'customer.subscription.deleted':
+      case 'customer.subscription.paused': {
         const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionUpdated(subscription);
+        break;
+      }
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        await handleInvoicePaymentFailed(invoice);
         break;
       }
       default:

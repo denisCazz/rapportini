@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 const notifySchema = z.object({
   rapportinoId: z.string().uuid(),
   dataScadenza: z.string().min(1),
+  inviaEmail: z.boolean().optional(),
 });
 
 function calcolaUrgenza(giorniRimanenti: number): UrgenzaScadenza {
@@ -133,13 +134,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Dati non validi' }, { status: 400 });
     }
 
-    const { rapportinoId, dataScadenza } = parsed.data;
+    const { rapportinoId, dataScadenza, inviaEmail } = parsed.data;
 
     const rapportino = await prisma.rapportini.findFirst({
       where: { id: rapportinoId, org_id: auth.user.org_id },
+      include: {
+        clienti: { select: { nome: true, cognome: true, email: true, telefono: true } },
+        utenti: { select: { nome: true, email: true } },
+      },
     });
     if (!rapportino) {
       return NextResponse.json({ error: 'Rapportino non trovato' }, { status: 404 });
+    }
+
+    let emailDestinatario: string | null = null;
+    if (inviaEmail) {
+      const { sendEmail } = await import('@/lib/email');
+      emailDestinatario = rapportino.utenti?.email || rapportino.clienti.email;
+      if (!emailDestinatario) {
+        return NextResponse.json({ error: 'Nessuna email disponibile per la notifica' }, { status: 400 });
+      }
+      const dataLabel = dataScadenza.split('-').reverse().join('/');
+      await sendEmail({
+        to: emailDestinatario,
+        subject: `Promemoria manutenzione — ${rapportino.clienti.nome} ${rapportino.clienti.cognome}`,
+        html: `<p>Promemoria scadenza manutenzione per ${rapportino.clienti.nome} ${rapportino.clienti.cognome} (${rapportino.marca} ${rapportino.modello}) in data ${dataLabel}.</p>`,
+      });
     }
 
     await prisma.scadenzeNotificate.upsert({
@@ -155,9 +175,13 @@ export async function POST(request: NextRequest) {
         rapportino_id: rapportinoId,
         utente_id: auth.user.id,
         data_scadenza: parseDateOnly(dataScadenza),
+        canale: inviaEmail ? 'email' : 'manuale',
+        email_destinatario: emailDestinatario,
       },
       update: {
         notificato_at: new Date(),
+        canale: inviaEmail ? 'email' : 'manuale',
+        email_destinatario: emailDestinatario,
       },
     });
 

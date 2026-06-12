@@ -23,15 +23,24 @@ function InterventoCard({
   onAssign,
   assigning,
   onRefresh,
+  draggable,
 }: {
   intervento: InterventoPianificato;
   tecnici: TecnicoCaricoLavoro[];
   onAssign: (interventoId: string, utenteId: string | null) => void;
   assigning: string | null;
   onRefresh: () => void;
+  draggable?: boolean;
 }) {
   return (
-    <div className="rounded-md border border-border bg-card p-3">
+    <div
+      className="rounded-md border border-border bg-card p-3"
+      draggable={draggable}
+      onDragStart={(e) => {
+        if (!draggable) return;
+        e.dataTransfer.setData('interventoId', intervento.id);
+      }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-medium text-foreground">{intervento.titolo}</p>
@@ -72,6 +81,10 @@ function InterventoCard({
   );
 }
 
+function toIsoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 export default function AssegnazioneLavori() {
   const [tecnici, setTecnici] = useState<TecnicoCaricoLavoro[]>([]);
   const [nonAssegnati, setNonAssegnati] = useState<InterventoPianificato[]>([]);
@@ -79,12 +92,18 @@ export default function AssegnazioneLavori() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [assigning, setAssigning] = useState<string | null>(null);
+  const [dataInizio, setDataInizio] = useState(() => toIsoDate(new Date()));
+  const [dataFine, setDataFine] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return toIsoDate(d);
+  });
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getAssegnazioneLavori();
+      const data = await api.getAssegnazioneLavori(dataInizio, dataFine);
       setTecnici(data.tecnici);
       setNonAssegnati(data.nonAssegnati);
       setTotale(data.totaleInterventi);
@@ -93,11 +112,15 @@ export default function AssegnazioneLavori() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dataInizio, dataFine]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleDropOnTecnico = async (tecnicoId: string, interventoId: string) => {
+    await handleAssign(interventoId, tecnicoId);
+  };
 
   const handleAssign = async (interventoId: string, utenteId: string | null) => {
     setAssigning(interventoId);
@@ -115,8 +138,32 @@ export default function AssegnazioneLavori() {
   if (loading) return <PageLoader />;
   if (error) return <ErrorBanner message={error} onRetry={loadData} />;
 
+  const maxCarico = Math.max(1, ...tecnici.map((t) => t.totale));
+
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Da</label>
+          <input
+            type="date"
+            value={dataInizio}
+            onChange={(e) => setDataInizio(e.target.value)}
+            className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">A</label>
+          <input
+            type="date"
+            value={dataFine}
+            onChange={(e) => setDataFine(e.target.value)}
+            className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+          />
+        </div>
+        <Button variant="outline" size="sm" onClick={loadData}>Applica filtro</Button>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
@@ -158,6 +205,7 @@ export default function AssegnazioneLavori() {
                 onAssign={handleAssign}
                 assigning={assigning}
                 onRefresh={loadData}
+                draggable
               />
             ))}
           </CardContent>
@@ -166,15 +214,25 @@ export default function AssegnazioneLavori() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {tecnici.map((tecnico) => (
-          <Card key={tecnico.id}>
+          <Card
+            key={tecnico.id}
+            className={tecnico.totale >= maxCarico && tecnico.totale >= 4 ? 'border-destructive/50' : ''}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const interventoId = e.dataTransfer.getData('interventoId');
+              if (interventoId) handleDropOnTecnico(tecnico.id, interventoId);
+            }}
+          >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <UserRound className="h-4 w-4" />
                   {tecnico.nome} {tecnico.cognome}
                 </CardTitle>
-                <Badge variant={tecnico.totale > 3 ? 'destructive' : 'secondary'}>
+                <Badge variant={tecnico.totale >= 4 ? 'destructive' : 'secondary'}>
                   {tecnico.totale} {tecnico.totale === 1 ? 'lavoro' : 'lavori'}
+                  {tecnico.totale >= maxCarico && tecnico.totale >= 4 && ' · sovraccarico'}
                 </Badge>
               </div>
               {tecnico.qualifica && (

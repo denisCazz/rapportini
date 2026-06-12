@@ -7,13 +7,13 @@ import { toast } from 'sonner';
 import SidebarLayout from '@/components/SidebarLayout';
 import SignaturePad from '@/components/SignaturePad';
 import { auth } from '@/lib/auth';
-import { storage } from '@/lib/storage';
+import { useSettings } from '@/lib/useSettings';
 import { api } from '@/lib/api';
-import { AziendaSettings } from '@/types';
+import { ExternalLink, Mail } from 'lucide-react';
 
 export default function UtentePage() {
   const router = useRouter();
-  const [settings, setSettings] = useState<AziendaSettings>({});
+  const { settings } = useSettings();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [firma, setFirma] = useState('');
   const [savingFirma, setSavingFirma] = useState(false);
@@ -29,7 +29,6 @@ export default function UtentePage() {
       return;
     }
 
-    setSettings(storage.getSettings());
     setIsAuthenticated(true);
   }, [router]);
 
@@ -165,6 +164,33 @@ export default function UtentePage() {
               >
                 {savingFirma ? 'Salvataggio...' : 'Salva firma'}
               </button>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Contatti</h3>
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Sito sviluppato da{' '}
+                <a
+                  href="https://bitora.it"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-primary-600 hover:underline dark:text-primary-400"
+                >
+                  bitora.it
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                </a>
+              </p>
+              <a
+                href="https://bitora.it/contattaci"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              >
+                <Mail className="h-4 w-4" aria-hidden />
+                Contattaci
+              </a>
             </div>
           </div>
         </div>

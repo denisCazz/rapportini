@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
-import { storage } from '@/lib/storage';
+import { useSettings } from '@/lib/useSettings';
 import { useUserModules } from '@/lib/useUserModules';
 import SidebarLayout from '@/components/SidebarLayout';
 import ActivateModulePlaceholder from '@/components/modules/ActivateModulePlaceholder';
 import PageLoader from '@/components/ui/PageLoader';
 import { PaidModuleDefinition } from '@/lib/modules';
-import { AziendaSettings } from '@/types';
 
 interface ModulePageShellProps {
   modulo: PaidModuleDefinition;
@@ -19,7 +18,7 @@ interface ModulePageShellProps {
 
 export default function ModulePageShell({ modulo, children }: ModulePageShellProps) {
   const router = useRouter();
-  const [settings, setSettings] = useState<AziendaSettings>({});
+  const { settings } = useSettings();
   const { loading, isModuleActive, reload, stripeEnabled } = useUserModules();
   const hasLoadedRef = useRef(false);
   const checkoutHandledRef = useRef(false);
@@ -31,7 +30,6 @@ export default function ModulePageShell({ modulo, children }: ModulePageShellPro
       return;
     }
     hasLoadedRef.current = true;
-    setSettings(storage.getSettings());
   }, [router]);
 
   useEffect(() => {
@@ -58,8 +56,9 @@ export default function ModulePageShell({ modulo, children }: ModulePageShellPro
     router.push('/login');
   };
 
-  const isAdmin = auth.isAdmin();
-  const canAccess = isAdmin || isModuleActive(modulo.code);
+  const isPlatformAdmin = auth.isPlatformAdmin();
+  const isCatAdmin = auth.isCatAdmin();
+  const canAccess = isPlatformAdmin || isModuleActive(modulo.code);
 
   return (
     <SidebarLayout
@@ -76,6 +75,7 @@ export default function ModulePageShell({ modulo, children }: ModulePageShellPro
         <ActivateModulePlaceholder
           modulo={modulo}
           stripeEnabled={stripeEnabled}
+          isCatAdmin={isCatAdmin}
           onActivated={reload}
         />
       )}

@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 import PageLoader from '@/components/ui/PageLoader';
-import { AlertTriangle, Bell, Check, Clock, Phone } from 'lucide-react';
+import { AlertTriangle, Bell, Check, Clock, Mail, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const FILTRI = [
@@ -72,12 +72,12 @@ export default function NotificheScadenze() {
     loadData();
   }, [loadData]);
 
-  const handleSegnaNotificato = async (scadenza: ScadenzaManutenzione) => {
+  const handleSegnaNotificato = async (scadenza: ScadenzaManutenzione, inviaEmail = false) => {
     const key = `${scadenza.rapportinoId}:${scadenza.dataScadenza}`;
     setMarking(key);
     try {
-      await api.segnaScadenzaNotificata(scadenza.rapportinoId, scadenza.dataScadenza);
-      toast.success('Scadenza segnata come notificata');
+      await api.segnaScadenzaNotificata(scadenza.rapportinoId, scadenza.dataScadenza, inviaEmail);
+      toast.success(inviaEmail ? 'Email promemoria inviata' : 'Scadenza segnata come notificata');
       loadData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Errore');
@@ -197,14 +197,26 @@ export default function NotificheScadenze() {
                   </div>
                   <div className="flex shrink-0 flex-col gap-2">
                     {!scadenza.notificato && scadenza.urgenza !== 'ok' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={marking === key}
-                        onClick={() => handleSegnaNotificato(scadenza)}
-                      >
-                        {marking === key ? 'Salvataggio...' : 'Segna notificato'}
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          disabled={marking === key}
+                          onClick={() => handleSegnaNotificato(scadenza, true)}
+                        >
+                          <Mail className="h-3.5 w-3.5" aria-hidden />
+                          {marking === key ? 'Invio...' : 'Invia email'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={marking === key}
+                          onClick={() => handleSegnaNotificato(scadenza)}
+                        >
+                          Segna notificato
+                        </Button>
+                      </>
                     )}
                     <Button size="sm" variant="ghost" render={<Link href={`/rapportini/modifica/${scadenza.rapportinoId}`} />}>
                       Apri rapportino

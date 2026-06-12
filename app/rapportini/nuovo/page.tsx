@@ -17,6 +17,7 @@ function NuovoRapportinoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const interventoId = searchParams.get('interventoId') ?? undefined;
+  const materiale = searchParams.get('materiale') ?? undefined;
   const { refreshPendingCount } = usePWA();
   const [settings, setSettings] = useState<AziendaSettings>({});
   const [ready, setReady] = useState(false);
@@ -102,6 +103,7 @@ function NuovoRapportinoContent() {
     >
       <RapportinoForm
         prefillInterventoId={interventoId}
+        prefillMateriale={materiale}
         onSave={handleSave}
         onCancel={handleCancel}
       />

@@ -47,6 +47,7 @@ import { usePWA } from '@/lib/pwa-context';
 interface RapportinoFormProps {
   initialRapportino?: Rapportino;
   prefillInterventoId?: string;
+  prefillMateriale?: string;
   onSave: (
     rapportino: Rapportino,
     options?: { pendingImages?: File[] }
@@ -94,6 +95,7 @@ function syncMarcaModelloFromNames(
 export default function RapportinoForm({
   initialRapportino,
   prefillInterventoId,
+  prefillMateriale,
   onSave,
   onCancel,
 }: RapportinoFormProps) {
@@ -113,7 +115,7 @@ export default function RapportinoForm({
   const [operatoreFirmaFromProfile, setOperatoreFirmaFromProfile] = useState(false);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const [existingImages, setExistingImages] = useState<RapportinoImmagine[]>([]);
-  const { register, watch, setValue, getValues, reset, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
+  const { register, watch, setValue, getValues, reset, setFocus, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
     defaultValues: getDefaultRapportinoFormValues(initialRapportino),
   });
 
@@ -239,6 +241,19 @@ export default function RapportinoForm({
       cancelled = true;
     };
   }, [prefillInterventoId, initialRapportino, setValue]);
+
+  // Precarica materiale da magazzino (link "Usa nel rapportino")
+  const materialePrefilledRef = useRef(false);
+  useEffect(() => {
+    if (!prefillMateriale || initialRapportino || materialePrefilledRef.current) return;
+    materialePrefilledRef.current = true;
+    const current = getValues('intervento.materialiUtilizzati') || '';
+    const next = current.trim()
+      ? `${current.trim()}; ${prefillMateriale}`
+      : prefillMateriale;
+    setValue('intervento.materialiUtilizzati', next, { shouldDirty: true });
+    toast.success(`Materiale aggiunto: ${prefillMateriale}`);
+  }, [prefillMateriale, initialRapportino, getValues, setValue]);
   const [clientiEsistenti, setClientiEsistenti] = useState<Cliente[]>([]);
   const [showClientiList, setShowClientiList] = useState(false);
   const [isSearchingClienti, setIsSearchingClienti] = useState(false);
@@ -588,34 +603,43 @@ export default function RapportinoForm({
     setClientiEsistenti([]);
   };
 
+  const focusFirstIssue = (error: { issues: { path: (string | number)[] }[] }) => {
+    const path = error.issues[0]?.path;
+    if (!path || path.length === 0) return;
+    const name = path.join('.');
+    try {
+      setFocus(name as Parameters<typeof setFocus>[0], { shouldSelect: true });
+    } catch {
+      /* campo non registrabile (componente custom): scroll manuale sotto */
+    }
+    if (typeof document !== 'undefined') {
+      requestAnimationFrame(() => {
+        const el = document.querySelector(
+          `[name="${name}"], [data-field="${name}"]`
+        ) as HTMLElement | null;
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  };
+
+  const handleStepError = (error: { issues: { path: (string | number)[] }[] } & { message?: string }) => {
+    toast.error(firstIssueMessage(error as Parameters<typeof firstIssueMessage>[0]));
+    focusFirstIssue(error);
+  };
+
   const validateStep = (): boolean => {
     const v = getValues();
-    if (step === 1) {
-      const r = rapportinoStep1Schema.safeParse(v);
-      if (!r.success) toast.error(firstIssueMessage(r.error));
-      return r.success;
-    }
-    if (step === 2) {
-      const r = rapportinoStep2Schema.safeParse(v);
-      if (!r.success) toast.error(firstIssueMessage(r.error));
-      return r.success;
-    }
-    if (step === 3) {
-      const r = rapportinoStep3Schema.safeParse(v);
-      if (!r.success) toast.error(firstIssueMessage(r.error));
-      return r.success;
-    }
-    if (step === 4) {
-      const r = rapportinoStep4Schema.safeParse(v);
-      if (!r.success) toast.error(firstIssueMessage(r.error));
-      return r.success;
-    }
-    if (step === 5) {
-      const r = rapportinoStep5Schema.safeParse(v);
-      if (!r.success) toast.error(firstIssueMessage(r.error));
-      return r.success;
-    }
-    return false;
+    const schema =
+      step === 1 ? rapportinoStep1Schema
+      : step === 2 ? rapportinoStep2Schema
+      : step === 3 ? rapportinoStep3Schema
+      : step === 4 ? rapportinoStep4Schema
+      : step === 5 ? rapportinoStep5Schema
+      : null;
+    if (!schema) return false;
+    const r = schema.safeParse(v);
+    if (!r.success) handleStepError(r.error);
+    return r.success;
   };
 
   const onSaveValid = async (values: RapportinoFormValues): Promise<'offline' | 'online' | false> => {

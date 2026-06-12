@@ -89,12 +89,14 @@ export async function syncCatBundleSubscription(params: {
   subscriptionId: string;
   subscriptionStatus: string;
   operatorSlots: number;
+  trialEndsAt?: Date | null;
 }): Promise<void> {
   const active = isSubscriptionStatusActive(params.subscriptionStatus);
   const stato =
     params.subscriptionStatus === 'canceled' ||
     params.subscriptionStatus === 'unpaid' ||
-    params.subscriptionStatus === 'past_due'
+    params.subscriptionStatus === 'past_due' ||
+    params.subscriptionStatus === 'paused'
       ? CAT_STATO.SOSPESO
       : active
         ? CAT_STATO.ATTIVO
@@ -106,6 +108,7 @@ export async function syncCatBundleSubscription(params: {
       stripe_subscription_id: params.subscriptionId,
       stripe_subscription_status: params.subscriptionStatus,
       licensed_operator_slots: params.operatorSlots,
+      trial_ends_at: params.trialEndsAt ?? undefined,
       ...(stato ? { stato } : {}),
       updated_at: new Date(),
     },

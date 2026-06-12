@@ -3,23 +3,22 @@ import { z } from 'zod';
 import { requireAuthenticatedTenant } from '@/lib/tenant-context';
 import { isOrgAdminRole } from '@/lib/roles';
 import { isModuleActiveForUser, getOrCreateStripeCustomerId } from '@/lib/module-access';
-import { MODULE_CODES, getModuleByCode, ModuleCode } from '@/lib/modules';
+import { ALL_MODULE_CODES, getModuleByCode, ModuleCode } from '@/lib/modules';
 import {
   buildModuleCheckoutMetadata,
+  buildUserBundleCheckoutMetadata,
   getAppBaseUrl,
   getStripe,
   isStripeConfigured,
   moduleSubscriptionLineItem,
+  userBundleSubscriptionLineItem,
   MODULE_SUBSCRIPTION_TRIAL_DAYS,
 } from '@/lib/stripe';
 import { validateRequest } from '@/lib/validation';
 
 const checkoutSchema = z.object({
-  module_code: z.enum([
-    MODULE_CODES.PIANIFICAZIONE_INTERVENTI,
-    MODULE_CODES.ASSEGNAZIONE_LAVORI,
-    MODULE_CODES.NOTIFICHE_SCADENZE,
-  ]),
+  target: z.enum(['module', 'bundle']).default('module'),
+  module_code: z.enum(ALL_MODULE_CODES as [ModuleCode, ...ModuleCode[]]).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -50,7 +49,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
     }
 
-    const moduleCode = validation.data.module_code as ModuleCode;
+    const { target } = validation.data;
+    const { customerId } = await getOrCreateStripeCustomerId(userId, orgId);
+    const stripe = getStripe();
+    const baseUrl = getAppBaseUrl();
+
+    if (target === 'bundle') {
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [await userBundleSubscriptionLineItem()],
+        subscription_data: {
+          trial_period_days: MODULE_SUBSCRIPTION_TRIAL_DAYS,
+          metadata: buildUserBundleCheckoutMetadata({ userId, orgId }),
+        },
+        metadata: buildUserBundleCheckoutMetadata({ userId, orgId }),
+        success_url: `${baseUrl}/utente/abbonamento?checkout=success`,
+        cancel_url: `${baseUrl}/moduli/pianificazione-interventi?checkout=cancel`,
+        allow_promotion_codes: true,
+      });
+
+      if (!session.url) {
+        return NextResponse.json({ error: 'Impossibile avviare il pagamento' }, { status: 500 });
+      }
+
+      return NextResponse.json({ data: { url: session.url, target: 'bundle' } });
+    }
+
+    const moduleCode = validation.data.module_code as ModuleCode | undefined;
+    if (!moduleCode) {
+      return NextResponse.json({ error: 'module_code obbligatorio per attivazione singolo modulo' }, { status: 400 });
+    }
+
     const modulo = getModuleByCode(moduleCode);
     if (!modulo) {
       return NextResponse.json({ error: 'Modulo non trovato' }, { status: 404 });
@@ -61,14 +91,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Il modulo è già attivo' }, { status: 400 });
     }
 
-    const { customerId } = await getOrCreateStripeCustomerId(userId, orgId);
-    const stripe = getStripe();
-    const baseUrl = getAppBaseUrl();
-
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
-      line_items: [moduleSubscriptionLineItem(modulo.nome)],
+      line_items: [await moduleSubscriptionLineItem(moduleCode, modulo.nome)],
       subscription_data: {
         trial_period_days: MODULE_SUBSCRIPTION_TRIAL_DAYS,
         metadata: buildModuleCheckoutMetadata({ userId, orgId, moduleCode }),
@@ -83,7 +109,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Impossibile avviare il pagamento' }, { status: 500 });
     }
 
-    return NextResponse.json({ data: { url: session.url } });
+    return NextResponse.json({ data: { url: session.url, target: 'module' } });
   } catch (error) {
     console.error('POST /api/modules/checkout error:', error);
     return NextResponse.json({ error: 'Errore nell\'avvio del pagamento' }, { status: 500 });

@@ -10,18 +10,14 @@ import {
   CAT_BASE_PRICE_EUR,
 } from '@/lib/cat-pricing';
 import { isCatBundleSubscriptionActive } from '@/lib/cat-subscription';
-import { MODULE_CODES, PAID_MODULES, ModuleCode } from '@/lib/modules';
+import { ALL_MODULE_CODES, PAID_MODULES, ModuleCode } from '@/lib/modules';
 import { isCatAdmin } from '@/lib/roles';
 import { validateRequest } from '@/lib/validation';
 import { isStripeConfigured } from '@/lib/stripe';
 
 const updateModuleSchema = z.object({
   utente_id: z.string().uuid(),
-  module_code: z.enum([
-    MODULE_CODES.PIANIFICAZIONE_INTERVENTI,
-    MODULE_CODES.ASSEGNAZIONE_LAVORI,
-    MODULE_CODES.NOTIFICHE_SCADENZE,
-  ]),
+  module_code: z.enum(ALL_MODULE_CODES as [ModuleCode, ...ModuleCode[]]),
   attivo: z.boolean(),
 });
 

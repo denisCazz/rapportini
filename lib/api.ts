@@ -473,12 +473,16 @@ export const api = {
   },
 
   // Moduli — Assegnazione lavori
-  getAssegnazioneLavori: async (): Promise<{
+  getAssegnazioneLavori: async (dataInizio?: string, dataFine?: string): Promise<{
     tecnici: TecnicoCaricoLavoro[];
     nonAssegnati: InterventoPianificato[];
     totaleInterventi: number;
   }> => {
-    const response = await fetchWithAuth(`${API_BASE}/moduli/assegnazione`, {
+    const params = new URLSearchParams();
+    if (dataInizio) params.set('dataInizio', dataInizio);
+    if (dataFine) params.set('dataFine', dataFine);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetchWithAuth(`${API_BASE}/moduli/assegnazione${qs}`, {
       headers: getAuthHeaders(),
     });
     const result = await parseResponseBody<{
@@ -526,11 +530,15 @@ export const api = {
     return result?.data ?? { scadenze: [], riepilogo: { totale: 0, scaduti: 0, urgenti: 0, prossimi: 0, nonNotificati: 0 } };
   },
 
-  segnaScadenzaNotificata: async (rapportinoId: string, dataScadenza: string): Promise<void> => {
+  segnaScadenzaNotificata: async (
+    rapportinoId: string,
+    dataScadenza: string,
+    inviaEmail = false
+  ): Promise<void> => {
     const response = await fetchWithAuth(`${API_BASE}/moduli/scadenze`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ rapportinoId, dataScadenza }),
+      body: JSON.stringify({ rapportinoId, dataScadenza, inviaEmail }),
     });
     if (!response.ok) {
       const result = await parseResponseBody<{ error?: string }>(response);

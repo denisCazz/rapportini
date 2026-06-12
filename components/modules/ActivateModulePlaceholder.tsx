@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Lock, Sparkles, TrendingUp } from 'lucide-react';
+import { Lock, Sparkles, TrendingUp, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import EmptyState from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/button';
@@ -12,29 +12,37 @@ import {
   getModuleEarningsEstimate,
   MODULE_MONTHLY_PRICE_EUR,
   MODULE_TRIAL_DAYS,
+  USER_BUNDLE_MONTHLY_PRICE_EUR,
 } from '@/lib/module-pricing';
 import { PaidModuleDefinition } from '@/lib/modules';
 
 interface ActivateModulePlaceholderProps {
   modulo: PaidModuleDefinition;
   stripeEnabled?: boolean;
+  isCatAdmin?: boolean;
   onActivated?: () => void;
 }
 
 export default function ActivateModulePlaceholder({
   modulo,
   stripeEnabled = true,
+  isCatAdmin = false,
   onActivated,
 }: ActivateModulePlaceholderProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<'module' | 'bundle' | null>(null);
   const estimate = getModuleEarningsEstimate(modulo.code);
 
-  const handleActivate = async () => {
-    setLoading(true);
+  const handleCheckout = async (target: 'module' | 'bundle') => {
+    setLoading(target);
     try {
+      const body =
+        target === 'bundle'
+          ? { target: 'bundle' }
+          : { target: 'module', module_code: modulo.code };
+
       const response = await fetchWithAuth('/api/modules/checkout', {
         method: 'POST',
-        body: JSON.stringify({ module_code: modulo.code }),
+        body: JSON.stringify(body),
       });
       const data = await parseResponseBody<{ data?: { url: string }; error?: string }>(response);
 
@@ -51,7 +59,7 @@ export default function ActivateModulePlaceholder({
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Errore durante l\'attivazione');
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
@@ -80,19 +88,41 @@ export default function ActivateModulePlaceholder({
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden />
             <div className="space-y-1 text-sm">
               <p className="font-medium text-foreground">
-                {MODULE_TRIAL_DAYS} giorni gratis, poi €{MODULE_MONTHLY_PRICE_EUR}/mese
+                {MODULE_TRIAL_DAYS} giorni gratis su tutti i piani
               </p>
               <p className="text-muted-foreground">
-                Attiva ora con Stripe: il primo mese è gratuito. Dopo la prova, l&apos;abbonamento
-                si rinnova automaticamente a €{MODULE_MONTHLY_PRICE_EUR}/mese fino a disdetta.
+                Singolo modulo: €{MODULE_MONTHLY_PRICE_EUR}/mese dopo la prova.
+                Bundle completo: €{USER_BUNDLE_MONTHLY_PRICE_EUR}/mese (tutti i moduli).
               </p>
             </div>
           </div>
 
-          {stripeEnabled ? (
-            <Button className="w-full" onClick={handleActivate} disabled={loading}>
-              {loading ? 'Reindirizzamento a Stripe...' : 'Attiva modulo — 1° mese gratis'}
-            </Button>
+          {isCatAdmin ? (
+            <a
+              href="/admin/cat-moduli"
+              className="block rounded-md bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Gestisci i moduli dal pannello CAT
+            </a>
+          ) : stripeEnabled ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                className="w-full"
+                onClick={() => handleCheckout('module')}
+                disabled={loading !== null}
+              >
+                {loading === 'module' ? 'Reindirizzamento...' : `Solo questo — €${MODULE_MONTHLY_PRICE_EUR}/mese`}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => handleCheckout('bundle')}
+                disabled={loading !== null}
+              >
+                <Package className="h-4 w-4" aria-hidden />
+                {loading === 'bundle' ? 'Reindirizzamento...' : `Tutti i moduli — €${USER_BUNDLE_MONTHLY_PRICE_EUR}/mese`}
+              </Button>
+            </div>
           ) : (
             <p className="rounded-md border border-dashed border-border bg-muted/50 p-3 text-center text-sm text-muted-foreground">
               Pagamenti in configurazione. Riprova tra poco o contatta il supporto.

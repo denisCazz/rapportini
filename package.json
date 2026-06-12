@@ -13,6 +13,7 @@
     "db:studio": "npx tsx scripts/prisma-with-database-url.ts studio",
     "db:seed": "npx tsx scripts/prisma-with-database-url.ts db seed",
     "db:bootstrap": "npx tsx scripts/bootstrap-db.ts",
+    "stripe:setup-products": "npx tsx scripts/stripe-setup-products.ts",
     "db:create": "npx tsx scripts/create-database.ts",
     "hash-passwords": "npx tsx scripts/hash-passwords.ts",
     "media:archive": "npx tsx scripts/archive-rapportini-immagini.ts",

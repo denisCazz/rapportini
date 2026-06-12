@@ -1,6 +1,21 @@
 import Stripe from 'stripe';
 import { ModuleCode } from '@/lib/modules';
-import { MODULE_MONTHLY_PRICE_EUR, MODULE_TRIAL_DAYS } from '@/lib/module-pricing';
+import {
+  MODULE_MONTHLY_PRICE_EUR,
+  SUBSCRIPTION_TRIAL_DAYS,
+  USER_BUNDLE_MONTHLY_PRICE_EUR,
+} from '@/lib/module-pricing';
+import {
+  CAT_BASE_PRICE_EUR,
+  CAT_EXTRA_OPERATOR_PRICE_EUR,
+  calcCatLicensePriceEur,
+} from '@/lib/cat-pricing';
+import {
+  getCatBaseStripePriceId,
+  getCatExtraStripePriceId,
+  getModuleStripePriceId,
+  getUserBundleStripePriceId,
+} from '@/lib/stripe-prices';
 
 let stripeClient: Stripe | null = null;
 
@@ -27,36 +42,31 @@ export function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 }
 
+export const MODULE_SUBSCRIPTION_TRIAL_DAYS = SUBSCRIPTION_TRIAL_DAYS;
+
 export function buildModuleCheckoutMetadata(params: {
   userId: string;
   orgId: string;
   moduleCode: ModuleCode;
 }): Record<string, string> {
   return {
+    subscription_type: 'module',
     user_id: params.userId,
     org_id: params.orgId,
     module_code: params.moduleCode,
   };
 }
 
-export function moduleSubscriptionLineItem(moduleName: string): Stripe.Checkout.SessionCreateParams.LineItem {
+export function buildUserBundleCheckoutMetadata(params: {
+  userId: string;
+  orgId: string;
+}): Record<string, string> {
   return {
-    price_data: {
-      currency: 'eur',
-      unit_amount: MODULE_MONTHLY_PRICE_EUR * 100,
-      product_data: {
-        name: `Bitora — ${moduleName}`,
-        description: `Abbonamento mensile modulo (primo mese gratuito)`,
-      },
-      recurring: {
-        interval: 'month',
-      },
-    },
-    quantity: 1,
+    subscription_type: 'user_bundle',
+    user_id: params.userId,
+    org_id: params.orgId,
   };
 }
-
-export const MODULE_SUBSCRIPTION_TRIAL_DAYS = MODULE_TRIAL_DAYS;
 
 export function buildCatBundleCheckoutMetadata(params: {
   orgId: string;
@@ -71,6 +81,91 @@ export function buildCatBundleCheckoutMetadata(params: {
   };
 }
 
+async function priceLineItem(
+  priceId: string | null,
+  fallback: Stripe.Checkout.SessionCreateParams.LineItem
+): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+  if (priceId) {
+    return { price: priceId, quantity: 1 };
+  }
+  return fallback;
+}
+
+export async function moduleSubscriptionLineItem(
+  moduleCode: ModuleCode,
+  moduleName: string
+): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+  const priceId = await getModuleStripePriceId(moduleCode);
+  return priceLineItem(priceId, {
+    price_data: {
+      currency: 'eur',
+      unit_amount: MODULE_MONTHLY_PRICE_EUR * 100,
+      product_data: {
+        name: `Bitora — ${moduleName}`,
+        description: 'Abbonamento mensile modulo (primo mese gratuito)',
+      },
+      recurring: { interval: 'month' },
+    },
+    quantity: 1,
+  });
+}
+
+export async function userBundleSubscriptionLineItem(): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+  const priceId = await getUserBundleStripePriceId();
+  return priceLineItem(priceId, {
+    price_data: {
+      currency: 'eur',
+      unit_amount: USER_BUNDLE_MONTHLY_PRICE_EUR * 100,
+      product_data: {
+        name: 'Bitora — Bundle tutti i moduli',
+        description: 'Tutti i moduli per un operatore (primo mese gratuito)',
+      },
+      recurring: { interval: 'month' },
+    },
+    quantity: 1,
+  });
+}
+
+export async function catBundleSubscriptionLineItems(params: {
+  operatorCount: number;
+}): Promise<Stripe.Checkout.SessionCreateParams.LineItem[]> {
+  const basePriceId = await getCatBaseStripePriceId();
+  const extraPriceId = await getCatExtraStripePriceId();
+  const extraSlots = Math.max(0, params.operatorCount - 2);
+
+  if (basePriceId && extraPriceId) {
+    const items: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      { price: basePriceId, quantity: 1 },
+    ];
+    if (extraSlots > 0) {
+      items.push({ price: extraPriceId, quantity: extraSlots });
+    }
+    return items;
+  }
+
+  const monthlyPriceEur = calcCatLicensePriceEur(params.operatorCount);
+  const slotsLabel =
+    params.operatorCount <= 2
+      ? 'fino a 2 operatori'
+      : `${params.operatorCount} operatori`;
+
+  return [
+    {
+      price_data: {
+        currency: 'eur',
+        unit_amount: monthlyPriceEur * 100,
+        product_data: {
+          name: 'Bitora — Pacchetto moduli CAT',
+          description: `Tutti i moduli per ${slotsLabel} (primo mese gratuito)`,
+        },
+        recurring: { interval: 'month' },
+      },
+      quantity: 1,
+    },
+  ];
+}
+
+/** @deprecated use catBundleSubscriptionLineItems */
 export function catBundleSubscriptionLineItem(params: {
   monthlyPriceEur: number;
   operatorCount: number;
@@ -86,11 +181,9 @@ export function catBundleSubscriptionLineItem(params: {
       unit_amount: params.monthlyPriceEur * 100,
       product_data: {
         name: 'Bitora — Pacchetto moduli CAT',
-        description: `Tutti i moduli per ${slotsLabel} (€30 base + €5/operatore extra)`,
+        description: `Tutti i moduli per ${slotsLabel} (€${CAT_BASE_PRICE_EUR} base + €${CAT_EXTRA_OPERATOR_PRICE_EUR}/operatore extra)`,
       },
-      recurring: {
-        interval: 'month',
-      },
+      recurring: { interval: 'month' },
     },
     quantity: 1,
   };

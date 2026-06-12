@@ -6,6 +6,7 @@ import {
   getModuleEarningsEstimate,
   MODULE_MONTHLY_PRICE_EUR,
   MODULE_TRIAL_DAYS,
+  USER_BUNDLE_MONTHLY_PRICE_EUR,
 } from '@/lib/module-pricing';
 import { PAID_MODULES } from '@/lib/modules';
 import { isStripeConfigured } from '@/lib/stripe';
@@ -18,8 +19,17 @@ export async function GET(request: NextRequest) {
       return tenant.response;
     }
 
-    const { id: userId, org_id: orgId } = tenant.user;
-    const activeCodes = await getActiveModuleCodesForUser(userId, orgId);
+    const { id: userId, org_id: orgId, ruolo } = tenant.user;
+    let activeCodes = await getActiveModuleCodesForUser(userId, orgId);
+
+    // Admin CAT con pacchetto attivo: tutti i moduli accessibili.
+    const { isCatAdmin } = await import('@/lib/roles');
+    if (isCatAdmin(ruolo)) {
+      const { isCatBundleSubscriptionActive } = await import('@/lib/cat-subscription');
+      if (await isCatBundleSubscriptionActive(orgId)) {
+        activeCodes = PAID_MODULES.map((m) => m.code);
+      }
+    }
 
     const subscriptions = await prisma.utenteModuli.findMany({
       where: { utente_id: userId, org_id: orgId },
@@ -66,6 +76,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: modules,
       stripeEnabled: isStripeConfigured(),
+      pricing: {
+        moduleMonthlyEur: MODULE_MONTHLY_PRICE_EUR,
+        userBundleMonthlyEur: USER_BUNDLE_MONTHLY_PRICE_EUR,
+        trialDays: MODULE_TRIAL_DAYS,
+      },
     });
   } catch (error) {
     console.error('GET /api/modules/me error:', error);

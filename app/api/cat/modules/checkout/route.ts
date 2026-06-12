@@ -8,10 +8,11 @@ import {
 import { isCatAdmin } from '@/lib/roles';
 import {
   buildCatBundleCheckoutMetadata,
-  catBundleSubscriptionLineItem,
+  catBundleSubscriptionLineItems,
   getAppBaseUrl,
   getStripe,
   isStripeConfigured,
+  MODULE_SUBSCRIPTION_TRIAL_DAYS,
 } from '@/lib/stripe';
 import { CAT_STATO } from '@/lib/cat-status';
 
@@ -61,8 +62,9 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
-      line_items: [catBundleSubscriptionLineItem({ monthlyPriceEur, operatorCount })],
+      line_items: await catBundleSubscriptionLineItems({ operatorCount }),
       subscription_data: {
+        trial_period_days: MODULE_SUBSCRIPTION_TRIAL_DAYS,
         metadata: buildCatBundleCheckoutMetadata({
           orgId,
           adminUserId: userId,

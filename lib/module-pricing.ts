@@ -3,13 +3,15 @@ import { ModuleCode, MODULE_CODES } from '@/lib/modules';
 /** Costo mensile per singolo modulo (IVA esclusa). */
 export const MODULE_MONTHLY_PRICE_EUR = 6;
 
+/** Bundle utente: tutti i moduli (IVA esclusa). */
+export const USER_BUNDLE_MONTHLY_PRICE_EUR = 29;
+
 /** Giorni di prova gratuita (primo mese). */
 export const MODULE_TRIAL_DAYS = 30;
 
-/**
- * Stime di guadagno mensile per modulo, basate su ANALISI_TEMPO_RISPARMIATO.md
- * (costo orario tecnico €30, team 3-5 tecnici, 60-150 interventi/mese).
- */
+/** Alias centralizzato per trial su moduli, bundle utente e bundle CAT. */
+export const SUBSCRIPTION_TRIAL_DAYS = MODULE_TRIAL_DAYS;
+
 export interface ModuleEarningsEstimate {
   minMonthlyEur: number;
   maxMonthlyEur: number;
@@ -34,6 +36,24 @@ export const MODULE_EARNINGS_ESTIMATES: Record<ModuleCode, ModuleEarningsEstimat
     maxMonthlyEur: 480,
     rationale:
       'Recupera 2-4 interventi di manutenzione extra al mese grazie ai promemoria automatici (€80-120 per intervento).',
+  },
+  [MODULE_CODES.MAGAZZINO_RICAMBI]: {
+    minMonthlyEur: 80,
+    maxMonthlyEur: 200,
+    rationale:
+      'Evita fermi macchina e ordini urgenti grazie al controllo giacenze e alert sotto soglia.',
+  },
+  [MODULE_CODES.REPORT_CLIENTE]: {
+    minMonthlyEur: 60,
+    maxMonthlyEur: 150,
+    rationale:
+      'Migliora la comunicazione con il cliente e riduce richieste di copia rapportino.',
+  },
+  [MODULE_CODES.PREVENTIVI]: {
+    minMonthlyEur: 150,
+    maxMonthlyEur: 400,
+    rationale:
+      'Accelera la chiusura lavori con preventivi professionali e conversione rapida in rapportino.',
   },
 };
 

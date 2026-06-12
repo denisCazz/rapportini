@@ -10,14 +10,6 @@ import { isTestEnv } from '@/lib/env';
 import { Sheet, SheetClose, SheetContent } from '@/components/ui/sheet';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import {
   Menu,
   Moon,
   Sun,
@@ -34,6 +26,9 @@ import {
   Bell,
   Puzzle,
   Contact,
+  Package,
+  Mail,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PAID_MODULES } from '@/lib/modules';
@@ -43,6 +38,9 @@ const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   pianificazione_interventi: Calendar,
   assegnazione_lavori: ClipboardList,
   notifiche_scadenze: Bell,
+  magazzino_ricambi: Package,
+  report_cliente: Mail,
+  preventivi: FileText,
 };
 
 interface SidebarLayoutProps {
@@ -189,6 +187,14 @@ export default function SidebarLayout({
                 </Link>
               );
             })}
+            <Link
+              href="/utente/abbonamento"
+              onClick={() => setMobileOpen(false)}
+              className={navLinkClass(isActive('/utente/abbonamento'))}
+            >
+              <CreditCard className="h-4 w-4" aria-hidden />
+              Abbonamento
+            </Link>
           </>
         )}
 
@@ -331,48 +337,27 @@ export default function SidebarLayout({
       </Sheet>
 
       <div className="flex min-h-screen flex-col lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-border bg-card">
-          <div className="flex flex-col gap-2 px-4 py-3 sm:px-6">
-            <div className="flex items-start gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setMobileOpen(true)}
-                className="mt-0.5 shrink-0 lg:hidden"
-                aria-label="Apri menu"
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-lg font-semibold text-foreground sm:text-xl">{pageTitle}</h1>
-                  {isTestEnv() && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                      TEST
-                    </span>
-                  )}
-                </div>
-                <Breadcrumb className="mt-1">
-                  <BreadcrumbList>
-                    <BreadcrumbItem>
-                      <BreadcrumbLink
-                        className="text-muted-foreground"
-                        render={<Link href="/" className="hover:text-foreground" />}
-                      >
-                        EVA CALÒR
-                      </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage className="max-w-[12rem] truncate sm:max-w-md">{pageTitle}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-                {pageSubtitle && (
-                  <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{pageSubtitle}</p>
-                )}
-              </div>
+        <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
+          <div className="flex items-center gap-3 px-4 py-3.5 sm:px-6">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setMobileOpen(true)}
+              className="shrink-0 lg:hidden"
+              aria-label="Apri menu"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                {pageTitle}
+              </h1>
+              {isTestEnv() && (
+                <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                  TEST
+                </span>
+              )}
             </div>
           </div>
         </header>

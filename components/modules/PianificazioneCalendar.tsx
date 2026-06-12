@@ -20,9 +20,15 @@ import InterventoPianificatoActions from '@/components/modules/InterventoPianifi
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
 const TIPO_COLORI: Record<string, string> = {
-  pianificato: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30',
-  rapportino: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30',
-  manutenzione: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+  pianificato: 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/50 dark:text-blue-100 dark:border-blue-800',
+  rapportino: 'bg-green-50 text-green-900 border-green-200 dark:bg-green-950/50 dark:text-green-100 dark:border-green-800',
+  manutenzione: 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/50 dark:text-amber-100 dark:border-amber-800',
+};
+
+const TIPO_ACCENT: Record<string, string> = {
+  pianificato: 'border-l-blue-500',
+  rapportino: 'border-l-green-500',
+  manutenzione: 'border-l-amber-500',
 };
 
 const TIPO_LABEL: Record<string, string> = {
@@ -55,8 +61,37 @@ function formatDataIt(iso: string): string {
   return `${day}/${m}/${y}`;
 }
 
+type ViewMode = 'week' | 'day' | 'month';
+
+function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+function daysInMonth(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+function detectOverlaps(eventi: EventoCalendario[]): Set<string> {
+  const overlaps = new Set<string>();
+  const byTecnicoData: Record<string, EventoCalendario[]> = {};
+  for (const ev of eventi) {
+    if (ev.tipo !== 'pianificato' || !ev.tecnico) continue;
+    const key = `${ev.tecnico}:${ev.data}`;
+    if (!byTecnicoData[key]) byTecnicoData[key] = [];
+    byTecnicoData[key].push(ev);
+  }
+  for (const group of Object.values(byTecnicoData)) {
+    if (group.length > 1) group.forEach((ev) => overlaps.add(ev.id));
+  }
+  return overlaps;
+}
+
 export default function PianificazioneCalendar() {
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date()));
+  const [currentDay, setCurrentDay] = useState(() => new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [eventi, setEventi] = useState<EventoCalendario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,18 +116,33 @@ export default function PianificazioneCalendar() {
     [currentWeek]
   );
 
+  const range = useMemo(() => {
+    if (viewMode === 'day') {
+      const iso = toIsoDate(currentDay);
+      return { inizio: iso, fine: iso };
+    }
+    if (viewMode === 'month') {
+      const first = startOfMonth(currentMonth);
+      const last = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      return { inizio: toIsoDate(first), fine: toIsoDate(last) };
+    }
+    return { inizio: toIsoDate(currentWeek), fine: toIsoDate(weekEnd) };
+  }, [viewMode, currentDay, currentMonth, currentWeek, weekEnd]);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await api.getPianificazione(toIsoDate(currentWeek), toIsoDate(weekEnd));
+      const result = await api.getPianificazione(range.inizio, range.fine);
       setEventi(result.eventi);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Errore nel caricamento');
     } finally {
       setLoading(false);
     }
-  }, [currentWeek, weekEnd]);
+  }, [range.inizio, range.fine]);
+
+  const overlapIds = useMemo(() => detectOverlaps(eventi), [eventi]);
 
   useEffect(() => {
     loadData();
@@ -123,16 +173,12 @@ export default function PianificazioneCalendar() {
 
   const eventiPerGiorno = useMemo(() => {
     const map: Record<string, EventoCalendario[]> = {};
-    for (const day of weekDays) {
-      map[toIsoDate(day)] = [];
-    }
     for (const ev of eventi) {
-      if (map[ev.data]) {
-        map[ev.data].push(ev);
-      }
+      if (!map[ev.data]) map[ev.data] = [];
+      map[ev.data].push(ev);
     }
     return map;
-  }, [eventi, weekDays]);
+  }, [eventi]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,23 +215,75 @@ export default function PianificazioneCalendar() {
     }
   };
 
+  const handleDropOnDay = async (iso: string, interventoId: string) => {
+    try {
+      await api.updateInterventoPianificato(interventoId, { dataPianificata: iso });
+      toast.success('Intervento spostato');
+      loadData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore spostamento');
+    } finally {
+      setDraggingId(null);
+    }
+  };
+
   if (loading && eventi.length === 0) return <PageLoader />;
   if (error) return <ErrorBanner message={error} onRetry={loadData} />;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setCurrentWeek(addDays(currentWeek, -7))}>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-md border">
+            {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
+              <Button
+                key={mode}
+                variant={viewMode === mode ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none first:rounded-l-md last:rounded-r-md"
+                onClick={() => setViewMode(mode)}
+              >
+                {mode === 'day' ? 'Giorno' : mode === 'week' ? 'Settimana' : 'Mese'}
+              </Button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              if (viewMode === 'day') setCurrentDay(addDays(currentDay, -1));
+              else if (viewMode === 'month') setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+              else setCurrentWeek(addDays(currentWeek, -7));
+            }}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium">
-            {formatDataIt(toIsoDate(currentWeek))} – {formatDataIt(toIsoDate(weekEnd))}
+            {viewMode === 'day' && formatDataIt(toIsoDate(currentDay))}
+            {viewMode === 'week' && `${formatDataIt(toIsoDate(currentWeek))} – ${formatDataIt(toIsoDate(weekEnd))}`}
+            {viewMode === 'month' && currentMonth.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
           </span>
-          <Button variant="outline" size="icon" onClick={() => setCurrentWeek(addDays(currentWeek, 7))}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              if (viewMode === 'day') setCurrentDay(addDays(currentDay, 1));
+              else if (viewMode === 'month') setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+              else setCurrentWeek(addDays(currentWeek, 7));
+            }}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentWeek(startOfWeek(new Date()))}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const now = new Date();
+              setCurrentDay(now);
+              setCurrentWeek(startOfWeek(now));
+              setCurrentMonth(startOfMonth(now));
+            }}
+          >
             Oggi
           </Button>
         </div>
@@ -312,58 +410,164 @@ export default function PianificazioneCalendar() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-7">
-        {weekDays.map((day, i) => {
-          const iso = toIsoDate(day);
-          const isToday = iso === toIsoDate(new Date());
-          const dayEvents = eventiPerGiorno[iso] || [];
-          return (
-            <Card key={iso} className={cn(isToday && 'ring-2 ring-primary/40')}>
-              <CardHeader className="p-3 pb-1">
-                <p className="text-xs font-medium text-muted-foreground">{GIORNI[i]}</p>
-                <p className={cn('text-lg font-semibold', isToday && 'text-primary')}>
-                  {day.getDate()}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-1.5 p-3 pt-1">
-                {dayEvents.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Nessun evento</p>
-                ) : (
-                  dayEvents.map((ev) => (
-                    <div
-                      key={ev.id}
-                      className={cn('rounded-md border px-2 py-1.5 text-xs', TIPO_COLORI[ev.tipo])}
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="font-medium truncate">{ev.titolo}</span>
-                        {ev.ora && <span className="shrink-0 opacity-70">{ev.ora}</span>}
-                      </div>
-                      {ev.cliente && <p className="truncate opacity-80">{ev.cliente}</p>}
-                      {ev.tipo === 'pianificato' && ev.interventoId && (
-                        <InterventoPianificatoActions
-                          interventoId={ev.interventoId}
-                          stato={ev.stato}
-                          titolo={ev.titolo}
-                          compact
-                          onUpdated={loadData}
-                        />
-                      )}
-                      {ev.rapportinoId && (
-                        <Link
-                          href={`/rapportini/modifica/${ev.rapportinoId}`}
-                          className="mt-0.5 block underline opacity-70 hover:opacity-100"
-                        >
-                          Apri rapportino
-                        </Link>
-                      )}
-                    </div>
-                  ))
+      {viewMode === 'month' ? (
+        <div className="grid grid-cols-7 gap-1">
+          {GIORNI.map((g) => (
+            <p key={g} className="text-center text-xs font-medium text-muted-foreground py-1">{g}</p>
+          ))}
+          {Array.from({ length: daysInMonth(currentMonth) }, (_, i) => {
+            const day = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
+            const iso = toIsoDate(day);
+            const count = (eventiPerGiorno[iso] || []).length;
+            return (
+              <button
+                key={iso}
+                type="button"
+                className={cn(
+                  'min-h-16 rounded-md border p-1 text-left text-xs hover:bg-muted',
+                  iso === toIsoDate(new Date()) && 'ring-2 ring-primary/40'
                 )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                onClick={() => {
+                  setCurrentDay(day);
+                  setViewMode('day');
+                }}
+              >
+                <span className="font-semibold">{i + 1}</span>
+                {count > 0 && (
+                  <Badge variant="secondary" className="mt-1 h-5 px-1 text-[10px]">{count}</Badge>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            'grid gap-3',
+            viewMode === 'week' && 'grid-cols-1 sm:grid-cols-7 sm:gap-2 lg:gap-3',
+            viewMode === 'day' && 'grid-cols-1'
+          )}
+        >
+          {(viewMode === 'day' ? [currentDay] : weekDays).map((day, i) => {
+            const iso = toIsoDate(day);
+            const isToday = iso === toIsoDate(new Date());
+            const dayEvents = eventiPerGiorno[iso] || [];
+            const isWeekView = viewMode === 'week';
+            return (
+              <Card
+                key={iso}
+                className={cn(
+                  'flex min-w-0 flex-col',
+                  isToday && 'ring-2 ring-primary/40',
+                  isWeekView && 'sm:min-h-[200px] sm:shadow-sm'
+                )}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData('interventoId');
+                  if (id) handleDropOnDay(iso, id);
+                }}
+              >
+                <CardHeader
+                  className={cn(
+                    'shrink-0 p-3 pb-2',
+                    isWeekView && 'sm:p-2.5 sm:pb-1.5 sm:text-center'
+                  )}
+                >
+                  {isWeekView && (
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
+                      {GIORNI[i]}
+                    </p>
+                  )}
+                  <p
+                    className={cn(
+                      'text-lg font-semibold leading-none',
+                      isToday && 'text-primary',
+                      isWeekView && 'sm:text-base'
+                    )}
+                  >
+                    {day.getDate()}
+                  </p>
+                </CardHeader>
+                <CardContent
+                  className={cn(
+                    'flex min-h-0 flex-1 flex-col gap-2 p-3 pt-0',
+                    isWeekView && 'sm:gap-1.5 sm:p-2 sm:pt-0'
+                  )}
+                >
+                  {dayEvents.length === 0 ? (
+                    <p className="text-xs text-muted-foreground sm:text-center">—</p>
+                  ) : (
+                    dayEvents.map((ev) => (
+                      <div
+                        key={ev.id}
+                        draggable={Boolean(ev.interventoId)}
+                        onDragStart={(e) => {
+                          if (!ev.interventoId) return;
+                          e.dataTransfer.setData('interventoId', ev.interventoId);
+                          setDraggingId(ev.interventoId);
+                        }}
+                        onDragEnd={() => setDraggingId(null)}
+                        className={cn(
+                          'rounded-md border border-l-[3px] bg-card px-2 py-2 shadow-sm',
+                          'sm:px-2.5 sm:py-2',
+                          TIPO_COLORI[ev.tipo],
+                          TIPO_ACCENT[ev.tipo],
+                          ev.interventoId && 'cursor-grab active:cursor-grabbing',
+                          overlapIds.has(ev.id) && 'ring-2 ring-destructive/50',
+                          draggingId === ev.interventoId && 'opacity-50'
+                        )}
+                      >
+                        <div className="space-y-0.5">
+                          {ev.ora && (
+                            <p className="text-[10px] font-medium tabular-nums leading-none opacity-70">
+                              {ev.ora}
+                            </p>
+                          )}
+                          <p className="text-xs font-semibold leading-snug break-words sm:text-[13px]">
+                            {ev.titolo}
+                          </p>
+                        </div>
+
+                        {overlapIds.has(ev.id) && (
+                          <p className="mt-0.5 text-[10px] font-medium text-destructive">
+                            Sovrapposizione
+                          </p>
+                        )}
+
+                        {ev.cliente && (
+                          <p className="mt-0.5 truncate text-[11px] opacity-80">{ev.cliente}</p>
+                        )}
+                        {ev.tecnico && (
+                          <p className="truncate text-[10px] opacity-60">{ev.tecnico}</p>
+                        )}
+
+                        {ev.tipo === 'pianificato' && ev.interventoId && (
+                          <InterventoPianificatoActions
+                            interventoId={ev.interventoId}
+                            stato={ev.stato}
+                            titolo={ev.titolo}
+                            variant="calendar"
+                            onUpdated={loadData}
+                          />
+                        )}
+                        {ev.rapportinoId && (
+                          <Link
+                            href={`/rapportini/modifica/${ev.rapportinoId}`}
+                            className="mt-1 inline-block text-[11px] font-medium underline underline-offset-2 opacity-80 hover:opacity-100"
+                          >
+                            Apri rapportino
+                          </Link>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         {Object.entries(TIPO_LABEL).map(([tipo, label]) => (

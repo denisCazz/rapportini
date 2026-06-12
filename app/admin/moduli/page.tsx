@@ -26,6 +26,8 @@ interface TecnicoModuli {
   cognome: string;
   username: string;
   attivo: boolean;
+  ruolo?: string;
+  organizzazione?: string;
   moduli: Array<{
     code: ModuleCode;
     nome: string;
@@ -156,9 +158,21 @@ export default function AdminModuliPage() {
           {tecnici.map((tecnico) => (
             <Card key={tecnico.id}>
               <CardHeader>
-                <CardTitle>
-                  {tecnico.nome} {tecnico.cognome}
-                </CardTitle>
+                <div className="flex flex-wrap items-center gap-2">
+                  <CardTitle>
+                    {tecnico.nome} {tecnico.cognome}
+                  </CardTitle>
+                  {tecnico.ruolo === 'admin_cat' && (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                      Admin CAT
+                    </span>
+                  )}
+                  {tecnico.organizzazione && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      {tecnico.organizzazione}
+                    </span>
+                  )}
+                </div>
                 <CardDescription>
                   @{tecnico.username}
                   {!tecnico.attivo && ' · Account disattivato'}

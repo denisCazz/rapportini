@@ -28,8 +28,12 @@ export async function GET(request: NextRequest) {
     if (!auth.ok) return auth.response;
 
     const { org_id: orgId } = auth.user;
+    const dataInizioParam = request.nextUrl.searchParams.get('dataInizio');
+    const dataFineParam = request.nextUrl.searchParams.get('dataFine');
     const oggi = new Date();
     oggi.setHours(0, 0, 0, 0);
+    const inizio = dataInizioParam ? new Date(dataInizioParam) : oggi;
+    const fine = dataFineParam ? new Date(dataFineParam) : new Date(oggi.getTime() + 14 * 24 * 60 * 60 * 1000);
 
     const [tecnici, interventi] = await Promise.all([
       prisma.utenti.findMany({
@@ -41,7 +45,7 @@ export async function GET(request: NextRequest) {
         where: {
           org_id: orgId,
           stato: 'pianificato',
-          data_pianificata: { gte: oggi },
+          data_pianificata: { gte: inizio, lte: fine },
         },
         include: interventoInclude,
         orderBy: [{ data_pianificata: 'asc' }, { ora_pianificata: 'asc' }],

@@ -1,17 +1,24 @@
 import { prisma } from '@/lib/db';
-import { ModuleCode } from '@/lib/modules';
+import { ALL_MODULE_CODES, ModuleCode } from '@/lib/modules';
+import { isSubscriptionStatusActive } from '@/lib/subscription-status';
+
+export { isSubscriptionStatusActive } from '@/lib/subscription-status';
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['trialing', 'active']);
-
-export function isSubscriptionStatusActive(status: string | null | undefined): boolean {
-  if (!status) return false;
-  return ACTIVE_SUBSCRIPTION_STATUSES.has(status);
-}
 
 export async function getActiveModuleCodesForUser(
   userId: string,
   orgId: string
 ): Promise<ModuleCode[]> {
+  const utente = await prisma.utenti.findFirst({
+    where: { id: userId, org_id: orgId },
+    select: { stripe_user_bundle_status: true },
+  });
+
+  if (isSubscriptionStatusActive(utente?.stripe_user_bundle_status)) {
+    return [...ALL_MODULE_CODES];
+  }
+
   const rows = await prisma.utenteModuli.findMany({
     where: {
       utente_id: userId,
@@ -34,6 +41,15 @@ export async function isModuleActiveForUser(
   orgId: string,
   moduleCode: ModuleCode
 ): Promise<boolean> {
+  const utente = await prisma.utenti.findFirst({
+    where: { id: userId, org_id: orgId },
+    select: { stripe_user_bundle_status: true },
+  });
+
+  if (isSubscriptionStatusActive(utente?.stripe_user_bundle_status)) {
+    return true;
+  }
+
   const row = await prisma.utenteModuli.findFirst({
     where: {
       utente_id: userId,
@@ -138,6 +154,38 @@ export async function syncModuleSubscription(params: {
   });
 }
 
+export async function syncUserBundleSubscription(params: {
+  userId: string;
+  orgId: string;
+  subscriptionId: string;
+  subscriptionStatus: string;
+  trialEndsAt: Date | null;
+}): Promise<void> {
+  const attivo = isSubscriptionStatusActive(params.subscriptionStatus);
+
+  await prisma.utenti.update({
+    where: { id: params.userId },
+    data: {
+      stripe_user_bundle_subscription_id: params.subscriptionId,
+      stripe_user_bundle_status: params.subscriptionStatus,
+      user_bundle_trial_ends_at: params.trialEndsAt,
+      updated_at: new Date(),
+    },
+  });
+
+  for (const moduleCode of ALL_MODULE_CODES) {
+    await syncModuleSubscription({
+      userId: params.userId,
+      orgId: params.orgId,
+      moduleCode,
+      subscriptionId: params.subscriptionId,
+      subscriptionStatus: params.subscriptionStatus,
+      trialEndsAt: params.trialEndsAt,
+      attivo,
+    });
+  }
+}
+
 export async function getOrCreateStripeCustomerId(
   userId: string,
   orgId: string
@@ -188,5 +236,36 @@ export async function getOrCreateStripeCustomerId(
     email: utente.email,
     nome: utente.nome,
     cognome: utente.cognome,
+  };
+}
+
+export async function getUserBillingSummary(userId: string, orgId: string) {
+  const utente = await prisma.utenti.findFirst({
+    where: { id: userId, org_id: orgId },
+    select: {
+      stripe_customer_id: true,
+      stripe_user_bundle_subscription_id: true,
+      stripe_user_bundle_status: true,
+      user_bundle_trial_ends_at: true,
+    },
+  });
+
+  const moduleSubs = await prisma.utenteModuli.findMany({
+    where: { utente_id: userId, org_id: orgId },
+    include: { moduli: { select: { code: true, nome: true } } },
+  });
+
+  return {
+    hasBundle: Boolean(utente?.stripe_user_bundle_subscription_id),
+    bundleStatus: utente?.stripe_user_bundle_status ?? null,
+    bundleTrialEndsAt: utente?.user_bundle_trial_ends_at?.toISOString() ?? null,
+    stripeCustomerId: utente?.stripe_customer_id ?? null,
+    modules: moduleSubs.map((row) => ({
+      code: row.moduli.code,
+      nome: row.moduli.nome,
+      attivo: row.attivo || isSubscriptionStatusActive(row.stripe_subscription_status),
+      subscriptionStatus: row.stripe_subscription_status,
+      trialEndsAt: row.trial_ends_at?.toISOString() ?? null,
+    })),
   };
 }
