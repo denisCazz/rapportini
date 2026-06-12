@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
+import type { ZodError } from 'zod';
 import { toast } from 'sonner';
 import { Rapportino, Cliente } from '@/types';
 import { format } from 'date-fns';
@@ -603,10 +604,10 @@ export default function RapportinoForm({
     setClientiEsistenti([]);
   };
 
-  const focusFirstIssue = (error: { issues: { path: (string | number)[] }[] }) => {
+  const focusFirstIssue = (error: ZodError) => {
     const path = error.issues[0]?.path;
     if (!path || path.length === 0) return;
-    const name = path.join('.');
+    const name = path.map((p) => String(p)).join('.');
     try {
       setFocus(name as Parameters<typeof setFocus>[0], { shouldSelect: true });
     } catch {
@@ -622,8 +623,8 @@ export default function RapportinoForm({
     }
   };
 
-  const handleStepError = (error: { issues: { path: (string | number)[] }[] } & { message?: string }) => {
-    toast.error(firstIssueMessage(error as Parameters<typeof firstIssueMessage>[0]));
+  const handleStepError = (error: ZodError) => {
+    toast.error(firstIssueMessage(error));
     focusFirstIssue(error);
   };
 
