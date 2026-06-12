@@ -13,6 +13,7 @@ import {
   checkoutSuccessUrl,
   getStripe,
   isStripeConfigured,
+  resolveCheckoutBaseUrl,
   subscriptionCheckoutDefaults,
   MODULE_SUBSCRIPTION_TRIAL_DAYS,
 } from '@/lib/stripe';
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
 
     const { customerId } = await getOrCreateCatStripeCustomer(orgId, userId);
     const stripe = getStripe();
+    const checkoutBase = resolveCheckoutBaseUrl(request);
 
     const session = await stripe.checkout.sessions.create({
       ...subscriptionCheckoutDefaults(),
@@ -78,8 +80,8 @@ export async function POST(request: NextRequest) {
         adminUserId: userId,
         operatorCount,
       }),
-      success_url: checkoutSuccessUrl('/admin/cat-moduli'),
-      cancel_url: checkoutCancelUrl('/admin/cat-moduli'),
+      success_url: checkoutSuccessUrl('/admin/cat-moduli', checkoutBase),
+      cancel_url: checkoutCancelUrl('/admin/cat-moduli', checkoutBase),
       allow_promotion_codes: true,
     });
 

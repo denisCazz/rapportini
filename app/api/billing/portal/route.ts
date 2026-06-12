@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrCreateStripeCustomerId, getUserBillingSummary } from '@/lib/module-access';
+import {
+  getOrCreateStripeCustomerId,
+  getUserBillingSummary,
+  refreshUserStripeSubscriptions,
+} from '@/lib/module-access';
 import { getOrCreateCatStripeCustomer } from '@/lib/cat-subscription';
 import { isCatAdmin, isOrgAdminRole } from '@/lib/roles';
 import { getAppBaseUrl, getStripe, isStripeConfigured } from '@/lib/stripe';
@@ -56,6 +60,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { id: userId, org_id: orgId } = tenant.user;
+
+    if (isStripeConfigured()) {
+      try {
+        await refreshUserStripeSubscriptions(userId, orgId);
+      } catch (error) {
+        console.error('[stripe] refresh on GET /api/billing/portal failed:', error);
+      }
+    }
+
     const summary = await getUserBillingSummary(userId, orgId);
 
     return NextResponse.json({

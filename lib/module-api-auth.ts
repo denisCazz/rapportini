@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isModuleActiveForUser } from '@/lib/module-access';
+import { isModuleActiveForUser, refreshUserStripeSubscriptions } from '@/lib/module-access';
+import { isStripeConfigured } from '@/lib/stripe';
 import { isCatBundleSubscriptionActive } from '@/lib/cat-subscription';
 import { ModuleCode } from '@/lib/modules';
 import { requireAuthenticatedTenant } from '@/lib/tenant-context';
@@ -33,6 +34,14 @@ export async function requireModuleAccess(
   // Admin CAT: accesso ai moduli se il pacchetto CAT dell'org è attivo.
   if (isCatAdmin(user.ruolo) && (await isCatBundleSubscriptionActive(user.org_id))) {
     return { ok: true, user };
+  }
+
+  if (isStripeConfigured()) {
+    try {
+      await refreshUserStripeSubscriptions(user.id, user.org_id);
+    } catch (error) {
+      console.error('[stripe] refresh on module API failed:', error);
+    }
   }
 
   const active = await isModuleActiveForUser(user.id, user.org_id, moduleCode);

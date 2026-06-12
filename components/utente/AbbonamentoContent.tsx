@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import SidebarLayout from '@/components/SidebarLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,9 +29,12 @@ interface BillingSummary {
 }
 
 export default function AbbonamentoContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { settings } = useSettings();
+  const checkoutHandledRef = useRef(false);
   const [loading, setLoading] = useState(true);
+  const [confirmingCheckout, setConfirmingCheckout] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [stripeEnabled, setStripeEnabled] = useState(false);
@@ -63,31 +66,36 @@ export default function AbbonamentoContent() {
 
   useEffect(() => {
     const checkout = searchParams.get('checkout');
-    if (checkout !== 'success') return;
+    if (checkout !== 'success' || checkoutHandledRef.current) return;
 
+    checkoutHandledRef.current = true;
     const sessionId = searchParams.get('session_id');
+
     const finalize = async () => {
-      if (sessionId) {
-        try {
-          const res = await fetchWithAuth('/api/modules/checkout/confirm', {
-            method: 'POST',
-            body: JSON.stringify({ session_id: sessionId }),
-          });
-          if (!res.ok) {
-            const data = await parseResponseBody<{ error?: string }>(res);
-            toast.error(data?.error || 'Conferma pagamento fallita');
-            return;
-          }
-        } catch {
-          toast.error('Errore conferma pagamento');
+      setConfirmingCheckout(true);
+      try {
+        const res = await fetchWithAuth('/api/modules/checkout/confirm', {
+          method: 'POST',
+          body: JSON.stringify(sessionId ? { session_id: sessionId } : {}),
+        });
+        if (!res.ok) {
+          const data = await parseResponseBody<{ error?: string }>(res);
+          toast.error(data?.error || 'Conferma pagamento fallita');
+          router.replace('/utente/abbonamento');
           return;
         }
+        toast.success(`Abbonamento attivato! Hai ${MODULE_TRIAL_DAYS} giorni di prova gratuita.`);
+        router.replace('/utente/abbonamento');
+        await load();
+      } catch {
+        toast.error('Errore conferma pagamento');
+        router.replace('/utente/abbonamento');
+      } finally {
+        setConfirmingCheckout(false);
       }
-      toast.success(`Abbonamento attivato! Hai ${MODULE_TRIAL_DAYS} giorni di prova gratuita.`);
-      load();
     };
     void finalize();
-  }, [searchParams, load]);
+  }, [searchParams, load, router]);
 
   const openPortal = async () => {
     setPortalLoading(true);
@@ -110,7 +118,7 @@ export default function AbbonamentoContent() {
 
   return (
     <SidebarLayout settings={settings} pageTitle="Abbonamento" pageSubtitle="Moduli e fatturazione">
-      {loading ? (
+      {loading || confirmingCheckout ? (
         <PageLoader />
       ) : error ? (
         <ErrorBanner message={error} onRetry={load} />

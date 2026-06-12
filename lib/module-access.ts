@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/db';
 import { ALL_MODULE_CODES, ModuleCode } from '@/lib/modules';
-import { isSubscriptionStatusActive } from '@/lib/subscription-status';
+import {
+  isStripeSubscriptionGrantedAccess,
+  isSubscriptionStatusActive,
+  subscriptionStatusForStorage,
+} from '@/lib/subscription-status';
+import { isStripeConfigured } from '@/lib/stripe';
 
 export { isSubscriptionStatusActive } from '@/lib/subscription-status';
 
@@ -24,7 +29,7 @@ export async function getActiveModuleCodesForUser(
       utente_id: userId,
       org_id: orgId,
       OR: [
-        { attivo: true },
+        { AND: [{ attivo: true }, { stripe_subscription_id: null }] },
         { stripe_subscription_status: { in: Array.from(ACTIVE_SUBSCRIPTION_STATUSES) } },
       ],
     },
@@ -56,7 +61,7 @@ export async function isModuleActiveForUser(
       org_id: orgId,
       moduli: { code: moduleCode },
       OR: [
-        { attivo: true },
+        { AND: [{ attivo: true }, { stripe_subscription_id: null }] },
         { stripe_subscription_status: { in: Array.from(ACTIVE_SUBSCRIPTION_STATUSES) } },
       ],
     },
@@ -160,8 +165,9 @@ export async function syncUserBundleSubscription(params: {
   subscriptionId: string;
   subscriptionStatus: string;
   trialEndsAt: Date | null;
+  attivo?: boolean;
 }): Promise<void> {
-  const attivo = isSubscriptionStatusActive(params.subscriptionStatus);
+  const attivo = params.attivo ?? isSubscriptionStatusActive(params.subscriptionStatus);
 
   await prisma.utenti.update({
     where: { id: params.userId },
@@ -183,6 +189,100 @@ export async function syncUserBundleSubscription(params: {
       trialEndsAt: params.trialEndsAt,
       attivo,
     });
+  }
+}
+
+function isStripeResourceMissing(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === 'resource_missing'
+  );
+}
+
+/** Allinea DB con Stripe (fallback se webhook in ritardo o mancante). */
+export async function refreshUserStripeSubscriptions(userId: string, orgId: string): Promise<void> {
+  if (!isStripeConfigured()) return;
+
+  const { getStripe } = await import('@/lib/stripe');
+  const stripe = getStripe();
+
+  const utente = await prisma.utenti.findFirst({
+    where: { id: userId, org_id: orgId },
+    select: { stripe_user_bundle_subscription_id: true },
+  });
+
+  if (utente?.stripe_user_bundle_subscription_id) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(utente.stripe_user_bundle_subscription_id);
+      const storedStatus = subscriptionStatusForStorage(sub);
+      await syncUserBundleSubscription({
+        userId,
+        orgId,
+        subscriptionId: sub.id,
+        subscriptionStatus: storedStatus,
+        trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+        attivo: isStripeSubscriptionGrantedAccess(sub),
+      });
+    } catch (error) {
+      if (isStripeResourceMissing(error)) {
+        await syncUserBundleSubscription({
+          userId,
+          orgId,
+          subscriptionId: utente.stripe_user_bundle_subscription_id,
+          subscriptionStatus: 'canceled',
+          trialEndsAt: null,
+          attivo: false,
+        });
+      } else {
+        console.error('[stripe] refresh bundle subscription error:', error);
+      }
+    }
+  }
+
+  const moduleRows = await prisma.utenteModuli.findMany({
+    where: {
+      utente_id: userId,
+      org_id: orgId,
+      stripe_subscription_id: { not: null },
+    },
+    include: { moduli: { select: { code: true } } },
+  });
+
+  const bundleSubId = utente?.stripe_user_bundle_subscription_id;
+
+  for (const row of moduleRows) {
+    if (!row.stripe_subscription_id || row.stripe_subscription_id === bundleSubId) {
+      continue;
+    }
+
+    try {
+      const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
+      await syncModuleSubscription({
+        userId,
+        orgId,
+        moduleCode: row.moduli.code as ModuleCode,
+        subscriptionId: sub.id,
+        subscriptionStatus: subscriptionStatusForStorage(sub),
+        trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+        attivo: isStripeSubscriptionGrantedAccess(sub),
+      });
+    } catch (error) {
+      if (isStripeResourceMissing(error)) {
+        await syncModuleSubscription({
+          userId,
+          orgId,
+          moduleCode: row.moduli.code as ModuleCode,
+          subscriptionId: row.stripe_subscription_id,
+          subscriptionStatus: 'canceled',
+          trialEndsAt: null,
+          attivo: false,
+        });
+      } else {
+        console.error('[stripe] refresh module subscription error:', error);
+      }
+    }
   }
 }
 
@@ -263,7 +363,9 @@ export async function getUserBillingSummary(userId: string, orgId: string) {
     modules: moduleSubs.map((row) => ({
       code: row.moduli.code,
       nome: row.moduli.nome,
-      attivo: row.attivo || isSubscriptionStatusActive(row.stripe_subscription_status),
+      attivo:
+        (row.attivo && !row.stripe_subscription_id) ||
+        isSubscriptionStatusActive(row.stripe_subscription_status),
       subscriptionStatus: row.stripe_subscription_status,
       trialEndsAt: row.trial_ends_at?.toISOString() ?? null,
     })),

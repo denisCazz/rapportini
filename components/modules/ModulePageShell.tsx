@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
@@ -23,6 +23,7 @@ export default function ModulePageShell({ modulo, children }: ModulePageShellPro
   const { loading, isModuleActive, reload, stripeEnabled } = useUserModules();
   const hasLoadedRef = useRef(false);
   const checkoutHandledRef = useRef(false);
+  const [confirmingCheckout, setConfirmingCheckout] = useState(false);
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -45,25 +46,27 @@ export default function ModulePageShell({ modulo, children }: ModulePageShellPro
     if (checkout === 'success') {
       const sessionId = params.get('session_id');
       const finalize = async () => {
-        if (sessionId) {
-          try {
-            const res = await fetchWithAuth('/api/modules/checkout/confirm', {
-              method: 'POST',
-              body: JSON.stringify({ session_id: sessionId }),
-            });
-            const data = await parseResponseBody<{ error?: string }>(res);
-            if (!res.ok) {
-              toast.error(data?.error || 'Conferma pagamento fallita');
-              return;
-            }
-          } catch {
-            toast.error('Errore conferma pagamento');
+        setConfirmingCheckout(true);
+        try {
+          const res = await fetchWithAuth('/api/modules/checkout/confirm', {
+            method: 'POST',
+            body: JSON.stringify(sessionId ? { session_id: sessionId } : {}),
+          });
+          const data = await parseResponseBody<{ error?: string }>(res);
+          if (!res.ok) {
+            toast.error(data?.error || 'Conferma pagamento fallita');
+            router.replace(modulo.href);
             return;
           }
+          toast.success('Modulo attivato! Il primo mese è gratuito.');
+          await reload();
+          router.replace(modulo.href);
+        } catch {
+          toast.error('Errore conferma pagamento');
+          router.replace(modulo.href);
+        } finally {
+          setConfirmingCheckout(false);
         }
-        toast.success('Modulo attivato! Il primo mese è gratuito.');
-        await reload();
-        router.replace(modulo.href);
       };
       void finalize();
     } else if (checkout === 'cancel') {
@@ -88,7 +91,7 @@ export default function ModulePageShell({ modulo, children }: ModulePageShellPro
       pageSubtitle={modulo.descrizione}
       onLogout={handleLogout}
     >
-      {loading ? (
+      {loading || confirmingCheckout ? (
         <PageLoader />
       ) : canAccess ? (
         children

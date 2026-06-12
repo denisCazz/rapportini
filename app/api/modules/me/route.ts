@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getActiveModuleCodesForUser } from '@/lib/module-access';
+import { getActiveModuleCodesForUser, refreshUserStripeSubscriptions } from '@/lib/module-access';
 import {
   formatEarningsRange,
   getModuleEarningsEstimate,
@@ -20,6 +20,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { id: userId, org_id: orgId, ruolo } = tenant.user;
+
+    if (isStripeConfigured()) {
+      try {
+        await refreshUserStripeSubscriptions(userId, orgId);
+      } catch (error) {
+        console.error('[stripe] refresh on /api/modules/me failed:', error);
+      }
+    }
+
     let activeCodes = await getActiveModuleCodesForUser(userId, orgId);
 
     // Admin CAT con pacchetto attivo: tutti i moduli accessibili.

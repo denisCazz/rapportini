@@ -12,6 +12,7 @@ import {
   getStripe,
   isStripeConfigured,
   moduleSubscriptionLineItem,
+  resolveCheckoutBaseUrl,
   subscriptionCheckoutDefaults,
   userBundleSubscriptionLineItem,
   MODULE_SUBSCRIPTION_TRIAL_DAYS,
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     const { customerId } = await getOrCreateStripeCustomerId(userId, orgId);
     const stripe = getStripe();
     const checkoutDefaults = subscriptionCheckoutDefaults();
+    const checkoutBase = resolveCheckoutBaseUrl(request);
 
     if (target === 'bundle') {
       const session = await stripe.checkout.sessions.create({
@@ -67,8 +69,8 @@ export async function POST(request: NextRequest) {
           metadata: buildUserBundleCheckoutMetadata({ userId, orgId }),
         },
         metadata: buildUserBundleCheckoutMetadata({ userId, orgId }),
-        success_url: checkoutSuccessUrl('/utente/abbonamento'),
-        cancel_url: checkoutCancelUrl('/moduli/pianificazione-interventi'),
+        success_url: checkoutSuccessUrl('/utente/abbonamento', checkoutBase),
+        cancel_url: checkoutCancelUrl('/moduli/pianificazione-interventi', checkoutBase),
         allow_promotion_codes: true,
       });
 
@@ -104,8 +106,8 @@ export async function POST(request: NextRequest) {
         metadata: buildModuleCheckoutMetadata({ userId, orgId, moduleCode }),
       },
       metadata: buildModuleCheckoutMetadata({ userId, orgId, moduleCode }),
-      success_url: checkoutSuccessUrl(modulo.href),
-      cancel_url: checkoutCancelUrl(modulo.href),
+      success_url: checkoutSuccessUrl(modulo.href, checkoutBase),
+      cancel_url: checkoutCancelUrl(modulo.href, checkoutBase),
       allow_promotion_codes: true,
     });
 

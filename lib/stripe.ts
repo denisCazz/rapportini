@@ -42,6 +42,37 @@ export function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 }
 
+function isLocalHost(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost');
+}
+
+/**
+ * In dev usa l'host della richiesta (localhost) così il ritorno da Stripe torna all'app locale.
+ */
+export function resolveCheckoutBaseUrl(request?: { headers: Headers }): string {
+  if (request) {
+    const origin = request.headers.get('origin')?.replace(/\/$/, '');
+    if (origin) {
+      try {
+        if (isLocalHost(new URL(origin).hostname)) return origin;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const proto = (request.headers.get('x-forwarded-proto') || 'http').split(',')[0].trim();
+    if (host) {
+      const hostname = host.split(':')[0];
+      if (isLocalHost(hostname)) {
+        return `${proto}://${host}`.replace(/\/$/, '');
+      }
+    }
+  }
+
+  return getAppBaseUrl();
+}
+
 export const MODULE_SUBSCRIPTION_TRIAL_DAYS = SUBSCRIPTION_TRIAL_DAYS;
 
 /** Solo carta: evita redirect Satispay/Klarna/Link su abbonamenti (SetupIntent async). */
@@ -55,14 +86,14 @@ export function subscriptionCheckoutDefaults(): Pick<
   };
 }
 
-export function checkoutSuccessUrl(path: string): string {
-  const base = getAppBaseUrl();
+export function checkoutSuccessUrl(path: string, baseUrl?: string): string {
+  const base = (baseUrl || getAppBaseUrl()).replace(/\/$/, '');
   const normalized = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalized}?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
 }
 
-export function checkoutCancelUrl(path: string): string {
-  const base = getAppBaseUrl();
+export function checkoutCancelUrl(path: string, baseUrl?: string): string {
+  const base = (baseUrl || getAppBaseUrl()).replace(/\/$/, '');
   const normalized = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalized}?checkout=cancel`;
 }
