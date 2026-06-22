@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import PageLoader from '@/components/ui/PageLoader';
 import ErrorBanner from '@/components/ui/ErrorBanner';
-import { FileText, List, Plus, Trash2 } from 'lucide-react';
+import { FileText, List, Pencil, Plus, Trash2 } from 'lucide-react';
 
 interface PreventivoRiga {
   descrizione: string;
@@ -26,8 +26,13 @@ interface Preventivo {
   stato: string;
   totale: number;
   titolo: string | null;
+  note?: string | null;
+  clienteId?: string | null;
+  clienteEmail?: string | null;
+  validoFino?: string | null;
   cliente: string;
   rapportinoId: string | null;
+  righe?: PreventivoRiga[];
 }
 
 const STATO_LABEL: Record<string, string> = {
@@ -46,7 +51,9 @@ export default function PreventiviPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'form'>('list');
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   // form state
   const [titolo, setTitolo] = useState('');
@@ -95,6 +102,7 @@ export default function PreventiviPanel() {
   );
 
   const resetForm = () => {
+    setEditingId(null);
     setTitolo('');
     setClienteId('');
     setClienteSearch('');
@@ -109,30 +117,75 @@ export default function PreventiviPanel() {
     setRighe((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreate = () => {
+    resetForm();
+    setView('form');
+  };
+
+  const openEdit = async (id: string) => {
+    try {
+      setLoadingEdit(true);
+      const res = await fetchWithAuth(`/api/moduli/preventivi/${id}`);
+      const data = await parseResponseBody<{ data?: Preventivo; error?: string }>(res);
+      if (!res.ok) throw new Error(data?.error || 'Errore');
+      const p = data?.data;
+      if (!p) throw new Error('Preventivo non trovato');
+
+      setEditingId(p.id);
+      setTitolo(p.titolo || '');
+      setClienteId(p.clienteId || '');
+      setClienteSearch(p.cliente || '');
+      setClienteEmail(p.clienteEmail || '');
+      setValidoFino(p.validoFino || '');
+      setNote(p.note || '');
+      setRighe(
+        p.righe && p.righe.length > 0
+          ? p.righe.map((r) => ({
+              descrizione: r.descrizione,
+              quantita: r.quantita,
+              prezzoUnitario: r.prezzoUnitario,
+              tipo: r.tipo,
+            }))
+          : [emptyRiga()]
+      );
+      setView('form');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore');
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const payload = {
+      titolo: titolo || null,
+      clienteId: clienteId || null,
+      clienteNome: !clienteId ? clienteSearch || null : null,
+      clienteEmail: clienteEmail || null,
+      validoFino: validoFino || null,
+      note: note || null,
+      righe: righe.map((r) => ({
+        descrizione: r.descrizione || null,
+        quantita: r.quantita || 1,
+        prezzoUnitario: r.prezzoUnitario || 0,
+        tipo: r.tipo,
+      })),
+    };
     try {
-      const res = await fetchWithAuth('/api/moduli/preventivi', {
-        method: 'POST',
-        body: JSON.stringify({
-          titolo: titolo || null,
-          clienteId: clienteId || null,
-          clienteNome: !clienteId ? clienteSearch || null : null,
-          clienteEmail: clienteEmail || null,
-          validoFino: validoFino || null,
-          note: note || null,
-          righe: righe.map((r) => ({
-            descrizione: r.descrizione || null,
-            quantita: r.quantita || 1,
-            prezzoUnitario: r.prezzoUnitario || 0,
-            tipo: r.tipo,
-          })),
-        }),
-      });
+      const res = editingId
+        ? await fetchWithAuth(`/api/moduli/preventivi/${editingId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+          })
+        : await fetchWithAuth('/api/moduli/preventivi', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
       const data = await parseResponseBody<{ error?: string }>(res);
       if (!res.ok) throw new Error(data?.error || 'Errore');
-      toast.success('Preventivo creato');
+      toast.success(editingId ? 'Preventivo aggiornato' : 'Preventivo creato');
       resetForm();
       setView('list');
       load();
@@ -142,6 +195,8 @@ export default function PreventiviPanel() {
       setSaving(false);
     }
   };
+
+  const handleCreate = handleSave;
 
   const accetta = async (id: string) => {
     try {
@@ -165,13 +220,25 @@ export default function PreventiviPanel() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">Nuovo preventivo</h2>
-          <Button variant="outline" onClick={() => setView('list')} className="gap-2">
+          <h2 className="text-lg font-semibold">
+            {editingId ? 'Modifica preventivo' : 'Nuovo preventivo'}
+          </h2>
+          <Button
+            variant="outline"
+            onClick={() => {
+              resetForm();
+              setView('list');
+            }}
+            className="gap-2"
+          >
             <List className="h-4 w-4" aria-hidden />
             Storico preventivi
           </Button>
         </div>
 
+        {loadingEdit ? (
+          <PageLoader />
+        ) : (
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleCreate} className="grid gap-5">
@@ -340,15 +407,23 @@ export default function PreventiviPanel() {
 
               <div className="flex flex-wrap gap-2">
                 <Button type="submit" disabled={saving}>
-                  {saving ? 'Salvataggio…' : 'Crea preventivo'}
+                  {saving ? 'Salvataggio…' : editingId ? 'Salva modifiche' : 'Crea preventivo'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setView('list')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    resetForm();
+                    setView('list');
+                  }}
+                >
                   Annulla
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
+        )}
       </div>
     );
   }
@@ -357,13 +432,7 @@ export default function PreventiviPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Storico preventivi</h2>
-        <Button
-          onClick={() => {
-            resetForm();
-            setView('form');
-          }}
-          className="gap-2"
-        >
+        <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" aria-hidden />
           Nuovo preventivo
         </Button>
@@ -394,9 +463,21 @@ export default function PreventiviPanel() {
                 </div>
                 <div className="flex items-center gap-2">
                   {p.stato !== 'accettato' && !p.rapportinoId && (
-                    <Button size="sm" onClick={() => accetta(p.id)}>
-                      Accetta → Rapportino
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => openEdit(p.id)}
+                        disabled={loadingEdit}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        Modifica
+                      </Button>
+                      <Button size="sm" onClick={() => accetta(p.id)}>
+                        Accetta → Rapportino
+                      </Button>
+                    </>
                   )}
                   {p.rapportinoId && (
                     <a

@@ -6,7 +6,14 @@ import { requireModuleAccess } from '@/lib/module-api-auth';
 import { isOrgAdminRole } from '@/lib/roles';
 import { assertClienteInOrg, assertUtenteInOrg } from '@/lib/tenant-context';
 import { mapInterventoPianificato } from '@/lib/interventi-pianificati';
-import { parseDateOnly, parseTimeForDb } from '@/lib/time-db';
+import {
+  formatDateOnlyLocal,
+  isDateOnlyInRange,
+  parseDateOnly,
+  parseDateOnlyEnd,
+  parseDateOnlyStart,
+  parseTimeForDb,
+} from '@/lib/time-db';
 import type { EventoCalendario } from '@/types';
 import { Prisma } from '@prisma/client';
 
@@ -43,8 +50,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Parametri dataInizio e dataFine obbligatori' }, { status: 400 });
     }
 
-    const inizio = parseDateOnly(dataInizio);
-    const fine = parseDateOnly(dataFine);
+    const inizio = parseDateOnlyStart(dataInizio);
+    const fine = parseDateOnlyEnd(dataFine);
 
     const pianificatiWhere =
       isOrgAdminRole(ruolo)
@@ -106,9 +113,8 @@ export async function GET(request: NextRequest) {
     }
 
     for (const r of rapportini) {
-      const dataInt = r.data_intervento.toISOString().slice(0, 10);
-      const inRange =
-        r.data_intervento >= inizio && r.data_intervento <= fine;
+      const dataInt = formatDateOnlyLocal(r.data_intervento);
+      const inRange = isDateOnlyInRange(dataInt, dataInizio, dataFine);
 
       if (inRange) {
         eventi.push({
@@ -125,8 +131,8 @@ export async function GET(request: NextRequest) {
       }
 
       if (r.prossimo_intervento) {
-        const dataMan = r.prossimo_intervento.toISOString().slice(0, 10);
-        if (r.prossimo_intervento >= inizio && r.prossimo_intervento <= fine) {
+        const dataMan = formatDateOnlyLocal(r.prossimo_intervento);
+        if (isDateOnlyInRange(dataMan, dataInizio, dataFine)) {
           eventi.push({
             id: `man-${r.id}`,
             tipo: 'manutenzione',
