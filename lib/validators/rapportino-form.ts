@@ -233,7 +233,103 @@ export function getDefaultRapportinoFormValues(initial?: Rapportino): Rapportino
   };
 }
 
+const RAPPORTINO_FIELD_LABELS: Record<string, string> = {
+  'operatore.nome': 'Nome operatore',
+  'operatore.cognome': 'Cognome operatore',
+  'operatore.telefono': 'Telefono operatore',
+  'operatore.qualifica': 'Qualifica operatore',
+  'cliente.nome': 'Nome cliente',
+  'cliente.cognome': 'Cognome cliente',
+  'cliente.via': 'Via cliente',
+  'cliente.citta': 'Località cliente',
+  'cliente.telefono': 'Telefono cliente',
+  'intervento.data': 'Data intervento',
+  'intervento.ora': 'Ora intervento',
+  'intervento.tipologiaIntervento': 'Tipologia intervento',
+  'intervento.marca': 'Marca',
+  'intervento.modello': 'Modello',
+  'intervento.motivoChiamata': 'Motivo della chiamata',
+  'intervento.presaVisioneCondizioniGaranzia': 'Presa visione condizioni garanzia',
+  'intervento.firmaClientePrivacy': 'Firma privacy cliente',
+  'intervento.firmaOperatore': 'Firma operatore',
+  'intervento.firmaCliente': 'Firma cliente',
+};
+
+const OPERATORE_FIELDS = new Set(['nome', 'cognome', 'telefono', 'email', 'qualifica']);
+const CLIENTE_FIELDS = new Set([
+  'nome',
+  'cognome',
+  'ragioneSociale',
+  'via',
+  'numeroCivico',
+  'indirizzo',
+  'citta',
+  'cap',
+  'provincia',
+  'telefono',
+  'email',
+  'partitaIva',
+  'codiceFiscale',
+]);
+const INTERVENTO_STEP2_FIELDS = new Set(['tipologiaIntervento', 'dataRichiesta', 'data', 'ora']);
+const INTERVENTO_STEP5_FIELDS = new Set([
+  'firmaClientePrivacy',
+  'firmaOperatore',
+  'firmaCliente',
+  'prossimoIntervento',
+]);
+
+function labelForIssuePath(path: (string | number)[]): string {
+  const pathKey = path.map(String).join('.');
+  if (RAPPORTINO_FIELD_LABELS[pathKey]) return RAPPORTINO_FIELD_LABELS[pathKey];
+
+  if (path.length === 1) {
+    const field = String(path[0]);
+    const operatoreKey = `operatore.${field}`;
+    if (OPERATORE_FIELDS.has(field) && RAPPORTINO_FIELD_LABELS[operatoreKey]) {
+      return RAPPORTINO_FIELD_LABELS[operatoreKey];
+    }
+    const clienteKey = `cliente.${field}`;
+    if (CLIENTE_FIELDS.has(field) && RAPPORTINO_FIELD_LABELS[clienteKey]) {
+      return RAPPORTINO_FIELD_LABELS[clienteKey];
+    }
+    const interventoKey = `intervento.${field}`;
+    if (RAPPORTINO_FIELD_LABELS[interventoKey]) return RAPPORTINO_FIELD_LABELS[interventoKey];
+  }
+
+  return pathKey.replace(/\./g, ' › ');
+}
+
+export function getRapportinoIssueStep(path: (string | number)[]): number {
+  const root = String(path[0] ?? '');
+  const field = String(path[1] ?? path[0] ?? '');
+
+  if (root === 'operatore' || (path.length === 1 && OPERATORE_FIELDS.has(root))) return 1;
+  if (root === 'cliente' || (path.length === 1 && CLIENTE_FIELDS.has(root))) return 3;
+  if (root === 'intervento' || path.length === 1) {
+    if (INTERVENTO_STEP2_FIELDS.has(field)) return 2;
+    if (INTERVENTO_STEP5_FIELDS.has(field)) return 5;
+    if (root === 'intervento' || path.length === 1) return 4;
+  }
+  return 1;
+}
+
+export function formatRapportinoValidationError(error: z.ZodError, maxIssues = 4): string {
+  const issues = error.issues;
+  if (issues.length === 0) return 'Dati non validi';
+
+  const parts = issues.slice(0, maxIssues).map((issue) => {
+    const label = labelForIssuePath(issue.path);
+    const step = getRapportinoIssueStep(issue.path);
+    const stepHint = step > 0 ? ` (step ${step})` : '';
+    return `${label}${stepHint}: ${issue.message}`;
+  });
+
+  const suffix = issues.length > maxIssues ? ` (+${issues.length - maxIssues} altri)` : '';
+  if (parts.length === 1) return parts[0];
+  return `Campi da verificare: ${parts.join('; ')}${suffix}`;
+}
+
 export function firstIssueMessage(error: z.ZodError): string {
-  const i = error.issues[0];
-  return i?.message ?? 'Dati non validi';
+  return formatRapportinoValidationError(error, 1);
 }

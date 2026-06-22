@@ -27,7 +27,8 @@ import {
   rapportinoStep4Schema,
   rapportinoStep5Schema,
   RAPPORTINO_FORM_STEPS,
-  firstIssueMessage,
+  formatRapportinoValidationError,
+  getRapportinoIssueStep,
   type RapportinoFormValues,
 } from '@/lib/validators/rapportino-form';
 import {
@@ -178,12 +179,13 @@ export default function RapportinoForm({
     const user = auth.getUser();
     if (!user) return;
 
+    const current = getValues('operatore');
     setValue('operatore', {
-      nome: user.nome || '',
-      cognome: user.cognome || '',
-      telefono: user.telefono || '',
-      email: user.email || '',
-      qualifica: user.qualifica || '',
+      nome: current.nome?.trim() || user.nome || '',
+      cognome: current.cognome?.trim() || user.cognome || '',
+      telefono: current.telefono?.trim() || user.telefono || '',
+      email: current.email?.trim() || user.email || '',
+      qualifica: current.qualifica?.trim() || user.qualifica || '',
     });
 
     if (user.firma) {
@@ -192,6 +194,14 @@ export default function RapportinoForm({
 
     try {
       const profile = await api.getUserProfile(user.id);
+      const refreshed = getValues('operatore');
+      setValue('operatore', {
+        nome: refreshed.nome?.trim() || profile.nome || '',
+        cognome: refreshed.cognome?.trim() || profile.cognome || '',
+        telefono: refreshed.telefono?.trim() || profile.telefono || '',
+        email: refreshed.email?.trim() || profile.email || '',
+        qualifica: refreshed.qualifica?.trim() || profile.qualifica || '',
+      });
       if (profile.firma) {
         applyOperatoreFirma(profile.firma);
         auth.updateUser({ ...user, firma: normalizeFirmaDataUrl(profile.firma) });
@@ -199,7 +209,7 @@ export default function RapportinoForm({
     } catch {
       // Profilo locale sufficiente se API non disponibile
     }
-  }, [applyOperatoreFirma, setValue]);
+  }, [applyOperatoreFirma, getValues, setValue]);
 
   // Carica dati operatore + firma salvata (profilo / API) — solo se non c'è bozza in sospeso
   useEffect(() => {
@@ -664,9 +674,49 @@ export default function RapportinoForm({
   };
 
   const handleStepError = (error: ZodError) => {
-    toast.error(firstIssueMessage(error));
+    const issueStep = getRapportinoIssueStep(error.issues[0]?.path ?? []);
+    if (issueStep > 0) {
+      setStep(issueStep);
+    }
+    toast.error(formatRapportinoValidationError(error));
     focusFirstIssue(error);
   };
+
+  const buildValidationValues = useCallback(
+    (values: RapportinoFormValues): RapportinoFormValues => {
+      const materialiSelezionati = selectedMateriali
+        .map((id) => materiali.find((m) => m.id === id)?.nome ?? null)
+        .filter(Boolean)
+        .join(', ');
+
+      const materialiFinali = [materialiSelezionati, values.intervento.materialiUtilizzati || '']
+        .filter(Boolean)
+        .join('; ');
+
+      const marca =
+        values.intervento.marca?.trim() ||
+        marche.find((m) => m.id === marcaId)?.nome ||
+        '';
+      const modello =
+        values.intervento.modello?.trim() ||
+        modelli.find((m) => m.id === modelloId)?.nome ||
+        '';
+
+      return {
+        ...values,
+        intervento: {
+          ...values.intervento,
+          marca,
+          modello,
+          materialiUtilizzati: materialiFinali || values.intervento.materialiUtilizzati,
+        },
+      };
+    },
+    [marche, marcaId, materiali, modelli, modelloId, selectedMateriali]
+  );
+
+  const validateFullForm = (values: RapportinoFormValues) =>
+    rapportinoFormValuesSchema.safeParse(buildValidationValues(values));
 
   const validateStep = (): boolean => {
     const v = getValues();
@@ -697,27 +747,9 @@ export default function RapportinoForm({
   };
 
   const onSaveValid = async (values: RapportinoFormValues): Promise<'offline' | 'online' | false> => {
-    const materialiSelezionati = selectedMateriali
-      .map((id) => {
-        const materiale = materiali.find((m) => m.id === id);
-        return materiale ? materiale.nome : null;
-      })
-      .filter(Boolean)
-      .join(', ');
-
-    const materialiFinali = [materialiSelezionati, values.intervento.materialiUtilizzati || '']
-      .filter(Boolean)
-      .join('; ');
-
-    const fullCheck = rapportinoFormValuesSchema.safeParse({
-      ...values,
-      intervento: {
-        ...values.intervento,
-        materialiUtilizzati: materialiFinali || values.intervento.materialiUtilizzati,
-      },
-    });
+    const fullCheck = validateFullForm(values);
     if (!fullCheck.success) {
-      toast.error(firstIssueMessage(fullCheck.error));
+      handleStepError(fullCheck.error);
       return false;
     }
 
@@ -736,7 +768,7 @@ export default function RapportinoForm({
           fullCheck.data.intervento.motivoChiamata ||
           fullCheck.data.intervento.descrizione ||
           '',
-        materialiUtilizzati: materialiFinali || undefined,
+        materialiUtilizzati: fullCheck.data.intervento.materialiUtilizzati || undefined,
       },
       dataCreazione: initialRapportino?.dataCreazione ?? new Date().toISOString(),
     };
@@ -748,9 +780,12 @@ export default function RapportinoForm({
   };
 
   const handleConfirmSave = () => {
-    if (!validateStep()) {
+    const fullCheck = validateFullForm(getValues());
+    if (!fullCheck.success) {
+      handleStepError(fullCheck.error);
       return;
     }
+
     const toastId = toast.loading('Salvataggio rapportino…');
     submitWithRhf(async (values) => {
       try {
