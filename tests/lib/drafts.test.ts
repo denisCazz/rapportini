@@ -3,6 +3,7 @@ import {
   saveDraft,
   getDrafts,
   getDraft,
+  getDraftForUser,
   deleteDraft,
   clearDrafts,
   saveDeletedItem,
@@ -10,6 +11,8 @@ import {
   getLastDeletedItem,
   removeDeletedItem,
   generateDraftId,
+  getNewRapportinoDraftKey,
+  purgeForeignDrafts,
   debounce,
   parseRapportinoDraftPayload,
 } from '@/lib/drafts';
@@ -65,6 +68,38 @@ describe('Drafts System', () => {
     it('should return null for non-existent draft', () => {
       const draft = getDraft('non-existent');
       expect(draft).toBeNull();
+    });
+  });
+
+  describe('getDraftForUser', () => {
+    it('should return draft when userId matches', () => {
+      saveDraft('rapportino_new_user-1', { form: {} }, 2, { userId: 'user-1' });
+      const draft = getDraftForUser('rapportino_new_user-1', 'user-1');
+      expect(draft?.step).toBe(2);
+    });
+
+    it('should hide draft owned by another user', () => {
+      saveDraft('rapportino_new_user-2', { form: {} }, 1, { userId: 'user-2' });
+      expect(getDraftForUser('rapportino_new_user-2', 'user-1')).toBeNull();
+    });
+
+    it('should ignore legacy shared draft key', () => {
+      saveDraft('rapportino_new', { form: {} }, 3);
+      expect(getDraftForUser('rapportino_new', 'user-1')).toBeNull();
+    });
+  });
+
+  describe('purgeForeignDrafts', () => {
+    it('should remove legacy and foreign drafts', () => {
+      saveDraft('rapportino_new', { form: {} }, 1);
+      saveDraft('rapportino_new_user-1', { form: {} }, 1, { userId: 'user-1' });
+      saveDraft('rapportino_new_user-2', { form: {} }, 1, { userId: 'user-2' });
+
+      purgeForeignDrafts('user-1');
+
+      const drafts = getDrafts();
+      expect(drafts).toHaveLength(1);
+      expect(drafts[0].id).toBe('rapportino_new_user-1');
     });
   });
 
@@ -171,6 +206,12 @@ describe('parseRapportinoDraftPayload', () => {
 });
 
 describe('Utility Functions', () => {
+  describe('getNewRapportinoDraftKey', () => {
+    it('should scope draft key to user id', () => {
+      expect(getNewRapportinoDraftKey('abc-123')).toBe('rapportino_new_abc-123');
+    });
+  });
+
   describe('generateDraftId', () => {
     it('should generate unique IDs', () => {
       const id1 = generateDraftId();
