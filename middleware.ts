@@ -30,12 +30,7 @@ const publicPaths = [
   '/icons',
 ];
 
-// Percorsi che richiedono ruolo admin
-const adminPaths = [
-  '/admin',
-  '/api/admin',
-  '/api/users',
-];
+import { requiresAdminAccess } from '@/lib/middleware-auth';
 
 // Verifica token inline per il middleware (edge runtime)
 async function verifyTokenInMiddleware(token: string): Promise<{ userId: string; username: string; ruolo: string; org_id?: string; idsocieta?: string; type: string; must_change_password?: boolean } | null> {
@@ -121,7 +116,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Verifica permessi admin per percorsi protetti
-  if (adminPaths.some(path => pathname.startsWith(path))) {
+  if (requiresAdminAccess(pathname)) {
     if (!isOrgAdminRole(payload.ruolo)) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(

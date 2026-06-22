@@ -50,6 +50,22 @@ export default function UtentePage() {
   const isOperatore = user?.ruolo === 'operatore';
   const userId = user?.id;
 
+  const applyProfileToForm = useCallback((profile: {
+    nome?: string | null;
+    cognome?: string | null;
+    email?: string | null;
+    telefono?: string | null;
+    qualifica?: string | null;
+    firma?: string | null;
+  }) => ({
+    nome: profile.nome || '',
+    cognome: profile.cognome || '',
+    email: profile.email || '',
+    telefono: profile.telefono || '',
+    qualifica: profile.qualifica || '',
+    firma: profile.firma || '',
+  }), []);
+
   const loadProfile = useCallback(async () => {
     if (!userId) return;
 
@@ -59,14 +75,7 @@ export default function UtentePage() {
     try {
       setLoadingProfile(true);
       const profile = await api.getUserProfile(userId);
-      setFormData({
-        nome: profile.nome || '',
-        cognome: profile.cognome || '',
-        email: profile.email || '',
-        telefono: profile.telefono || '',
-        qualifica: profile.qualifica || '',
-        firma: profile.firma || '',
-      });
+      setFormData(applyProfileToForm(profile));
       auth.updateUser({
         ...currentUser,
         nome: profile.nome,
@@ -77,12 +86,13 @@ export default function UtentePage() {
         firma: profile.firma || undefined,
       });
     } catch (error: unknown) {
+      setFormData(applyProfileToForm(currentUser));
       const message = error instanceof Error ? error.message : 'Errore nel caricamento del profilo';
-      toast.error(message);
+      toast.error(`${message}. Mostro i dati salvati in locale.`);
     } finally {
       setLoadingProfile(false);
     }
-  }, [userId]);
+  }, [userId, applyProfileToForm]);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -98,8 +108,13 @@ export default function UtentePage() {
     e.preventDefault();
     if (!user) return;
 
-    if (isOperatore && !formData.qualifica.trim()) {
-      toast.error('La qualifica è obbligatoria');
+    const missingFields: string[] = [];
+    if (!formData.nome.trim()) missingFields.push('Nome');
+    if (!formData.cognome.trim()) missingFields.push('Cognome');
+    if (isOperatore && !formData.qualifica.trim()) missingFields.push('Qualifica');
+
+    if (missingFields.length > 0) {
+      toast.error(`Compila i campi obbligatori: ${missingFields.join(', ')}`);
       return;
     }
 
