@@ -15,6 +15,7 @@ import ErrorBanner from '@/components/ui/ErrorBanner';
 import PageLoader from '@/components/ui/PageLoader';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDateOnlyLocal } from '@/lib/time-db';
 import InterventoPianificatoActions from '@/components/modules/InterventoPianificatoActions';
 
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
@@ -38,7 +39,16 @@ const TIPO_LABEL: Record<string, string> = {
 };
 
 function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return formatDateOnlyLocal(d);
+}
+
+function dayForDayView(weekStart: Date, weekEndDate: Date): Date {
+  const today = new Date();
+  const todayIso = toIsoDate(today);
+  const startIso = toIsoDate(weekStart);
+  const endIso = toIsoDate(weekEndDate);
+  if (todayIso >= startIso && todayIso <= endIso) return today;
+  return new Date(weekStart);
 }
 
 function startOfWeek(d: Date): Date {
@@ -241,7 +251,14 @@ export default function PianificazioneCalendar() {
                 variant={viewMode === mode ? 'default' : 'ghost'}
                 size="sm"
                 className="rounded-none first:rounded-l-md last:rounded-r-md"
-                onClick={() => setViewMode(mode)}
+                onClick={() => {
+                  if (mode === 'day' && viewMode === 'week') {
+                    setCurrentDay(dayForDayView(currentWeek, weekEnd));
+                  } else if (mode === 'day' && viewMode === 'month') {
+                    setCurrentDay(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1));
+                  }
+                  setViewMode(mode);
+                }}
               >
                 {mode === 'day' ? 'Giorno' : mode === 'week' ? 'Settimana' : 'Mese'}
               </Button>
@@ -471,8 +488,16 @@ export default function PianificazioneCalendar() {
                 <CardHeader
                   className={cn(
                     'shrink-0 p-3 pb-2',
-                    isWeekView && 'sm:p-2.5 sm:pb-1.5 sm:text-center'
+                    isWeekView && 'sm:p-2.5 sm:pb-1.5 sm:text-center sm:cursor-pointer sm:hover:bg-muted/50'
                   )}
+                  onClick={
+                    isWeekView
+                      ? () => {
+                          setCurrentDay(day);
+                          setViewMode('day');
+                        }
+                      : undefined
+                  }
                 >
                   {isWeekView && (
                     <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">

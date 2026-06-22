@@ -33,6 +33,7 @@ function mapPreventivo(row: {
   totale: { toString(): string };
   note: string | null;
   titolo: string | null;
+  cliente_id: string | null;
   cliente_nome: string | null;
   cliente_email: string | null;
   valido_fino: Date | null;
@@ -57,6 +58,7 @@ function mapPreventivo(row: {
     totale: Number(row.totale),
     titolo: row.titolo,
     note: row.note,
+    clienteId: row.cliente_id,
     clienteEmail: row.cliente_email,
     validoFino: row.valido_fino?.toISOString().slice(0, 10) ?? null,
     rapportinoId: row.rapportino_id,
