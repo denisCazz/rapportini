@@ -279,7 +279,7 @@ const INTERVENTO_STEP5_FIELDS = new Set([
   'prossimoIntervento',
 ]);
 
-function labelForIssuePath(path: (string | number)[]): string {
+function labelForIssuePath(path: ReadonlyArray<PropertyKey>): string {
   const pathKey = path.map(String).join('.');
   if (RAPPORTINO_FIELD_LABELS[pathKey]) return RAPPORTINO_FIELD_LABELS[pathKey];
 
@@ -300,7 +300,7 @@ function labelForIssuePath(path: (string | number)[]): string {
   return pathKey.replace(/\./g, ' › ');
 }
 
-export function getRapportinoIssueStep(path: (string | number)[]): number {
+export function getRapportinoIssueStep(path: ReadonlyArray<PropertyKey>): number {
   const root = String(path[0] ?? '');
   const field = String(path[1] ?? path[0] ?? '');
 
