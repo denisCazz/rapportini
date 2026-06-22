@@ -31,10 +31,12 @@ import {
 } from '@/lib/validators/rapportino-form';
 import {
   saveDraft,
-  getDraft,
+  getDraftForUser,
   deleteDraft,
   debounce,
   parseRapportinoDraftPayload,
+  getNewRapportinoDraftKey,
+  purgeForeignDrafts,
   type RapportinoDraftUiState,
 } from '@/lib/drafts';
 import {
@@ -56,7 +58,7 @@ interface RapportinoFormProps {
   onCancel: () => void;
 }
 
-const NEW_RAPPORTINO_DRAFT_KEY = 'rapportino_new';
+const LEGACY_NEW_RAPPORTINO_DRAFT_KEY = 'rapportino_new';
 const TOTAL_STEPS = RAPPORTINO_FORM_STEPS;
 
 /** Altezza footer fisso mobile: 2 pulsanti impilati + padding + safe area */
@@ -100,18 +102,31 @@ export default function RapportinoForm({
   onSave,
   onCancel,
 }: RapportinoFormProps) {
+  const currentUser = auth.getUser();
+  const newRapportinoDraftKey = currentUser
+    ? getNewRapportinoDraftKey(currentUser.id)
+    : LEGACY_NEW_RAPPORTINO_DRAFT_KEY;
+
   const [step, setStep] = useState(1);
   const [maxReachableStep, setMaxReachableStep] = useState(1);
-  const draftIdRef = useRef(initialRapportino ? `edit_${initialRapportino.id}` : NEW_RAPPORTINO_DRAFT_KEY);
+  const draftIdRef = useRef(
+    initialRapportino ? `edit_${initialRapportino.id}` : newRapportinoDraftKey
+  );
   const clientiListRef = useRef<HTMLDivElement | null>(null);
-  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraft> | null>(() => {
+  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof getDraftForUser> | null>(() => {
     if (initialRapportino || prefillInterventoId || typeof window === 'undefined') return null;
-    return getDraft(NEW_RAPPORTINO_DRAFT_KEY);
+    const user = auth.getUser();
+    if (!user) return null;
+    purgeForeignDrafts(user.id);
+    deleteDraft(LEGACY_NEW_RAPPORTINO_DRAFT_KEY);
+    return getDraftForUser(getNewRapportinoDraftKey(user.id), user.id);
   });
   const [draftResolved, setDraftResolved] = useState(() => {
     if (initialRapportino || prefillInterventoId) return true;
     if (typeof window === 'undefined') return true;
-    return !getDraft(NEW_RAPPORTINO_DRAFT_KEY);
+    const user = auth.getUser();
+    if (!user) return true;
+    return !getDraftForUser(getNewRapportinoDraftKey(user.id), user.id);
   });
   const [operatoreFirmaFromProfile, setOperatoreFirmaFromProfile] = useState(false);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
@@ -140,69 +155,83 @@ export default function RapportinoForm({
     return () => { cancelled = true; };
   }, [initialRapportino?.id]);
 
+  const applyOperatoreFirma = useCallback(
+    (firma: string) => {
+      if (!firma?.trim()) return;
+      const current = getValues('intervento.firmaOperatore');
+      if (!current?.trim()) {
+        setValue('intervento.firmaOperatore', firma, { shouldDirty: false });
+        setOperatoreFirmaFromProfile(true);
+      }
+    },
+    [getValues, setValue]
+  );
+
+  const loadOperatoreProfile = useCallback(async () => {
+    const user = auth.getUser();
+    if (!user) return;
+
+    setValue('operatore', {
+      nome: user.nome || '',
+      cognome: user.cognome || '',
+      telefono: user.telefono || '',
+      email: user.email || '',
+      qualifica: user.qualifica || '',
+    });
+
+    if (user.firma) {
+      applyOperatoreFirma(user.firma);
+    }
+
+    try {
+      const response = await fetchWithAuth(`/api/users/${user.id}`);
+      const profile = await parseResponseBody<{
+        firma?: string | null;
+        nome?: string;
+        cognome?: string;
+        telefono?: string | null;
+        email?: string | null;
+        qualifica?: string | null;
+      }>(response);
+      if (!response.ok || !profile) return;
+
+      if (profile.firma) {
+        applyOperatoreFirma(profile.firma);
+        auth.updateUser({ ...user, firma: profile.firma });
+      }
+    } catch {
+      // Profilo locale sufficiente se API non disponibile
+    }
+  }, [applyOperatoreFirma, setValue]);
+
   // Carica dati operatore + firma salvata (profilo / API) — solo se non c'è bozza in sospeso
   useEffect(() => {
     if (initialRapportino || !draftResolved) return;
 
     let cancelled = false;
 
-    const applyOperatoreFirma = (firma: string) => {
-      if (!firma || cancelled) return;
-      const current = getValues('intervento.firmaOperatore');
-      if (!current?.trim()) {
-        setValue('intervento.firmaOperatore', firma, { shouldDirty: false });
-        setOperatoreFirmaFromProfile(true);
-      }
-    };
-
     const load = async () => {
-      const user = auth.getUser();
-      if (!user) return;
-
-      setValue('operatore', {
-        nome: user.nome || '',
-        cognome: user.cognome || '',
-        telefono: user.telefono || '',
-        email: user.email || '',
-        qualifica: user.qualifica || '',
-      });
-
-      if (user.firma) {
-        applyOperatoreFirma(user.firma);
-      }
-
-      try {
-        const response = await fetchWithAuth(`/api/users/${user.id}`);
-        const profile = await parseResponseBody<{
-          firma?: string | null;
-          nome?: string;
-          cognome?: string;
-          telefono?: string | null;
-          email?: string | null;
-          qualifica?: string | null;
-        }>(response);
-        if (cancelled || !response.ok || !profile) return;
-
-        if (profile.firma) {
-          applyOperatoreFirma(profile.firma);
-          auth.updateUser({ ...user, firma: profile.firma });
-        }
-      } catch {
-        // Profilo locale sufficiente se API non disponibile
-      }
+      await loadOperatoreProfile();
+      if (cancelled) return;
     };
 
     void load();
     return () => {
       cancelled = true;
     };
-  }, [initialRapportino, draftResolved, setValue, getValues]);
+  }, [initialRapportino, draftResolved, loadOperatoreProfile]);
+
+  // All'ultimo step, riproponi la firma del profilo se ancora vuota
+  useEffect(() => {
+    if (initialRapportino || !draftResolved || step !== TOTAL_STEPS) return;
+    void loadOperatoreProfile();
+  }, [initialRapportino, draftResolved, step, loadOperatoreProfile]);
 
   // Precarica dati da intervento pianificato (cliente, data, motivo)
   useEffect(() => {
     if (!prefillInterventoId || initialRapportino) return;
 
-    deleteDraft(NEW_RAPPORTINO_DRAFT_KEY);
+    deleteDraft(newRapportinoDraftKey);
     setPendingDraft(null);
     setDraftResolved(true);
 
@@ -294,7 +323,13 @@ export default function RapportinoForm({
     () =>
       debounce(() => {
         if (initialRapportino || !draftResolved) return;
-        saveDraft(draftIdRef.current, buildDraftPayload(), step);
+        const userId = auth.getUser()?.id;
+        saveDraft(
+          draftIdRef.current,
+          buildDraftPayload(),
+          step,
+          userId ? { userId } : undefined
+        );
       }, 2000),
     [initialRapportino, draftResolved, buildDraftPayload, step]
   );
@@ -307,7 +342,13 @@ export default function RapportinoForm({
 
   useEffect(() => {
     if (initialRapportino || !draftResolved) return;
-    saveDraft(draftIdRef.current, buildDraftPayload(), step);
+    const userId = auth.getUser()?.id;
+    saveDraft(
+      draftIdRef.current,
+      buildDraftPayload(),
+      step,
+      userId ? { userId } : undefined
+    );
   }, [step, initialRapportino, draftResolved, buildDraftPayload]);
 
   const goToStep = useCallback(
@@ -360,11 +401,12 @@ export default function RapportinoForm({
     setOperatoreFirmaFromProfile(false);
     setPendingDraft(null);
     setDraftResolved(true);
+    void loadOperatoreProfile();
     toast.success(`Bozza ripristinata — step ${draftStep} di ${TOTAL_STEPS}`);
   };
 
   const discardDraft = () => {
-    deleteDraft(NEW_RAPPORTINO_DRAFT_KEY);
+    deleteDraft(newRapportinoDraftKey);
     setPendingDraft(null);
     setDraftResolved(true);
     reset(getDefaultRapportinoFormValues());
@@ -375,6 +417,7 @@ export default function RapportinoForm({
     setSelectedMateriali([]);
     setShowMarcaInput(false);
     setShowModelloInput(false);
+    void loadOperatoreProfile();
     toast.message('Bozza scartata');
   };
 

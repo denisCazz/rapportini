@@ -25,6 +25,15 @@ export interface Draft {
   data: RapportinoDraftPayload | Record<string, unknown>;
   timestamp: number;
   step: number;
+  /** Utente proprietario della bozza (isolamento multi-operatore sullo stesso browser) */
+  userId?: string;
+}
+
+const LEGACY_NEW_RAPPORTINO_DRAFT_KEY = 'rapportino_new';
+
+/** Chiave bozza nuovo rapportino legata all'utente corrente */
+export function getNewRapportinoDraftKey(userId: string): string {
+  return `rapportino_new_${userId}`;
 }
 
 /** Normalizza bozze vecchie (solo form values) e nuove (form + ui) */
@@ -46,7 +55,12 @@ export interface DeletedItem {
 }
 
 // Salva una bozza
-export function saveDraft(draftId: string, data: any, step: number = 0): void {
+export function saveDraft(
+  draftId: string,
+  data: any,
+  step: number = 0,
+  options?: { userId?: string }
+): void {
   if (typeof window === 'undefined') return;
   
   try {
@@ -56,6 +70,7 @@ export function saveDraft(draftId: string, data: any, step: number = 0): void {
       data,
       timestamp: Date.now(),
       step,
+      ...(options?.userId ? { userId: options.userId } : {}),
     };
     
     // Aggiorna o aggiungi la bozza
@@ -93,6 +108,41 @@ export function getDrafts(): Draft[] {
 export function getDraft(draftId: string): Draft | null {
   const drafts = getDrafts();
   return drafts.find(d => d.id === draftId) || null;
+}
+
+/** Bozza visibile solo se appartiene all'utente corrente */
+export function getDraftForUser(draftId: string, userId: string | null | undefined): Draft | null {
+  if (!userId) return null;
+
+  const draft = getDraft(draftId);
+  if (!draft) return null;
+
+  if (draft.userId && draft.userId !== userId) {
+    return null;
+  }
+
+  // Bozza legacy condivisa tra tutti gli operatori: non ripristinare
+  if (!draft.userId && draftId === LEGACY_NEW_RAPPORTINO_DRAFT_KEY) {
+    return null;
+  }
+
+  return draft;
+}
+
+/** Rimuove bozze legacy condivise e bozze di altri utenti */
+export function purgeForeignDrafts(userId: string): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const drafts = getDrafts().filter((draft) => {
+      if (draft.id === LEGACY_NEW_RAPPORTINO_DRAFT_KEY) return false;
+      if (draft.userId && draft.userId !== userId) return false;
+      return true;
+    });
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  } catch (error) {
+    console.error('Errore nella pulizia bozze:', error);
+  }
 }
 
 // Elimina una bozza

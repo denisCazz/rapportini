@@ -49,21 +49,36 @@ export function getAuthHeaders(options?: { skipContentType?: boolean }): Record<
   return headers;
 }
 
+function normalizeInitHeaders(init: RequestInit): Record<string, string> {
+  if (init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)) {
+    return { ...(init.headers as Record<string, string>) };
+  }
+  return {};
+}
+
+function buildAuthFetchHeaders(init: RequestInit): Record<string, string> {
+  const initHeaders = normalizeInitHeaders(init);
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+  const mergedHeaders: Record<string, string> = {
+    ...getAuthHeaders(isFormData ? { skipContentType: true } : undefined),
+    ...initHeaders,
+  };
+
+  // Il browser deve impostare multipart/form-data con boundary per FormData
+  if (isFormData) {
+    delete mergedHeaders['Content-Type'];
+  }
+
+  return mergedHeaders;
+}
+
 /**
  * Fetch con autenticazione, retry su 401 e refresh token
  */
 export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const baseHeaders = getAuthHeaders();
-  const mergedHeaders: Record<string, string> = {
-    ...baseHeaders,
-    ...(init.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)
-      ? (init.headers as Record<string, string>)
-      : {}),
-  };
-
   const baseInit: RequestInit = {
     ...init,
-    headers: mergedHeaders,
+    headers: buildAuthFetchHeaders(init),
     credentials: 'include',
   };
 
@@ -72,10 +87,9 @@ export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit 
   if (response.status === 401) {
     const refreshed = await auth.refreshTokens();
     if (refreshed) {
-      const retryHeaders = { ...mergedHeaders, ...getAuthHeaders() };
       response = await fetch(input, {
         ...baseInit,
-        headers: retryHeaders,
+        headers: buildAuthFetchHeaders(init),
       });
     }
   }
