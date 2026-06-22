@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { z } from 'zod';
 import type { Rapportino } from '@/types';
+import { isAcceptedFirma } from '@/lib/signature';
 import {
   SI_NO_NC_VALUES,
   TIPOLOGIA_INSTALLAZIONE_VALUES,
@@ -9,6 +10,9 @@ import {
 
 const req = z.string().trim().min(1, 'Campo obbligatorio');
 const optStr = z.string().optional();
+const firmaReq = z
+  .string()
+  .refine((value) => isAcceptedFirma(value), { message: 'Firma obbligatoria' });
 
 export const operatoreSchema = z.object({
   nome: req,
@@ -76,9 +80,9 @@ export const interventoSchema = z.object({
   prossimoIntervento: optStr,
   materialiUtilizzati: optStr,
   note: optStr,
-  firmaClientePrivacy: req,
-  firmaOperatore: req,
-  firmaCliente: req,
+  firmaClientePrivacy: firmaReq,
+  firmaOperatore: firmaReq,
+  firmaCliente: firmaReq,
 });
 
 export const rapportinoFormValuesSchema = z.object({
