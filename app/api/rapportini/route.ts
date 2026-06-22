@@ -125,7 +125,21 @@ export async function GET(request: NextRequest) {
       prisma.rapportini.count({ where }),
     ]);
 
-    const formattedRapportini: Rapportino[] = rapportini.map((r) => mapDbRowToRapportino(r));
+    const rapportinoIds = rapportini.map((r) => r.id);
+    const imageCounts =
+      rapportinoIds.length > 0
+        ? await prisma.rapportinoImmagini.groupBy({
+            by: ['rapportino_id'],
+            where: { rapportino_id: { in: rapportinoIds }, org_id: orgId },
+            _count: { id: true },
+          })
+        : [];
+    const countByRapportino = new Map(imageCounts.map((row) => [row.rapportino_id, row._count.id]));
+
+    const formattedRapportini: Rapportino[] = rapportini.map((r) => ({
+      ...mapDbRowToRapportino(r),
+      immaginiCount: countByRapportino.get(r.id) ?? 0,
+    }));
 
     const totalPages = Math.ceil(count / filters.limit);
 
