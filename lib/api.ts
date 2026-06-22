@@ -303,6 +303,59 @@ export const api = {
     return result;
   },
 
+  // Ottieni profilo utente
+  getUserProfile: async (userId: string): Promise<{
+    id: string;
+    username: string;
+    ruolo: string;
+    nome: string;
+    cognome: string;
+    telefono: string | null;
+    email: string | null;
+    qualifica: string | null;
+    firma: string | null;
+    attivo: boolean;
+  }> => {
+    const response = await fetchWithAuth(`${API_BASE}/users/${userId}`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{ data?: {
+      id: string;
+      username: string;
+      ruolo: string;
+      nome: string;
+      cognome: string;
+      telefono: string | null;
+      email: string | null;
+      qualifica: string | null;
+      firma: string | null;
+      attivo: boolean;
+    }; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero del profilo'));
+    }
+    if (!result?.data) {
+      throw new Error('Profilo non trovato');
+    }
+    return result.data;
+  },
+
+  // Cambia password (self-service)
+  changePassword: async (
+    userId: string,
+    data: { currentPassword: string; newPassword: string; confirmPassword: string }
+  ): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE}/users/${userId}/password`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await parseResponseBody<{ error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel cambio password'));
+    }
+  },
+
   // Aggiorna utente (profilo, firma, ecc.)
   updateUser: async (userId: string, data: { firma?: string; nome?: string; cognome?: string; email?: string; telefono?: string; qualifica?: string }): Promise<{ data?: unknown; success?: boolean; error?: string }> => {
     const response = await fetchWithAuth(`${API_BASE}/users/${userId}`, {
