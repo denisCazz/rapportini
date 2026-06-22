@@ -16,6 +16,7 @@ import type { RapportinoImmagine } from '@/types';
 import FormSectionHeader from '@/components/rapportino/FormSectionHeader';
 import { api, fetchWithAuth, parseResponseBody, getApiErrorMessage } from '@/lib/api';
 import { buildClienteIndirizzo } from '@/lib/rapportino-db';
+import { normalizeFirmaDataUrl } from '@/lib/signature';
 import { Card } from '@/components/ui/card';
 import {
   getDefaultRapportinoFormValues,
@@ -131,8 +132,9 @@ export default function RapportinoForm({
   const [operatoreFirmaFromProfile, setOperatoreFirmaFromProfile] = useState(false);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const [existingImages, setExistingImages] = useState<RapportinoImmagine[]>([]);
-  const { register, watch, setValue, getValues, reset, setFocus, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
+  const { register, watch, setValue, getValues, reset, setFocus, control, handleSubmit: submitWithRhf } = useForm<RapportinoFormValues>({
     defaultValues: getDefaultRapportinoFormValues(initialRapportino),
+    shouldUnregister: false,
   });
 
   const operatore = watch('operatore');
@@ -157,10 +159,15 @@ export default function RapportinoForm({
 
   const applyOperatoreFirma = useCallback(
     (firma: string) => {
-      if (!firma?.trim()) return;
+      const normalized = normalizeFirmaDataUrl(firma);
+      if (!normalized) return;
       const current = getValues('intervento.firmaOperatore');
       if (!current?.trim()) {
-        setValue('intervento.firmaOperatore', firma, { shouldDirty: false });
+        setValue('intervento.firmaOperatore', normalized, {
+          shouldDirty: false,
+          shouldTouch: true,
+          shouldValidate: true,
+        });
         setOperatoreFirmaFromProfile(true);
       }
     },
@@ -184,20 +191,10 @@ export default function RapportinoForm({
     }
 
     try {
-      const response = await fetchWithAuth(`/api/users/${user.id}`);
-      const profile = await parseResponseBody<{
-        firma?: string | null;
-        nome?: string;
-        cognome?: string;
-        telefono?: string | null;
-        email?: string | null;
-        qualifica?: string | null;
-      }>(response);
-      if (!response.ok || !profile) return;
-
+      const profile = await api.getUserProfile(user.id);
       if (profile.firma) {
         applyOperatoreFirma(profile.firma);
-        auth.updateUser({ ...user, firma: profile.firma });
+        auth.updateUser({ ...user, firma: normalizeFirmaDataUrl(profile.firma) });
       }
     } catch {
       // Profilo locale sufficiente se API non disponibile
@@ -681,7 +678,20 @@ export default function RapportinoForm({
       : step === 5 ? rapportinoStep5Schema
       : null;
     if (!schema) return false;
-    const r = schema.safeParse(v);
+
+    const payload =
+      step === 5
+        ? {
+            intervento: {
+              prossimoIntervento: v.intervento.prossimoIntervento ?? '',
+              firmaClientePrivacy: v.intervento.firmaClientePrivacy ?? '',
+              firmaOperatore: v.intervento.firmaOperatore ?? '',
+              firmaCliente: v.intervento.firmaCliente ?? '',
+            },
+          }
+        : v;
+
+    const r = schema.safeParse(payload);
     if (!r.success) handleStepError(r.error);
     return r.success;
   };
@@ -739,7 +749,6 @@ export default function RapportinoForm({
 
   const handleConfirmSave = () => {
     if (!validateStep()) {
-      toast.error('Compila tutti i campi obbligatori');
       return;
     }
     const toastId = toast.loading('Salvataggio rapportino…');
@@ -1162,6 +1171,7 @@ export default function RapportinoForm({
       {step === 5 && (
         <RapportinoStepFirme
           intervento={intervento}
+          control={control}
           operatoreFirmaFromProfile={operatoreFirmaFromProfile}
           setOperatoreFirmaFromProfile={setOperatoreFirmaFromProfile}
           setValue={setValue}

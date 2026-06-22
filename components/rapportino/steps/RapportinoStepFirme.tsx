@@ -1,12 +1,13 @@
 'use client';
 
+import { Controller, type Control, type UseFormSetValue } from 'react-hook-form';
 import SignaturePad from '@/components/SignaturePad';
 import FormSectionHeader from '@/components/rapportino/FormSectionHeader';
 import type { RapportinoFormValues } from '@/lib/validators/rapportino-form';
-import type { UseFormSetValue } from 'react-hook-form';
 
 interface Props {
   intervento: RapportinoFormValues['intervento'];
+  control: Control<RapportinoFormValues>;
   operatoreFirmaFromProfile: boolean;
   setOperatoreFirmaFromProfile: (value: boolean) => void;
   setValue: UseFormSetValue<RapportinoFormValues>;
@@ -14,6 +15,7 @@ interface Props {
 
 export default function RapportinoStepFirme({
   intervento,
+  control,
   operatoreFirmaFromProfile,
   setOperatoreFirmaFromProfile,
   setValue,
@@ -45,31 +47,55 @@ export default function RapportinoStepFirme({
 
       <div className="relative z-10 rounded-md border border-surface-200 bg-muted/30 p-4 dark:border-surface-700 sm:p-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <SignaturePad
-            label="Firma del cliente per privacy"
-            value={intervento.firmaClientePrivacy}
-            required
-            onChange={(firma) => setValue('intervento.firmaClientePrivacy', firma)}
+          <Controller
+            name="intervento.firmaClientePrivacy"
+            control={control}
+            render={({ field }) => (
+              <div data-field="intervento.firmaClientePrivacy">
+                <SignaturePad
+                  label="Firma del cliente per privacy"
+                  value={field.value}
+                  required
+                  onChange={(firma) => field.onChange(firma)}
+                />
+              </div>
+            )}
           />
-          <SignaturePad
-            label="Firma del cliente"
-            value={intervento.firmaCliente}
-            required
-            onChange={(firma) => setValue('intervento.firmaCliente', firma)}
+          <Controller
+            name="intervento.firmaCliente"
+            control={control}
+            render={({ field }) => (
+              <div data-field="intervento.firmaCliente">
+                <SignaturePad
+                  label="Firma del cliente"
+                  value={field.value}
+                  required
+                  onChange={(firma) => field.onChange(firma)}
+                />
+              </div>
+            )}
           />
-          <SignaturePad
-            label="Firma del C.A.T."
-            value={intervento.firmaOperatore}
-            required
-            helperText={
-              operatoreFirmaFromProfile && intervento.firmaOperatore
-                ? 'Firma del profilo caricata automaticamente. Puoi modificarla se necessario.'
-                : undefined
-            }
-            onChange={(firma) => {
-              setOperatoreFirmaFromProfile(false);
-              setValue('intervento.firmaOperatore', firma);
-            }}
+          <Controller
+            name="intervento.firmaOperatore"
+            control={control}
+            render={({ field }) => (
+              <div data-field="intervento.firmaOperatore">
+                <SignaturePad
+                  label="Firma del C.A.T."
+                  value={field.value}
+                  required
+                  helperText={
+                    operatoreFirmaFromProfile && field.value
+                      ? 'Firma del profilo caricata automaticamente. Puoi modificarla se necessario.'
+                      : undefined
+                  }
+                  onChange={(firma) => {
+                    setOperatoreFirmaFromProfile(false);
+                    field.onChange(firma);
+                  }}
+                />
+              </div>
+            )}
           />
         </div>
         <p className="mt-4 flex items-center gap-1.5 text-xs text-surface-600 dark:text-surface-400">
