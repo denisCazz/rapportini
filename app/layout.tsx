@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import { Toaster } from 'sonner';
 import CookieConsent from '@/components/CookieConsent';
 import { PWAProvider } from '@/lib/pwa-context';
@@ -13,6 +13,14 @@ const inter = Inter({
   display: 'swap',
   preload: true,
   variable: '--font-sans',
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-heading',
 });
 
 export const viewport: Viewport = {
@@ -69,7 +77,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it" className={cn('font-sans', inter.variable)}>
+    <html lang="it" className={cn('font-sans', inter.variable, jakarta.variable)}>
       <head>
         <link rel="apple-touch-icon" href="/logo.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

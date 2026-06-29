@@ -56,11 +56,22 @@ interface SidebarLayoutProps {
 
 const navLinkClass = (active: boolean) =>
   cn(
-    'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
     active
-      ? 'border border-primary/20 bg-primary/10 text-primary shadow-sm backdrop-blur-sm'
-      : 'border border-transparent text-muted-foreground hover:border-white/40 hover:bg-white/40 hover:text-foreground hover:shadow-sm dark:hover:border-white/10 dark:hover:bg-white/5'
+      ? 'bg-gradient-to-r from-primary/15 via-primary/10 to-transparent text-primary'
+      : 'text-muted-foreground hover:bg-white/55 hover:text-foreground dark:hover:bg-white/[0.06]'
   );
+
+const navIconClass = (active: boolean) =>
+  cn(
+    'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
+    active
+      ? 'bg-primary text-primary-foreground shadow-sm'
+      : 'bg-white/60 text-muted-foreground group-hover:text-foreground dark:bg-white/[0.06]'
+  );
+
+const sectionLabelClass =
+  'mb-1 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70 first:mt-0';
 
 export default function SidebarLayout({
   settings,
@@ -118,20 +129,49 @@ export default function SidebarLayout({
     storage.saveSettings({ ...currentSettings, darkMode: newDarkMode });
   };
 
+  const NavItem = ({
+    href,
+    icon: Icon,
+    label,
+    active,
+  }: {
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    active: boolean;
+  }) => (
+    <Link href={href} onClick={() => setMobileOpen(false)} className={navLinkClass(active)}>
+      {active && (
+        <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-primary" aria-hidden />
+      )}
+      <span className={navIconClass(active)}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+    </Link>
+  );
+
   const NavContent = ({ showCloseButton = false }: { showCloseButton?: boolean }) => (
     <>
       <div className="border-b border-white/30 px-4 py-4 dark:border-white/10">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex min-w-0 flex-1 items-center gap-3" onClick={() => setMobileOpen(false)}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={settings.logo || '/logo.png'}
-              alt={settings.nomeAzienda || 'EVA CALÒR'}
-              className="h-10 w-auto max-w-[160px] object-contain"
-            />
-            <p className="min-w-0 truncate text-sm font-semibold text-foreground">
-              {settings.nomeAzienda || 'EVA CALÒR'}
-            </p>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/50 bg-white/70 shadow-sm dark:border-white/10 dark:bg-white/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={settings.logo || '/logo.png'}
+                alt={settings.nomeAzienda || 'EVA CALÒR'}
+                className="h-8 w-auto max-w-[36px] object-contain"
+              />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-heading text-sm font-bold leading-tight text-foreground">
+                {settings.nomeAzienda || 'EVA CALÒR'}
+              </span>
+              <span className="block truncate text-[11px] font-medium text-muted-foreground">
+                Gestione rapportini
+              </span>
+            </span>
           </Link>
           {showCloseButton && (
             <SheetClose
@@ -151,115 +191,67 @@ export default function SidebarLayout({
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        <p className="px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Menu
-        </p>
-        <Link href="/" onClick={() => setMobileOpen(false)} className={navLinkClass(isActive('/'))}>
-          <Home className="h-4 w-4" aria-hidden />
-          Dashboard
-        </Link>
-        <Link
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+        <p className={sectionLabelClass}>Menu</p>
+        <NavItem href="/" icon={Home} label="Dashboard" active={isActive('/')} />
+        <NavItem
           href="/rapportini"
-          onClick={() => setMobileOpen(false)}
-          className={navLinkClass(isActive('/rapportini') || pathname.startsWith('/rapportini/'))}
-        >
-          <FileText className="h-4 w-4" aria-hidden />
-          Rapportini
-        </Link>
+          icon={FileText}
+          label="Rapportini"
+          active={isActive('/rapportini') || pathname.startsWith('/rapportini/')}
+        />
 
         {user?.ruolo === 'operatore' && (
           <>
-            <p className="mt-4 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Moduli
-            </p>
-            {PAID_MODULES.map((modulo) => {
-              const Icon = MODULE_ICONS[modulo.code] ?? FileText;
-              return (
-                <Link
-                  key={modulo.code}
-                  href={modulo.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={navLinkClass(pathname === modulo.href || pathname.startsWith(`${modulo.href}/`))}
-                >
-                  <Icon className="h-4 w-4" aria-hidden />
-                  {modulo.nome}
-                </Link>
-              );
-            })}
-            <Link
+            <p className={sectionLabelClass}>Moduli</p>
+            {PAID_MODULES.map((modulo) => (
+              <NavItem
+                key={modulo.code}
+                href={modulo.href}
+                icon={MODULE_ICONS[modulo.code] ?? FileText}
+                label={modulo.nome}
+                active={pathname === modulo.href || pathname.startsWith(`${modulo.href}/`)}
+              />
+            ))}
+            <NavItem
               href="/utente/abbonamento"
-              onClick={() => setMobileOpen(false)}
-              className={navLinkClass(isActive('/utente/abbonamento'))}
-            >
-              <CreditCard className="h-4 w-4" aria-hidden />
-              Abbonamento
-            </Link>
+              icon={CreditCard}
+              label="Abbonamento"
+              active={isActive('/utente/abbonamento')}
+            />
           </>
         )}
 
         {auth.isAdmin() && (
           <>
-            <p className="mt-4 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Amministrazione
-            </p>
-            <Link href="/admin" onClick={() => setMobileOpen(false)} className={navLinkClass(isActive('/admin'))}>
-              <BarChart3 className="h-4 w-4" aria-hidden />
-              Statistiche
-            </Link>
-            <Link
-              href="/admin/clienti"
-              onClick={() => setMobileOpen(false)}
-              className={navLinkClass(isActive('/admin/clienti'))}
-            >
-              <Contact className="h-4 w-4" aria-hidden />
-              Clienti
-            </Link>
-            <Link
+            <p className={sectionLabelClass}>Amministrazione</p>
+            <NavItem href="/admin" icon={BarChart3} label="Statistiche" active={isActive('/admin')} />
+            <NavItem href="/admin/clienti" icon={Contact} label="Clienti" active={isActive('/admin/clienti')} />
+            <NavItem
               href="/admin/gestione-utenti"
-              onClick={() => setMobileOpen(false)}
-              className={navLinkClass(isActive('/admin/users') || isActive('/admin/gestione-utenti'))}
-            >
-              <Users className="h-4 w-4" aria-hidden />
-              Utenti
-            </Link>
+              icon={Users}
+              label="Utenti"
+              active={isActive('/admin/users') || isActive('/admin/gestione-utenti')}
+            />
             {auth.isPlatformAdmin() && (
-              <Link
-                href="/admin/cats"
-                onClick={() => setMobileOpen(false)}
-                className={navLinkClass(isActive('/admin/cats'))}
-              >
-                <Contact className="h-4 w-4" aria-hidden />
-                Gestione CAT
-              </Link>
+              <NavItem href="/admin/cats" icon={Contact} label="Gestione CAT" active={isActive('/admin/cats')} />
             )}
-            <Link
+            <NavItem
               href="/admin/impostazioni"
-              onClick={() => setMobileOpen(false)}
-              className={navLinkClass(isActive('/admin/impostazioni'))}
-            >
-              <Settings className="h-4 w-4" aria-hidden />
-              Impostazioni
-            </Link>
+              icon={Settings}
+              label="Impostazioni"
+              active={isActive('/admin/impostazioni')}
+            />
             {auth.isCatAdmin() && (
-              <Link
+              <NavItem
                 href="/admin/cat-moduli"
-                onClick={() => setMobileOpen(false)}
-                className={navLinkClass(isActive('/admin/cat-moduli'))}
-              >
-                <Puzzle className="h-4 w-4" aria-hidden />
-                Moduli operatori
-              </Link>
+                icon={Puzzle}
+                label="Moduli operatori"
+                active={isActive('/admin/cat-moduli')}
+              />
             )}
             {auth.canManageModulesAdmin() && (
-              <Link
-                href="/admin/moduli"
-                onClick={() => setMobileOpen(false)}
-                className={navLinkClass(isActive('/admin/moduli'))}
-              >
-                <Puzzle className="h-4 w-4" aria-hidden />
-                Moduli
-              </Link>
+              <NavItem href="/admin/moduli" icon={Puzzle} label="Moduli" active={isActive('/admin/moduli')} />
             )}
           </>
         )}
@@ -299,9 +291,9 @@ export default function SidebarLayout({
         <Link
           href="/utente"
           onClick={() => setMobileOpen(false)}
-          className="flex items-center gap-3 rounded-lg border border-white/40 bg-white/30 p-2 backdrop-blur-sm transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+          className="flex items-center gap-3 rounded-xl border border-white/40 bg-white/40 p-2 backdrop-blur-sm transition-colors hover:bg-white/65 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-700 font-heading text-xs font-bold text-primary-foreground shadow-sm">
             {user?.nome?.charAt(0)}{user?.cognome?.charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
@@ -354,7 +346,7 @@ export default function SidebarLayout({
               <Menu className="h-4 w-4" />
             </Button>
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              <h1 className="truncate font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                 {pageTitle}
               </h1>
               {isTestEnv() && (

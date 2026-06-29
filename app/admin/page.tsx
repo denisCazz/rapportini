@@ -234,7 +234,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Totale Clienti</p>
-                <p className="mt-1 text-3xl font-semibold text-foreground">{totalClienti}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-foreground">{totalClienti}</p>
               </div>
               <div className="rounded-md bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,7 +248,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Totale Rapportini</p>
-                <p className="mt-1 text-3xl font-semibold text-foreground">{totalRapportini}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-foreground">{totalRapportini}</p>
               </div>
               <div className="rounded-md bg-emerald-100 p-3 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,7 +262,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Stufe Pellet</p>
-                <p className="mt-1 text-3xl font-semibold text-orange-600">{totalPellet}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-orange-600">{totalPellet}</p>
               </div>
               <div className="rounded-md bg-orange-100 p-3 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
                 <span className="text-sm font-medium">Pellet</span>
@@ -274,7 +274,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Stufe Legno</p>
-                <p className="mt-1 text-3xl font-semibold text-amber-700">{totalLegno}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-amber-700">{totalLegno}</p>
               </div>
               <div className="rounded-md bg-amber-100 p-3 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 <span className="text-sm font-medium">Legno</span>

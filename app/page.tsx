@@ -16,7 +16,8 @@ import ErrorBanner from '@/components/ui/ErrorBanner';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Flame, Trees, FileText, Plus, Search } from 'lucide-react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { ChartGradients, ChartTooltip } from '@/components/charts/chartTheme';
 
 const RECENT_LIMIT = 10;
 
@@ -103,11 +104,14 @@ export default function Home() {
 
   const pieData = useMemo(
     () => [
-      { name: 'Pellet', value: kpi.pellet, fill: '#ea580c' },
-      { name: 'Legna', value: kpi.legno, fill: '#92400e' },
+      { name: 'Pellet', value: kpi.pellet, fill: 'url(#grad-pellet)', dot: '#f97316' },
+      { name: 'Legna', value: kpi.legno, fill: 'url(#grad-legno)', dot: '#b45309' },
     ],
     [kpi.pellet, kpi.legno]
   );
+
+  const pelletShare = kpi.total > 0 ? Math.round((kpi.pellet / kpi.total) * 100) : 0;
+  const legnoShare = kpi.total > 0 ? Math.round((kpi.legno / kpi.total) * 100) : 0;
 
   if (!isAuthenticated) {
     return null;
@@ -151,8 +155,8 @@ export default function Home() {
                 <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" aria-hidden />
                 <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="max-w-xl">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">Azione rapida</p>
-                    <h2 className="mt-1 text-xl font-bold text-foreground sm:text-2xl">Nuovo rapportino</h2>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Azione rapida</p>
+                    <h2 className="mt-1 font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl">Nuovo rapportino</h2>
                     <p className="mt-2 text-sm text-muted-foreground">
                       Compila e invia un nuovo rapportino di intervento in pochi passaggi.
                     </p>
@@ -185,7 +189,7 @@ export default function Home() {
                   </span>
                 </CardHeader>
                 <CardContent>
-                  <p className="font-heading text-3xl font-bold text-foreground">{kpi.total}</p>
+                  <p className="font-heading text-3xl font-bold tracking-tight text-foreground">{kpi.total}</p>
                   <p className="text-xs text-muted-foreground mt-1">Tutti i rapportini registrati</p>
                 </CardContent>
               </Card>
@@ -197,7 +201,8 @@ export default function Home() {
                   </span>
                 </CardHeader>
                 <CardContent>
-                  <p className="font-heading text-3xl font-bold">{kpi.pellet}</p>
+                  <p className="font-heading text-3xl font-bold tracking-tight">{kpi.pellet}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{pelletShare}% del totale</p>
                 </CardContent>
               </Card>
               <Card className={glassCardClass}>
@@ -208,41 +213,74 @@ export default function Home() {
                   </span>
                 </CardHeader>
                 <CardContent>
-                  <p className="font-heading text-3xl font-bold">{kpi.legno}</p>
+                  <p className="font-heading text-3xl font-bold tracking-tight">{kpi.legno}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{legnoShare}% del totale</p>
                 </CardContent>
               </Card>
             </div>
             <Card className={glassCardClass}>
               <CardHeader className="pb-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Distribuzione tipologia</CardTitle>
+                <CardTitle className="font-heading text-base font-semibold text-foreground">Distribuzione tipologia</CardTitle>
+                <p className="text-sm text-muted-foreground">Pellet e legna sul totale dei rapportini</p>
               </CardHeader>
-              <CardContent className="h-[240px] pt-2">
+              <CardContent className="pt-4">
                 {kpi.total === 0 ? (
-                  <p className="text-sm text-muted-foreground pt-10 text-center">Nessun dato da mostrare</p>
+                  <p className="py-12 text-center text-sm text-muted-foreground">Nessun dato da mostrare</p>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={56} outerRadius={84} paddingAngle={2}>
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: 12,
-                          border: '1px solid hsl(var(--border))',
-                          background: 'hsl(var(--card))',
-                        }}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                    <div className="relative mx-auto h-[220px] w-full max-w-[260px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <ChartGradients />
+                          <Pie
+                            data={pieData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={64}
+                            outerRadius={92}
+                            paddingAngle={3}
+                            cornerRadius={8}
+                            stroke="none"
+                          >
+                            {pieData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<ChartTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="font-heading text-3xl font-bold tracking-tight text-foreground">{kpi.total}</span>
+                        <span className="text-xs font-medium text-muted-foreground">totale</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {pieData.map((entry) => {
+                        const share = kpi.total > 0 ? Math.round((entry.value / kpi.total) * 100) : 0;
+                        return (
+                          <div key={entry.name} className="rounded-xl border border-white/40 bg-white/40 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.dot }} />
+                                {entry.name}
+                              </span>
+                              <span className="font-heading text-sm font-bold text-foreground">{entry.value}</span>
+                            </div>
+                            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+                              <div className="h-full rounded-full" style={{ width: `${share}%`, backgroundColor: entry.dot }} />
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">{share}% del totale</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
             <div className="saas-card flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Rapportini recenti</h2>
+                <h2 className="font-heading text-lg font-bold text-foreground">Rapportini recenti</h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">Ultimi {rapportini.length} rapportini registrati</p>
               </div>
               <Link
