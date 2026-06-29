@@ -323,7 +323,7 @@ export default function SidebarLayout({
   );
 
   return (
-    <div className="app-shell min-h-screen bg-background text-foreground">
+    <div className="app-shell">
       <aside className="glass-panel fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-y-0 border-l-0 border-r lg:flex">
         <NavContent />
       </aside>
@@ -332,7 +332,7 @@ export default function SidebarLayout({
         <SheetContent
           side="left"
           showCloseButton={false}
-          className="glass-panel w-[min(88vw,320px)] gap-0 border-y-0 border-l-0 border-r bg-transparent p-0 lg:hidden"
+          className="glass-panel w-[min(88vw,320px)] gap-0 border-y-0 border-l-0 border-r p-0 lg:hidden !bg-[rgba(255,255,255,0.24)] dark:!bg-[rgba(255,255,255,0.05)]"
         >
           <div className="flex h-full max-h-[100dvh] flex-col overflow-y-auto">
             <NavContent showCloseButton />
@@ -340,9 +340,9 @@ export default function SidebarLayout({
         </SheetContent>
       </Sheet>
 
-      <div className="flex min-h-screen flex-col lg:pl-64">
+      <div className="relative z-10 flex min-h-screen flex-col">
         <header className="glass-panel sticky top-0 z-30 border-x-0 border-t-0 border-b">
-          <div className="flex items-center gap-3 px-4 py-3.5 sm:px-6">
+          <div className="flex items-center gap-3 px-4 py-3.5 sm:px-6 lg:pl-72">
             <Button
               type="button"
               variant="outline"
@@ -366,7 +366,7 @@ export default function SidebarLayout({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:pl-72">
           {topActions && (
             <div className="mb-4 flex w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
               {topActions}
