@@ -87,6 +87,8 @@ export interface Rapportino {
   intervento: Intervento;
   dataCreazione: string;
   immagini?: RapportinoImmagine[];
+  /** Conteggio foto (risposta API lista) */
+  immaginiCount?: number;
 }
 
 export interface AziendaSettings {

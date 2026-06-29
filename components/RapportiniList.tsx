@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Rapportino, AziendaSettings } from '@/types';
+import { Rapportino, RapportinoImmagine, AziendaSettings } from '@/types';
 import { format } from 'date-fns';
 import RapportinoDetail from './RapportinoDetail';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +11,8 @@ import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ChevronDown } from 'lucide-react';
+import { api } from '@/lib/api';
+import { Camera, ChevronDown, ExternalLink } from 'lucide-react';
 
 interface RapportiniListProps {
   rapportini: Rapportino[];
@@ -34,6 +35,8 @@ export default function RapportiniList({
   const [filter, setFilter] = useState<'all' | 'pellet' | 'legno'>('all');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [immaginiByRapportino, setImmaginiByRapportino] = useState<Record<string, RapportinoImmagine[]>>({});
+  const [loadingImmagini, setLoadingImmagini] = useState<Set<string>>(new Set());
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -42,6 +45,24 @@ export default function RapportiniList({
         next.delete(id);
       } else {
         next.add(id);
+        if (!immaginiByRapportino[id]) {
+          setLoadingImmagini((loading) => new Set(loading).add(id));
+          api
+            .getRapportinoImmagini(id)
+            .then((imgs) => {
+              setImmaginiByRapportino((current) => ({ ...current, [id]: imgs }));
+            })
+            .catch(() => {
+              setImmaginiByRapportino((current) => ({ ...current, [id]: [] }));
+            })
+            .finally(() => {
+              setLoadingImmagini((loading) => {
+                const nextLoading = new Set(loading);
+                nextLoading.delete(id);
+                return nextLoading;
+              });
+            });
+        }
       }
       return next;
     });
@@ -176,6 +197,9 @@ export default function RapportiniList({
           ) : (
             filteredRapportini.map((rapportino) => {
               const isExpanded = expandedIds.has(rapportino.id);
+              const immaginiCount = rapportino.immaginiCount ?? immaginiByRapportino[rapportino.id]?.length ?? 0;
+              const immagini = immaginiByRapportino[rapportino.id] ?? [];
+              const immaginiLoading = loadingImmagini.has(rapportino.id);
 
               return (
                 <div
@@ -219,6 +243,12 @@ export default function RapportiniList({
                         </div>
                         {!isExpanded && (
                           <p className="text-sm text-muted-foreground">{rapportino.intervento.tipoIntervento}</p>
+                        )}
+                        {!isExpanded && immaginiCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <Camera className="h-3.5 w-3.5" aria-hidden />
+                            {immaginiCount} {immaginiCount === 1 ? 'foto' : 'foto'}
+                          </span>
                         )}
                       </div>
                       <ChevronDown
@@ -265,6 +295,38 @@ export default function RapportiniList({
                             Op: {rapportino.operatore.nome} {rapportino.operatore.cognome}
                           </span>
                         </div>
+                        {(immaginiCount > 0 || immaginiLoading) && (
+                          <div className="rounded-xl border border-surface-100 bg-surface-50 px-3 py-2 text-sm dark:border-surface-800/50 dark:bg-surface-900/30">
+                            <p className="mb-2 flex items-center gap-2 font-medium text-surface-700 dark:text-surface-300">
+                              <Camera className="h-4 w-4 shrink-0 text-surface-400" aria-hidden />
+                              Foto intervento
+                            </p>
+                            {immaginiLoading ? (
+                              <p className="text-xs text-muted-foreground">Caricamento foto...</p>
+                            ) : immagini.length > 0 ? (
+                              <ul className="space-y-1">
+                                {immagini.map((img, index) => (
+                                  <li key={img.id}>
+                                    <a
+                                      href={img.url || `/api/rapportini/${rapportino.id}/immagini/${img.id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                      {img.caption?.trim() || `Foto ${index + 1}`}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                {immaginiCount} {immaginiCount === 1 ? 'foto disponibile' : 'foto disponibili'} — apri Visualizza per la galleria
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <div className="flex flex-wrap gap-2 border-t border-surface-100 pt-4 dark:border-surface-700 sm:gap-3">
                           <Button
                             onClick={() => setSelectedRapportino(rapportino)}

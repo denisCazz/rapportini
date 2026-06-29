@@ -1,5 +1,6 @@
-import { Rapportino, AziendaSettings } from '@/types';
+import { Rapportino, AziendaSettings, RapportinoImmagine } from '@/types';
 import { format } from 'date-fns';
+import { buildRapportinoImmagineUrl } from '@/lib/rapportino-image-urls';
 import {
   CONDIZIONI_GARANZIA_CHECKBOX_LABEL,
   CONDIZIONI_GARANZIA_DICHIARAZIONE,
@@ -535,6 +536,34 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
     addFieldRow('Prossimo intervento', format(new Date(rapportino.intervento.prossimoIntervento), 'dd/MM/yyyy'));
   }
 
+  const immagini = rapportino.immagini ?? [];
+  if (immagini.length > 0) {
+    addSectionTitle('FOTO INTERVENTO');
+    ensureSpace(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
+    doc.text(
+      `${immagini.length} ${immagini.length === 1 ? 'foto disponibile' : 'foto disponibili'} — link per visualizzazione:`,
+      margin,
+      yPos
+    );
+    yPos += 6;
+    immagini.forEach((img, index) => {
+      const label = img.caption?.trim() || `Foto ${index + 1}`;
+      const url = img.url || buildRapportinoImmagineUrl(rapportino.id, img.id);
+      const line = `• ${label}: ${url}`;
+      const lines = doc.splitTextToSize(line, contentWidth - 4);
+      ensureSpace(lines.length * 4 + 4);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(37, 99, 235);
+      doc.text(lines, margin + 2, yPos);
+      yPos += lines.length * 4 + 2;
+    });
+    yPos += 4;
+    drawLine(yPos);
+    yPos += 10;
+  }
+
   // Garantisce spazio per blocco firme + nomi + footer
   ensureSpace(52);
 
@@ -611,7 +640,19 @@ export const generatePDF = async (rapportino: Rapportino, settings: AziendaSetti
 };
 
 export const downloadPDF = async (rapportino: Rapportino, settings: AziendaSettings) => {
-  const doc = await generatePDF(rapportino, settings);
+  let rapportinoWithImages = rapportino;
+  if (!rapportino.immagini?.length) {
+    try {
+      const { api } = await import('@/lib/api');
+      const immagini = await api.getRapportinoImmagini(rapportino.id);
+      if (immagini.length > 0) {
+        rapportinoWithImages = { ...rapportino, immagini };
+      }
+    } catch {
+      // PDF senza sezione foto se il caricamento fallisce
+    }
+  }
+  const doc = await generatePDF(rapportinoWithImages, settings);
   const fileName = `Rapportino_${rapportino.cliente.cognome}_${format(new Date(rapportino.intervento.data), 'yyyyMMdd')}.pdf`;
   doc.save(fileName);
 };
@@ -619,6 +660,7 @@ export const downloadPDF = async (rapportino: Rapportino, settings: AziendaSetti
 export const exportAllPDFs = async (rapportini: Rapportino[], settings: AziendaSettings) => {
   // Import dinamico di JSZip
   const JSZip = (await import('jszip')).default;
+  const { api } = await import('@/lib/api');
   
   // Crea un nuovo archivio ZIP
   const zip = new JSZip();
@@ -626,7 +668,18 @@ export const exportAllPDFs = async (rapportini: Rapportino[], settings: AziendaS
   // Genera tutti i PDF e aggiungili allo ZIP
   for (let i = 0; i < rapportini.length; i++) {
     const rapportino = rapportini[i];
-    const doc = await generatePDF(rapportino, settings);
+    let rapportinoWithImages = rapportino;
+    if (!rapportino.immagini?.length) {
+      try {
+        const immagini = await api.getRapportinoImmagini(rapportino.id);
+        if (immagini.length > 0) {
+          rapportinoWithImages = { ...rapportino, immagini };
+        }
+      } catch {
+        // continua senza foto
+      }
+    }
+    const doc = await generatePDF(rapportinoWithImages, settings);
     
     // Crea un nome file univoco per evitare conflitti
     const clienteNome = rapportino.cliente.cognome.replace(/[^a-zA-Z0-9]/g, '_');

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { MODULE_CODES } from '@/lib/modules';
 import { requireModuleAccess } from '@/lib/module-api-auth';
 import { mapDbRowToRapportino } from '@/lib/rapportino-db';
+import { getImmaginiForRapportino } from '@/lib/rapportino-immagini';
+import { withAbsoluteImageUrls } from '@/lib/rapportino-image-urls';
 import { sendInterventoConfirmation, sendEmail } from '@/lib/email';
 import { isOrgAdminRole } from '@/lib/roles';
 
@@ -195,6 +197,8 @@ export async function POST(request: NextRequest) {
     }
 
     const rapportino = mapDbRowToRapportino(row);
+    const immagini = await getImmaginiForRapportino(row.id, auth.user.org_id);
+    rapportino.immagini = withAbsoluteImageUrls(row.id, immagini);
     const email = parsed.data.email || rapportino.cliente.email;
     if (!email) {
       return NextResponse.json({ error: 'Email destinatario mancante' }, { status: 400 });

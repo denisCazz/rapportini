@@ -5,6 +5,7 @@
 import { Rapportino } from '@/types';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { buildRapportinoImmagineUrl } from '@/lib/rapportino-image-urls';
 
 // Configurazione email
 const EMAIL_CONFIG = {
@@ -177,6 +178,21 @@ export function getInterventoEmailTemplate(rapportino: Rapportino, aziendaNome: 
       <p style="margin: 0;">${rapportino.intervento.note}</p>
     </div>
     ` : ''}
+
+    ${rapportino.immagini && rapportino.immagini.length > 0 ? `
+    <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+      <h3 style="margin-top: 0; color: #f97316;">Foto intervento</h3>
+      <p style="margin: 0 0 10px 0;">${rapportino.immagini.length} ${rapportino.immagini.length === 1 ? 'foto disponibile' : 'foto disponibili'}:</p>
+      <ul style="margin: 0; padding-left: 18px;">
+        ${rapportino.immagini.map((img, index) => {
+          const label = img.caption?.trim() || `Foto ${index + 1}`;
+          const url = img.url || buildRapportinoImmagineUrl(rapportino.id, img.id);
+          return `<li style="margin-bottom: 6px;"><a href="${url}" style="color: #ea580c;">${label}</a></li>`;
+        }).join('')}
+      </ul>
+      <p style="margin: 10px 0 0 0; font-size: 12px; color: #6b7280;">I link alle foto richiedono accesso al portale aziendale.</p>
+    </div>
+    ` : ''}
     
     <p>Per qualsiasi domanda o necessità, non esiti a contattarci.</p>
     
@@ -211,6 +227,11 @@ ${rapportino.intervento.descrizione}
 
 ${rapportino.intervento.materialiUtilizzati ? `MATERIALI UTILIZZATI:\n${rapportino.intervento.materialiUtilizzati}\n` : ''}
 ${rapportino.intervento.note ? `NOTE:\n${rapportino.intervento.note}\n` : ''}
+${rapportino.immagini && rapportino.immagini.length > 0 ? `FOTO INTERVENTO:\n${rapportino.immagini.map((img, index) => {
+  const label = img.caption?.trim() || `Foto ${index + 1}`;
+  const url = img.url || buildRapportinoImmagineUrl(rapportino.id, img.id);
+  return `- ${label}: ${url}`;
+}).join('\n')}\n` : ''}
 
 Per qualsiasi domanda o necessità, non esiti a contattarci.
 
