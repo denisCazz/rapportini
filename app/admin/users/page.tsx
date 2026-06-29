@@ -248,6 +248,11 @@ export default function UsersPage() {
 
   if (!isAuthenticated) return null;
 
+  const inputClass =
+    'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40';
+  const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+  const thClass = 'px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground';
+
   return (
     <SidebarLayout
       settings={settings}
@@ -257,7 +262,7 @@ export default function UsersPage() {
       topActions={
         <button
           onClick={() => { resetForm(); setEditingUser(null); setShowModal(true); }}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -268,84 +273,84 @@ export default function UsersPage() {
     >
       <div>
         {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <p className="text-red-800 dark:text-red-200">{error}</p>
+          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+            <p className="text-destructive">{error}</p>
           </div>
         )}
 
         {loading ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento utenti...</p>
+          <div className="saas-card p-12 text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
+            <p className="mt-4 text-muted-foreground">Caricamento utenti...</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+          <div className="saas-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                <thead className="border-b border-border bg-muted/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Utente</th>
+                    <th className={thClass}>Utente</th>
                     {isPlatformAdminUser && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Organizzazione</th>
+                      <th className={thClass}>Organizzazione</th>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ruolo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contatti</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stato</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ultimo Accesso</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Azioni</th>
+                    <th className={thClass}>Ruolo</th>
+                    <th className={thClass}>Contatti</th>
+                    <th className={thClass}>Stato</th>
+                    <th className={thClass}>Ultimo Accesso</th>
+                    <th className={`${thClass} text-right`}>Azioni</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-border">
                   {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <tr key={user.id} className="transition-colors hover:bg-muted/40">
+                      <td className="whitespace-nowrap px-6 py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{user.nome} {user.cognome}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</div>
+                          <div className="text-sm font-medium text-foreground">{user.nome} {user.cognome}</div>
+                          <div className="text-sm text-muted-foreground">@{user.username}</div>
                         </div>
                       </td>
                       {isPlatformAdminUser && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                           {user.organizzazione || 'Piattaforma'}
                         </td>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                           user.ruolo === 'admin' || user.ruolo === 'admin_cat'
-                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200'
+                            ? 'bg-primary/10 text-primary ring-1 ring-inset ring-primary/20'
+                            : 'bg-muted text-foreground ring-1 ring-inset ring-border'
                         }`}>
                           {user.ruolo === 'admin_cat' ? 'admin CAT' : user.ruolo}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                         <div>{user.email || '-'}</div>
                         <div>{user.telefono || '-'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="whitespace-nowrap px-6 py-4">
                         <button
                           onClick={() => handleToggleActive(user)}
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
                             user.attivo 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' 
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
+                              ? 'bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400' 
+                              : 'bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/20'
                           }`}
                         >
                           {user.attivo ? 'Attivo' : 'Disattivato'}
                         </button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                         {user.ultimo_accesso 
                           ? format(new Date(user.ultimo_accesso), 'dd/MM/yyyy HH:mm', { locale: it })
                           : 'Mai'
                         }
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => openEditModal(user)}
                             disabled={isCatAdminUser && user.ruolo !== 'operatore'}
-                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="text-primary transition-colors hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-30"
                             title="Modifica"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,7 +359,7 @@ export default function UsersPage() {
                           </button>
                           <button
                             onClick={() => { setPasswordUserId(user.id); setShowPasswordModal(true); }}
-                            className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400"
+                            className="text-amber-600 transition-colors hover:text-amber-700 dark:text-amber-400"
                             title="Reset Password"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,7 +369,7 @@ export default function UsersPage() {
                           <button
                             onClick={() => handleDelete(user)}
                             disabled={isCatAdminUser && user.ruolo !== 'operatore'}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="text-destructive transition-colors hover:text-destructive/80 disabled:cursor-not-allowed disabled:opacity-30"
                             title="Elimina"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,32 +389,32 @@ export default function UsersPage() {
 
       {/* Modal Crea/Modifica Utente */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
                 {editingUser ? 'Modifica Utente' : 'Nuovo Utente'}
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!editingUser && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username *</label>
+                      <label className={labelClass}>Username *</label>
                       <input
                         type="text"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={inputClass}
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password *</label>
+                      <label className={labelClass}>Password *</label>
                       <input
                         type="password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={inputClass}
                         required
                         minLength={8}
                       />
@@ -418,52 +423,52 @@ export default function UsersPage() {
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome *</label>
+                    <label className={labelClass}>Nome *</label>
                     <input
                       type="text"
                       value={formData.nome}
                       onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className={inputClass}
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cognome *</label>
+                    <label className={labelClass}>Cognome *</label>
                     <input
                       type="text"
                       value={formData.cognome}
                       onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className={inputClass}
                       required
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                  <label className={labelClass}>Email</label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefono</label>
+                  <label className={labelClass}>Telefono</label>
                   <input
                     type="tel"
                     value={formData.telefono}
                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className={labelClass}>
                     Qualifica {(isCatAdminUser || formData.ruolo === 'operatore') && <span className="text-red-500">*</span>}
                   </label>
                   <select
                     value={formData.qualifica}
                     onChange={(e) => setFormData({ ...formData, qualifica: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                     required={isCatAdminUser || formData.ruolo === 'operatore'}
                   >
                     <option value="">Seleziona qualifica</option>
@@ -476,7 +481,7 @@ export default function UsersPage() {
                 </div>
                 {!isCatAdminUser && !(editingUser && isCatOrgUser(editingUser)) && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo *</label>
+                    <label className={labelClass}>Ruolo *</label>
                     <select
                       value={formData.ruolo}
                       onChange={(e) =>
@@ -485,7 +490,7 @@ export default function UsersPage() {
                           ruolo: e.target.value as 'admin' | 'admin_cat' | 'operatore',
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className={inputClass}
                     >
                       <option value="operatore">Operatore</option>
                       {isPlatformAdminUser && <option value="admin">Admin</option>}
@@ -494,10 +499,10 @@ export default function UsersPage() {
                 )}
                 {editingUser && isCatOrgUser(editingUser) && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo</label>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <label className={labelClass}>Ruolo</label>
+                    <p className="text-sm text-muted-foreground">
                       {editingUser.ruolo === 'admin_cat' ? 'admin CAT' : editingUser.ruolo}
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span className="mt-1 block text-xs text-muted-foreground">
                         Il ruolo degli utenti CAT non può essere modificato da qui.
                       </span>
                     </p>
@@ -505,7 +510,7 @@ export default function UsersPage() {
                 )}
                 {(isCatAdminUser || formData.ruolo === 'operatore') && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Firma operatore</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Firma operatore</label>
                     <SignaturePad
                       label="Firma"
                       value={formData.firma}
@@ -517,14 +522,14 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => { setShowModal(false); setEditingUser(null); }}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                   >
                     Annulla
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
                     {saving ? 'Salvataggio...' : 'Salva'}
                   </button>
@@ -537,18 +542,18 @@ export default function UsersPage() {
 
       {/* Modal Reset Password */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Reset Password</h2>
+              <h2 className="mb-4 font-heading text-xl font-bold text-foreground">Reset Password</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nuova Password *</label>
+                  <label className={labelClass}>Nuova Password *</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                     minLength={8}
                     placeholder="Minimo 8 caratteri"
                   />
@@ -557,14 +562,14 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => { setShowPasswordModal(false); setPasswordUserId(null); setNewPassword(''); }}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                   >
                     Annulla
                   </button>
                   <button
                     onClick={handleResetPassword}
                     disabled={!newPassword || newPassword.length < 8}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
                     Reset Password
                   </button>
