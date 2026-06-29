@@ -226,6 +226,9 @@ export default function AdminCatsPage() {
     router.push('/login');
   };
 
+  const inputClass =
+    'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40';
+
   return (
     <SidebarLayout
       settings={settings}
@@ -345,79 +348,79 @@ export default function AdminCatsPage() {
       )}
 
       {editingCat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-2xl dark:bg-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
             <div className="p-6">
-              <h2 className="mb-1 text-xl font-bold text-gray-900 dark:text-white">Modifica CAT</h2>
+              <h2 className="mb-1 font-heading text-xl font-bold text-foreground">Modifica CAT</h2>
               <p className="mb-4 text-sm text-muted-foreground">
                 {editingCat.ragione_sociale || editingCat.org_id}
               </p>
               <form onSubmit={saveCatDetails} className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Partita IVA
                   </label>
                   <input
                     type="text"
                     value={editingCat.partita_iva || ''}
                     readOnly
-                    className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-300"
+                    className="w-full cursor-not-allowed rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
                     La Partita IVA non è modificabile perché identifica il CAT nel sistema.
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Ragione sociale *
                   </label>
                   <input
                     type="text"
                     value={editForm.ragione_sociale}
                     onChange={(e) => setEditForm({ ...editForm, ragione_sociale: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className={inputClass}
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Indirizzo *
                   </label>
                   <input
                     type="text"
                     value={editForm.indirizzo}
                     onChange={(e) => setEditForm({ ...editForm, indirizzo: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className={inputClass}
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Codice fiscale *
                   </label>
                   <input
                     type="text"
                     value={editForm.codice_fiscale}
                     onChange={(e) => setEditForm({ ...editForm, codice_fiscale: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className={inputClass}
                     required
                     maxLength={16}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     PEC *
                   </label>
                   <input
                     type="email"
                     value={editForm.pec}
                     onChange={(e) => setEditForm({ ...editForm, pec: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className={inputClass}
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Codice destinatario SDI *
                   </label>
                   <input
@@ -426,7 +429,7 @@ export default function AdminCatsPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, codice_destinatario_sdi: e.target.value.toUpperCase() })
                     }
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className={inputClass}
                     required
                     maxLength={7}
                   />
