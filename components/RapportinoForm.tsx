@@ -817,12 +817,12 @@ export default function RapportinoForm({
       <div className="mb-6 sm:mb-8">
         <div className="flex items-start justify-between gap-3 mb-5 sm:mb-6">
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl sm:text-3xl font-bold text-surface-900 dark:text-white mb-1 tracking-tight">{initialRapportino ? 'Modifica Rapportino' : 'Nuovo Rapportino'}</h2>
-            <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Compila tutti i campi obbligatori per creare un nuovo rapportino</p>
+            <h2 className="mb-1 font-heading text-xl font-bold tracking-tight text-foreground sm:text-3xl">{initialRapportino ? 'Modifica Rapportino' : 'Nuovo Rapportino'}</h2>
+            <p className="text-sm text-muted-foreground font-medium">Compila tutti i campi obbligatori per creare un nuovo rapportino</p>
           </div>
           <button
             onClick={onCancel}
-            className="shrink-0 flex items-center justify-center min-w-11 min-h-11 p-2.5 text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-md transition-all hover:text-surface-900 dark:hover:text-white"
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md p-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Chiudi"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -863,20 +863,20 @@ export default function RapportinoForm({
 
       {step === 1 && (
         <div className="space-y-6 pb-2 sm:pb-0">
-          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 bg-surface-50/50 dark:bg-surface-800/30 p-3 sm:p-4 rounded-md border border-surface-100 dark:border-surface-700/50">
-            <div className="shrink-0 p-2.5 sm:p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl shadow-inner">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-3 sm:items-center sm:gap-4 sm:p-4">
+            <div className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary ring-1 ring-inset ring-primary/20 sm:p-3">
+              <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
             <div className="min-w-0">
-              <h3 className="text-base sm:text-lg font-bold text-surface-900 dark:text-white">Dati Operatore</h3>
-              <p className="text-sm text-surface-500 dark:text-surface-400 font-medium">Inserisci le informazioni dell&apos;operatore che esegue l&apos;intervento</p>
+              <h3 className="text-base sm:text-lg font-bold text-foreground">Dati Operatore</h3>
+              <p className="text-sm text-muted-foreground font-medium">Inserisci le informazioni dell&apos;operatore che esegue l&apos;intervento</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Nome <span className="text-red-500">*</span>
               </label>
               <input
@@ -887,7 +887,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Cognome <span className="text-red-500">*</span>
               </label>
               <input
@@ -898,7 +898,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Telefono <span className="text-red-500">*</span>
               </label>
               <input
@@ -909,7 +909,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Email
               </label>
               <input
@@ -919,7 +919,7 @@ export default function RapportinoForm({
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Qualifica <span className="text-red-500">*</span>
               </label>
               <input
@@ -941,7 +941,7 @@ export default function RapportinoForm({
       {step === 3 && (
         <div className="space-y-6">
           <FormSectionHeader
-            iconClassName="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+            iconClassName="bg-primary/10 text-primary ring-1 ring-inset ring-primary/20"
             icon={
               <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -952,7 +952,7 @@ export default function RapportinoForm({
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="relative">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Nome <span className="text-red-500">*</span>
               </label>
               <input
@@ -977,7 +977,7 @@ export default function RapportinoForm({
               )}
             </div>
             <div className="relative">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Cognome <span className="text-red-500">*</span>
               </label>
               <input
@@ -1001,36 +1001,36 @@ export default function RapportinoForm({
             {showClientiList && clientiEsistenti.length > 0 && (
               <div ref={clientiListRef} className="md:col-span-2 relative z-10 clienti-list-container">
                 <div className="mt-2 max-h-48 overflow-y-auto overscroll-contain rounded-md border border-border bg-card shadow-md sm:max-h-64">
-                  <div className="p-3 border-b border-surface-200 dark:border-surface-700 bg-surface-50/50 dark:bg-surface-900/50">
-                    <p className="text-xs font-bold text-surface-700 dark:text-surface-300 flex items-center gap-2">
-                      <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="border-b border-border bg-muted/40 p-3">
+                    <p className="flex items-center gap-2 text-xs font-bold text-foreground">
+                      <svg className="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       Trovati {clientiEsistenti.length} cliente{clientiEsistenti.length > 1 ? 'i' : ''} esistente{clientiEsistenti.length > 1 ? 'i' : ''} - Seleziona per precompilare i dati
                     </p>
                   </div>
-                  <div className="divide-y divide-surface-100 dark:divide-surface-700">
+                  <div className="divide-y divide-border">
                     {clientiEsistenti.map((clienteEsistente) => (
                       <button
                         key={clienteEsistente.nome + clienteEsistente.cognome + clienteEsistente.telefono}
                         type="button"
                         onClick={() => handleSelectCliente(clienteEsistente)}
-                        className="w-full text-left p-4 min-h-11 hover:bg-primary-50/50 dark:hover:bg-primary-900/20 transition-colors"
+                        className="min-h-11 w-full p-4 text-left transition-colors hover:bg-primary/10"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <p className="font-bold text-surface-900 dark:text-white">
+                            <p className="font-bold text-foreground">
                               {clienteEsistente.nome} {clienteEsistente.cognome}
                               {clienteEsistente.ragioneSociale && (
-                                <span className="text-sm font-medium text-surface-500 dark:text-surface-400 ml-2">
+                                <span className="text-sm font-medium text-muted-foreground ml-2">
                                   • {clienteEsistente.ragioneSociale}
                                 </span>
                               )}
                             </p>
-                            <p className="text-sm text-surface-600 dark:text-surface-400 mt-1 font-medium">
+                            <p className="mt-1 text-sm font-medium text-muted-foreground">
                               {clienteEsistente.indirizzo}, {clienteEsistente.citta} ({clienteEsistente.cap})
                             </p>
-                            <p className="text-sm text-surface-500 dark:text-surface-500 mt-1 font-medium">
+                            <p className="mt-1 text-sm font-medium text-muted-foreground">
                               📞 {clienteEsistente.telefono}
                               {clienteEsistente.email && ` • ✉️ ${clienteEsistente.email}`}
                             </p>
@@ -1042,14 +1042,14 @@ export default function RapportinoForm({
                       </button>
                     ))}
                   </div>
-                  <div className="p-3 border-t border-surface-200 dark:border-surface-700 bg-surface-50/50 dark:bg-surface-900/50">
+                  <div className="border-t border-border bg-muted/40 p-3">
                     <button
                       type="button"
                       onClick={() => {
                         setShowClientiList(false);
                         setClientiEsistenti([]);
                       }}
-                      className="text-xs font-bold text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white transition-colors"
+                      className="text-xs font-bold text-muted-foreground transition-colors hover:text-foreground"
                     >
                       Continua con nuovo cliente
                     </button>
@@ -1058,7 +1058,7 @@ export default function RapportinoForm({
               </div>
             )}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Ragione Sociale
               </label>
               <input
@@ -1069,7 +1069,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Via <span className="text-red-500">*</span>
               </label>
               <input
@@ -1081,7 +1081,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Numero civico
               </label>
               <input
@@ -1092,7 +1092,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Località <span className="text-red-500">*</span>
               </label>
               <input
@@ -1104,7 +1104,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Provincia
               </label>
               <input
@@ -1117,7 +1117,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Telefono <span className="text-red-500">*</span>
               </label>
               <input
@@ -1129,7 +1129,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Email
               </label>
               <input
@@ -1140,7 +1140,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Partita IVA
               </label>
               <input
@@ -1151,7 +1151,7 @@ export default function RapportinoForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-surface-700 dark:text-surface-300 mb-1.5">
+              <label className="mb-1.5 block text-sm font-bold text-foreground">
                 Codice Fiscale
               </label>
               <input
@@ -1220,13 +1220,13 @@ export default function RapportinoForm({
         aria-hidden
       />
 
-      <div className="fixed bottom-0 left-0 right-0 z-[45] border-t border-surface-200 bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-surface-700 sm:static sm:z-auto sm:mt-10 sm:border-t sm:bg-transparent sm:p-0">
+      <div className="fixed bottom-0 left-0 right-0 z-[45] border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:static sm:z-auto sm:mt-10 sm:border-t sm:bg-transparent sm:p-0">
         <div className="mx-auto flex max-w-4xl flex-col-reverse gap-3 sm:flex-row sm:justify-between">
           <button
             type="button"
             onClick={() => step > 1 && setStep(step - 1)}
             disabled={step === 1}
-            className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-surface-200 px-8 py-4 font-medium text-surface-700 transition-all hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800/50 sm:w-auto"
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-border px-8 py-4 font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -1237,7 +1237,7 @@ export default function RapportinoForm({
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-primary-500 px-8 py-4 font-medium text-white  transition-all hover:bg-primary-600 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-8 py-4 font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
             >
               Avanti
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1248,7 +1248,7 @@ export default function RapportinoForm({
             <button
               type="button"
               onClick={handleConfirmSave}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-8 py-4 font-medium text-white  transition-all hover:bg-emerald-600 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-8 py-4 font-medium text-white transition-colors hover:bg-emerald-700 sm:w-auto"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
