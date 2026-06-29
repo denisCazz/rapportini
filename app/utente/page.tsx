@@ -187,6 +187,11 @@ export default function UtentePage() {
     return null;
   }
 
+  const inputClass =
+    'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40';
+  const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+  const sectionTitleClass = 'mb-4 font-heading text-base font-semibold text-foreground';
+
   return (
     <SidebarLayout
       settings={settings}
@@ -194,84 +199,84 @@ export default function UtentePage() {
       pageSubtitle="Gestisci i tuoi dati personali e la firma"
       onLogout={handleLogout}
     >
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="saas-card p-6">
         {loadingProfile ? (
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" />
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Caricamento profilo...</p>
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
+            <p className="mt-4 text-muted-foreground">Caricamento profilo...</p>
           </div>
         ) : (
           <form onSubmit={handleSaveProfile} className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="grid h-14 w-14 place-items-center rounded-md bg-primary text-lg font-semibold text-primary-foreground">
+              <div className="grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-primary to-primary-700 font-heading text-lg font-bold text-primary-foreground shadow-sm">
                 {formData.nome?.charAt(0)}{formData.cognome?.charAt(0)}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">
                   {formData.nome} {formData.cognome}
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">{user.ruolo}</p>
+                <p className="text-sm capitalize text-muted-foreground">{user.ruolo}</p>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Dati personali</h3>
+            <div className="border-t border-border pt-4">
+              <h3 className={sectionTitleClass}>Dati personali</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                  <label className={labelClass}>Username</label>
                   <input
                     type="text"
                     value={user.username}
                     disabled
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    className="w-full cursor-not-allowed rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                  <label className={labelClass}>Email</label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome *</label>
+                  <label className={labelClass}>Nome *</label>
                   <input
                     type="text"
                     value={formData.nome}
                     onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cognome *</label>
+                  <label className={labelClass}>Cognome *</label>
                   <input
                     type="text"
                     value={formData.cognome}
                     onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefono</label>
+                  <label className={labelClass}>Telefono</label>
                   <input
                     type="tel"
                     value={formData.telefono}
                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className={labelClass}>
                     Qualifica {isOperatore && <span className="text-red-500">*</span>}
                   </label>
                   <select
                     value={formData.qualifica}
                     onChange={(e) => setFormData({ ...formData, qualifica: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className={inputClass}
                     required={isOperatore}
                   >
                     <option value="">Seleziona qualifica</option>
@@ -285,8 +290,8 @@ export default function UtentePage() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Firma operatore</h3>
+            <div className="border-t border-border pt-4">
+              <h3 className="mb-3 font-heading text-base font-semibold text-foreground">Firma operatore</h3>
               <SignaturePad
                 label="Firma personale"
                 value={formData.firma}
@@ -298,7 +303,7 @@ export default function UtentePage() {
               <button
                 type="submit"
                 disabled={savingProfile}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {savingProfile ? 'Salvataggio...' : 'Salva modifiche'}
               </button>
@@ -306,13 +311,13 @@ export default function UtentePage() {
           </form>
         )}
 
-        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">Password</h3>
+        <div className="mt-6 border-t border-border pt-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="font-heading text-base font-semibold text-foreground">Password</h3>
             <button
               type="button"
               onClick={() => setShowPasswordForm((prev) => !prev)}
-              className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400"
+              className="text-sm font-medium text-primary hover:underline"
             >
               {showPasswordForm ? 'Annulla' : 'Cambia password'}
             </button>
@@ -320,35 +325,35 @@ export default function UtentePage() {
           {showPasswordForm && (
             <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password attuale</label>
+                <label className={labelClass}>Password attuale</label>
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className={inputClass}
                   required
                   autoComplete="current-password"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nuova password</label>
+                <label className={labelClass}>Nuova password</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className={inputClass}
                   required
                   minLength={8}
                   autoComplete="new-password"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conferma password</label>
+                <label className={labelClass}>Conferma password</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className={inputClass}
                   required
                   minLength={8}
                   autoComplete="new-password"
@@ -358,7 +363,7 @@ export default function UtentePage() {
                 <button
                   type="submit"
                   disabled={savingPassword}
-                  className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                 >
                   {savingPassword ? 'Aggiornamento...' : 'Aggiorna password'}
                 </button>
@@ -367,9 +372,9 @@ export default function UtentePage() {
           )}
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Diritti privacy (GDPR)</h3>
-          <div className="flex flex-wrap gap-3 mb-6">
+        <div className="mt-6 border-t border-border pt-6">
+          <h3 className={sectionTitleClass}>Diritti privacy (GDPR)</h3>
+          <div className="mb-6 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={async () => {
@@ -391,37 +396,37 @@ export default function UtentePage() {
                 }
               }}
               disabled={exportingData}
-              className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 text-sm"
+              className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
             >
               {exportingData ? 'Esportazione...' : 'Esporta i miei dati'}
             </button>
             <button
               type="button"
               onClick={() => setDeleteModalOpen(true)}
-              className="px-4 py-2 bg-red-600/10 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-600/20 text-sm"
+              className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
             >
               Elimina account
             </button>
             <Link
               href="/privacy"
               target="_blank"
-              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Privacy Policy →
             </Link>
           </div>
         </div>
 
-        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Contatti</h3>
-          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-6 border-t border-border pt-6">
+          <h3 className="mb-3 font-heading text-base font-semibold text-foreground">Contatti</h3>
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <p className="text-sm text-muted-foreground">
               Sito sviluppato da{' '}
               <a
                 href="https://bitora.it"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-medium text-primary-600 hover:underline dark:text-primary-400"
+                className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
               >
                 bitora.it
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden />
@@ -431,7 +436,7 @@ export default function UtentePage() {
               href="https://bitora.it/contattaci"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Mail className="h-4 w-4" aria-hidden />
               Contattaci
@@ -441,10 +446,10 @@ export default function UtentePage() {
       </div>
 
       {deleteModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setDeleteModalOpen(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Elimina account</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setDeleteModalOpen(false)}>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="mb-2 font-heading text-lg font-bold text-foreground">Elimina account</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
               Questa azione disattiverà il tuo account. I dati saranno cancellati secondo la policy di retention. Se hai rapportini creati, contatta l&apos;admin per riassegnarli prima.
             </p>
             <input
@@ -452,17 +457,17 @@ export default function UtentePage() {
               placeholder="Password"
               value={deletePassword}
               onChange={e => setDeletePassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-2"
+              className="mb-2 w-full rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
             />
             <input
               type="text"
               placeholder='Scrivi ELIMINA per confermare'
               value={deleteConfirm}
               onChange={e => setDeleteConfirm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-4"
+              className="mb-4 w-full rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
             />
             <div className="flex gap-2">
-              <button onClick={() => setDeleteModalOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
+              <button onClick={() => setDeleteModalOpen(false)} className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                 Annulla
               </button>
               <button
@@ -484,7 +489,7 @@ export default function UtentePage() {
                   }
                 }}
                 disabled={deleting}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-destructive/90 disabled:opacity-50"
               >
                 {deleting ? 'Eliminazione...' : 'Elimina'}
               </button>

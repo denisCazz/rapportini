@@ -209,7 +209,7 @@ export default function AdminPage() {
                   exportStatistiche(statistiche, { format: 'xlsx' });
                   document.getElementById('export-dropdown')?.classList.add('hidden');
                 }}
-                className="w-full px-4 py-3 text-left text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800/50 transition-colors"
+                className="w-full px-4 py-3 text-left text-foreground transition-colors hover:bg-muted"
               >
                 Esporta Excel (.xlsx)
               </button>
@@ -218,7 +218,7 @@ export default function AdminPage() {
                   exportStatistiche(statistiche, { format: 'csv' });
                   document.getElementById('export-dropdown')?.classList.add('hidden');
                 }}
-                className="w-full px-4 py-3 text-left text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800/50 transition-colors border-t border-surface-200/50 dark:border-surface-700/50"
+                className="w-full border-t border-border px-4 py-3 text-left text-foreground transition-colors hover:bg-muted"
               >
                 Esporta CSV
               </button>
@@ -234,9 +234,9 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Totale Clienti</p>
-                <p className="mt-1 text-3xl font-semibold text-foreground">{totalClienti}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-foreground">{totalClienti}</p>
               </div>
-              <div className="rounded-md bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              <div className="rounded-lg bg-primary/10 p-3 text-primary ring-1 ring-inset ring-primary/20">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
@@ -248,9 +248,9 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Totale Rapportini</p>
-                <p className="mt-1 text-3xl font-semibold text-foreground">{totalRapportini}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-foreground">{totalRapportini}</p>
               </div>
-              <div className="rounded-md bg-emerald-100 p-3 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+              <div className="rounded-lg bg-amber-500/10 p-3 text-amber-600 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -262,9 +262,9 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Stufe Pellet</p>
-                <p className="mt-1 text-3xl font-semibold text-orange-600">{totalPellet}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-orange-600">{totalPellet}</p>
               </div>
-              <div className="rounded-md bg-orange-100 p-3 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+              <div className="rounded-lg bg-orange-500/10 p-3 text-orange-600 ring-1 ring-inset ring-orange-500/20 dark:text-orange-400">
                 <span className="text-sm font-medium">Pellet</span>
               </div>
             </div>
@@ -274,9 +274,9 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Stufe Legno</p>
-                <p className="mt-1 text-3xl font-semibold text-amber-700">{totalLegno}</p>
+                <p className="mt-1 font-heading text-3xl font-bold tracking-tight text-amber-700">{totalLegno}</p>
               </div>
-              <div className="rounded-md bg-amber-100 p-3 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              <div className="rounded-lg bg-amber-800/10 p-3 text-amber-800 ring-1 ring-inset ring-amber-800/20 dark:text-amber-500">
                 <span className="text-sm font-medium">Legno</span>
               </div>
             </div>
@@ -288,7 +288,7 @@ export default function AdminPage() {
           <div className="mb-8">
             <button
               onClick={() => setShowCharts(!showCharts)}
-              className="mb-4 flex items-center gap-2 text-surface-500 dark:text-surface-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors font-medium"
+              className="mb-4 flex items-center gap-2 font-medium text-muted-foreground transition-colors hover:text-primary"
             >
               <svg className={`w-5 h-5 transition-transform ${showCharts ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -298,8 +298,8 @@ export default function AdminPage() {
             {showCharts && (
               <Suspense fallback={
                 <div className="saas-card p-12 text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-                  <p className="mt-4 text-surface-600 dark:text-surface-300">Caricamento grafici...</p>
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                  <p className="mt-4 text-muted-foreground">Caricamento grafici...</p>
                 </div>
               }>
                 <StatisticsCharts data={statistiche} trendMensile={trendMensile} />
@@ -319,7 +319,7 @@ export default function AdminPage() {
               className="w-full rounded-md border border-input bg-background py-3 pl-12 pr-4 text-foreground focus:ring-2 focus:ring-ring"
             />
             <svg
-              className="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-surface-400 group-focus-within:text-primary-500 transition-colors"
+              className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 transform text-muted-foreground transition-colors group-focus-within:text-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -332,7 +332,7 @@ export default function AdminPage() {
         {error && <ErrorBanner message={error} onRetry={loadStatistics} />}
 
         {loading ? (
-          <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="saas-card space-y-4 p-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex gap-4">
                 <Skeleton className="h-16 w-16 shrink-0 rounded-xl" />
@@ -344,9 +344,9 @@ export default function AdminPage() {
             ))}
           </div>
         ) : filteredStatistiche.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
+          <div className="saas-card p-12 text-center">
             <svg
-              className="mx-auto h-24 w-24 text-gray-400 dark:text-gray-500 mb-4"
+              className="mx-auto mb-4 h-24 w-24 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -358,10 +358,10 @@ export default function AdminPage() {
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               />
             </svg>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="mb-2 font-heading text-xl font-semibold text-foreground">
               {searchTerm ? 'Nessun cliente trovato' : 'Nessun dato disponibile'}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-muted-foreground">
               {searchTerm ? 'Prova con un altro termine di ricerca' : 'Crea il primo rapportino per vedere le statistiche'}
             </p>
           </div>
@@ -370,7 +370,7 @@ export default function AdminPage() {
             {filteredStatistiche.map((stat) => (
               <div
                 key={stat.cliente.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all hover:shadow-xl"
+                className="saas-card overflow-hidden transition-shadow hover:shadow-lg"
               >
                 <div
                   className="p-6 cursor-pointer"
@@ -378,17 +378,17 @@ export default function AdminPage() {
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      <div className="mb-2 flex items-center gap-3">
+                        <h3 className="font-heading text-xl font-bold text-foreground">
                           {stat.cliente.nome} {stat.cliente.cognome}
                         </h3>
                         {stat.cliente.ragioneSociale && (
-                          <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm">
+                          <span className="rounded-full bg-muted px-3 py-1 text-sm text-foreground">
                             {stat.cliente.ragioneSociale}
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -414,10 +414,10 @@ export default function AdminPage() {
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                        <p className="font-heading text-2xl font-bold text-primary">
                           {stat.statistiche.totale}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Rapportini</p>
+                        <p className="text-xs text-muted-foreground">Rapportini</p>
                       </div>
                       <div className="flex gap-2">
                         <div className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded-full text-sm font-medium">
@@ -427,7 +427,7 @@ export default function AdminPage() {
                           🪵 {stat.statistiche.legno}
                         </div>
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                      <button className="text-muted-foreground transition-colors hover:text-foreground">
                         <svg
                           className={`w-6 h-6 transition-transform ${expandedClient === stat.cliente.id ? 'rotate-180' : ''}`}
                           fill="none"
@@ -442,22 +442,22 @@ export default function AdminPage() {
                 </div>
 
                 {expandedClient === stat.cliente.id && (
-                  <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="border-t border-border bg-muted/40 p-6">
+                    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Statistiche Dettagliate</h4>
+                        <h4 className="mb-3 font-heading text-sm font-semibold text-foreground">Statistiche Dettagliate</h4>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Primo Intervento:</span>
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="text-muted-foreground">Primo Intervento:</span>
+                            <span className="font-medium text-foreground">
                               {stat.statistiche.primoIntervento
                                 ? format(new Date(stat.statistiche.primoIntervento), 'dd MMMM yyyy', { locale: it })
                                 : 'N/A'}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Ultimo Intervento:</span>
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="text-muted-foreground">Ultimo Intervento:</span>
+                            <span className="font-medium text-foreground">
                               {stat.statistiche.ultimoIntervento
                                 ? format(new Date(stat.statistiche.ultimoIntervento), 'dd MMMM yyyy', { locale: it })
                                 : 'N/A'}
@@ -466,12 +466,12 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tipi di Intervento</h4>
+                        <h4 className="mb-3 font-heading text-sm font-semibold text-foreground">Tipi di Intervento</h4>
                         <div className="space-y-2">
                           {Object.entries(stat.statistiche.tipiIntervento).map(([tipo, count]) => (
                             <div key={tipo} className="flex items-center justify-between">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">{tipo}</span>
-                              <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200 rounded text-sm font-medium">
+                              <span className="text-sm text-muted-foreground">{tipo}</span>
+                              <span className="rounded bg-primary/10 px-2 py-1 text-sm font-medium text-primary">
                                 {count}
                               </span>
                             </div>
@@ -481,13 +481,13 @@ export default function AdminPage() {
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      <h4 className="mb-3 font-heading text-sm font-semibold text-foreground">
                         Storico Rapportini ({stat.statistiche.totale})
                       </h4>
                       {loadingClientRapportini === stat.cliente.id ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">Caricamento storico...</p>
+                        <p className="text-sm italic text-muted-foreground">Caricamento storico...</p>
                       ) : (clientRapportini[stat.cliente.id] ?? []).length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                        <p className="text-sm italic text-muted-foreground">
                           Nessun rapportino disponibile
                         </p>
                       ) : (
@@ -503,7 +503,7 @@ export default function AdminPage() {
                             <div
                               key={rapportino.id}
                               onClick={() => handleRapportinoClick(rapportino.id)}
-                              className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                              className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted"
                             >
                               <div className="flex items-center gap-3 flex-wrap">
                                 <span
@@ -515,13 +515,13 @@ export default function AdminPage() {
                                 >
                                   {rapportino.tipoStufa === 'pellet' ? '🔥 Pellet' : '🪵 Legno'}
                                 </span>
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                <span className="text-sm font-medium text-foreground">
                                   {format(new Date(rapportino.dataIntervento), 'dd/MM/yyyy', { locale: it })}
                                 </span>
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                <span className="text-sm text-muted-foreground">
                                   {rapportino.tipoIntervento}
                                 </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-500">
+                                <span className="text-xs text-muted-foreground">
                                   (ID: {rapportino.id.substring(0, 8)}...)
                                 </span>
                               </div>
@@ -549,24 +549,24 @@ export default function AdminPage() {
 
       {/* Loading overlay quando carica il rapportino */}
       {loadingRapportino && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-4">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p className="text-gray-900 dark:text-white">Caricamento dettagli...</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-6 shadow-xl">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+            <p className="text-foreground">Caricamento dettagli...</p>
           </div>
         </div>
       )}
 
-      <footer className="mt-12 py-6 border-t border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
+      <footer className="mt-12 border-t border-border py-6">
+        <div className="container mx-auto max-w-7xl px-4">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <div className="text-center text-sm text-muted-foreground sm:text-left">
               <p>
                 <a 
                   href="https://bitora.it" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
+                  className="font-semibold transition-colors hover:text-primary"
                 >
                   Bitora Software Gestionale Stufe
                 </a>
@@ -575,7 +575,7 @@ export default function AdminPage() {
                   href="https://bitora.it" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
+                  className="font-semibold transition-colors hover:text-primary"
                 >
                   Bitora.it
                 </a>

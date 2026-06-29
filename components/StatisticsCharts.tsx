@@ -8,18 +8,16 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   AreaChart,
   Area,
 } from 'recharts';
 import { format, eachMonthOfInterval, subMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { ChartGradients, ChartTooltip, ChartLegendRow, CHART_PALETTE, AXIS_TICK, GRID_STROKE } from '@/components/charts/chartTheme';
 
 interface ClienteStatistiche {
   cliente: {
@@ -52,20 +50,19 @@ interface StatisticsChartsProps {
   trendMensile?: MonthlyTrendPoint[];
 }
 
-// Palette con colori ad alto contrasto
 const CHART_COLORS = {
-  pellet: '#ea580c', // ember
-  legno: '#92400e', // wood
-  primary: '#c2410c',
-  secondary: '#b45309',
-  accent: '#f97316',
-  teal: '#78716c',
-  pink: '#dc2626',
-  indigo: '#7c2d12',
+  pellet: CHART_PALETTE.pellet,
+  legno: CHART_PALETTE.legno,
 };
 
-// Colori per barre multiple (alto contrasto)
-const BAR_COLORS = ['#ea580c', '#c2410c', '#92400e', '#f97316', '#fb923c', '#9a3412', '#78716c', '#431407'];
+const BAR_COLORS = CHART_PALETTE.series;
+
+const cardClass = 'saas-card p-6';
+const titleClass = 'mb-4 font-heading text-base font-bold text-foreground';
+const pelletLegnoLegend = [
+  { label: 'Pellet', color: CHART_COLORS.pellet },
+  { label: 'Legno', color: CHART_COLORS.legno },
+];
 
 export default function StatisticsCharts({ data, trendMensile = [] }: StatisticsChartsProps) {
   // Dati per grafico a torta tipo stufa
@@ -133,61 +130,59 @@ export default function StatisticsCharts({ data, trendMensile = [] }: Statistics
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <div className="saas-card py-10 text-center text-sm text-muted-foreground">
         Nessun dato disponibile per i grafici
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Prima riga: Pie chart e Trend */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Distribuzione Tipo Stufa */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Distribuzione Tipo Stufa
-          </h3>
+        <div className={cardClass}>
+          <h3 className={titleClass}>Distribuzione tipo stufa</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
+              <ChartGradients />
               <Pie
                 data={pieData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
+                innerRadius={62}
                 outerRadius={100}
-                paddingAngle={5}
+                paddingAngle={3}
+                cornerRadius={8}
+                stroke="none"
                 dataKey="value"
-                label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
               >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
+                <Cell fill="url(#grad-pellet)" />
+                <Cell fill="url(#grad-legno)" />
               </Pie>
-              <Tooltip />
+              <Tooltip content={<ChartTooltip />} />
             </PieChart>
           </ResponsiveContainer>
+          <ChartLegendRow items={pelletLegnoLegend} />
         </div>
 
         {/* Trend Mensile */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Trend Interventi (ultimi 12 mesi)
-          </h3>
+        <div className={cardClass}>
+          <h3 className={titleClass}>Trend interventi (ultimi 12 mesi)</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Legend />
+            <AreaChart data={trendData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <ChartGradients />
+              <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
+              <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip content={<ChartTooltip />} />
               <Area
                 type="monotone"
                 dataKey="pellet"
                 stackId="1"
                 stroke={CHART_COLORS.pellet}
-                fill={CHART_COLORS.pellet}
-                fillOpacity={0.7}
+                strokeWidth={2}
+                fill="url(#grad-area-pellet)"
                 name="Pellet"
               />
               <Area
@@ -195,29 +190,28 @@ export default function StatisticsCharts({ data, trendMensile = [] }: Statistics
                 dataKey="legno"
                 stackId="1"
                 stroke={CHART_COLORS.legno}
-                fill={CHART_COLORS.legno}
-                fillOpacity={0.7}
+                strokeWidth={2}
+                fill="url(#grad-area-legno)"
                 name="Legno"
               />
             </AreaChart>
           </ResponsiveContainer>
+          <ChartLegendRow items={pelletLegnoLegend} />
         </div>
       </div>
 
       {/* Seconda riga: Tipi Intervento e Top Clienti */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Tipi di Intervento */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Tipi di Intervento
-          </h3>
+        <div className={cardClass}>
+          <h3 className={titleClass}>Tipi di intervento</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={interventoData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis type="number" tick={{ fontSize: 12 }} />
-              <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]} name="Interventi">
+            <BarChart data={interventoData} layout="vertical" margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} horizontal={false} />
+              <XAxis type="number" tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
+              <YAxis dataKey="name" type="category" width={110} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+              <Bar dataKey="value" radius={[0, 6, 6, 0]} name="Interventi" barSize={18}>
                 {interventoData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
                 ))}
@@ -227,21 +221,19 @@ export default function StatisticsCharts({ data, trendMensile = [] }: Statistics
         </div>
 
         {/* Top Clienti */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Top 5 Clienti
-          </h3>
+        <div className={cardClass}>
+          <h3 className={titleClass}>Top 5 clienti</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={topClienti}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="pellet" stackId="a" fill={CHART_COLORS.pellet} name="Pellet" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="legno" stackId="a" fill={CHART_COLORS.legno} name="Legno" radius={[4, 4, 0, 0]} />
+            <BarChart data={topClienti} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
+              <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+              <Bar dataKey="pellet" stackId="a" fill="url(#grad-pellet)" name="Pellet" barSize={28} radius={[0, 0, 0, 0]} />
+              <Bar dataKey="legno" stackId="a" fill="url(#grad-legno)" name="Legno" barSize={28} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          <ChartLegendRow items={pelletLegnoLegend} />
         </div>
       </div>
     </div>

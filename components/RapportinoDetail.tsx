@@ -25,8 +25,8 @@ function DetailField({ label, value }: { label: string; value?: string | null })
   if (!value?.trim()) return null;
   return (
     <div>
-      <p className="mb-1 text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm print:text-base">{label}</p>
-      <p className="font-bold text-surface-900 dark:text-white print:text-lg">{value}</p>
+      <p className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm print:text-base">{label}</p>
+      <p className="font-bold text-foreground print:text-lg">{value}</p>
     </div>
   );
 }
@@ -65,7 +65,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
     >
       <div className="saas-card my-4 w-full max-w-4xl sm:my-8 print:my-0 print:max-w-full print:rounded-none print:bg-white print:shadow-none">
         <div className="p-5 sm:p-8 print:p-8">
-          <div className="mb-6 flex flex-col items-start justify-between gap-4 border-b border-surface-200 pb-4 dark:border-surface-700 sm:mb-8 sm:flex-row sm:items-center sm:pb-6 print:border-surface-800">
+          <div className="mb-6 flex flex-col items-start justify-between gap-4 border-b border-border pb-4 dark:border-border sm:mb-8 sm:flex-row sm:items-center sm:pb-6 print:border-border">
             <div className="flex flex-1 items-center gap-3 sm:gap-4">
               {settings.logo ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -75,10 +75,10 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
                 <img src="/logo.png" alt={settings.nomeAzienda || 'Logo'} className="h-12 w-auto object-contain sm:h-16 print:h-20" />
               )}
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-surface-900 dark:text-white sm:text-2xl print:text-3xl">
+                <h1 className="font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl print:text-3xl">
                   {settings.nomeAzienda || 'EVA CALÒR'}
                 </h1>
-                <p className="text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm print:text-base">
+                <p className="text-xs font-medium text-muted-foreground sm:text-sm print:text-base">
                   Rapportino e Attivazione Garanzie
                 </p>
               </div>
@@ -98,18 +98,18 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             </div>
           </div>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Tipologia intervento</h2>
-            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Tipologia intervento</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-muted/40 p-4 sm:grid-cols-2 sm:gap-6 sm:p-6">
               <DetailField label="Tipologia" value={formatTipologiaIntervento(intervento.tipologiaIntervento || intervento.tipoIntervento)} />
               <DetailField label="Data richiesta" value={intervento.dataRichiesta ? format(new Date(intervento.dataRichiesta), 'dd/MM/yyyy') : undefined} />
               <DetailField label="Data intervento" value={`${format(new Date(intervento.data), 'dd/MM/yyyy')} - ${intervento.ora}`} />
             </div>
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Dati operatore (C.A.T.)</h2>
-            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Dati operatore (C.A.T.)</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-muted/40 p-4 sm:grid-cols-2 sm:gap-6 sm:p-6">
               <DetailField label="Nome e cognome" value={`${rapportino.operatore.nome} ${rapportino.operatore.cognome}`} />
               <DetailField label="Qualifica" value={rapportino.operatore.qualifica} />
               <DetailField label="Telefono" value={rapportino.operatore.telefono} />
@@ -117,9 +117,9 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             </div>
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Dati cliente</h2>
-            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Dati cliente</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-muted/40 p-4 sm:grid-cols-2 sm:gap-6 sm:p-6">
               <DetailField label="Cognome" value={cliente.cognome} />
               <DetailField label="Nome" value={cliente.nome} />
               <DetailField label="Via" value={indirizzoCliente} />
@@ -128,9 +128,9 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             </div>
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Dati apparecchio</h2>
-            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:grid-cols-2 sm:gap-6 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Dati apparecchio</h2>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-muted/40 p-4 sm:grid-cols-2 sm:gap-6 sm:p-6">
               <DetailField label="Tipo stufa" value={intervento.tipoStufa === 'pellet' ? 'Pellet' : 'Legno'} />
               <DetailField label="Marca" value={intervento.marca} />
               <DetailField label="Modello" value={intervento.modello} />
@@ -140,9 +140,9 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             </div>
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Relazione intervento</h2>
-            <div className="space-y-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Relazione intervento</h2>
+            <div className="space-y-4 rounded-2xl border border-border bg-muted/40 p-4 sm:p-6">
               {intervento.codiceErrore && (
                 <DetailField label="Codice errore" value={formatCodiceErrore(intervento.codiceErrore)} />
               )}
@@ -154,19 +154,19 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             </div>
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Controllo per avvio garanzia</h2>
-            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Controllo per avvio garanzia</h2>
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-muted/40 p-4 sm:p-6">
               {CONTROLLO_GARANZIA_FIELDS.map((field) => (
-                <div key={field.key} className="flex flex-col gap-1 border-b border-surface-200/60 pb-3 last:border-0 last:pb-0 dark:border-surface-700/60 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm font-medium text-surface-700 dark:text-surface-300">{field.label}</p>
-                  <p className="font-bold text-surface-900 dark:text-white">{formatSiNoNc(intervento.controlloGaranzia?.[field.key])}</p>
+                <div key={field.key} className="flex flex-col gap-1 border-b border-border pb-3 last:border-0 last:pb-0 dark:border-border sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm font-medium text-foreground">{field.label}</p>
+                  <p className="font-bold text-foreground">{formatSiNoNc(intervento.controlloGaranzia?.[field.key])}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
             <CondizioniGaranziaSection
               checked={Boolean(intervento.presaVisioneCondizioniGaranzia)}
               onChange={() => {}}
@@ -174,17 +174,17 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             />
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Tipologia di installazione</h2>
-            <div className="space-y-4 rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Tipologia di installazione</h2>
+            <div className="space-y-4 rounded-2xl border border-border bg-muted/40 p-4 sm:p-6">
               <DetailField label="Tipologia" value={formatTipologiaInstallazione(intervento.tipologiaInstallazione)} />
               <DetailField label="Note di installazione" value={intervento.noteInstallazione} />
             </div>
           </section>
 
-          <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">Prossimo intervento</h2>
-            <div className="rounded-2xl border border-surface-200/80 bg-surface-100/85 p-4 dark:border-surface-700/70 dark:bg-surface-800/75 sm:p-6">
+          <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">Prossimo intervento</h2>
+            <div className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-6">
               <DetailField
                 label="Termine previsto manutenzione"
                 value={intervento.prossimoIntervento ? format(new Date(intervento.prossimoIntervento), 'dd/MM/yyyy') : undefined}
@@ -193,8 +193,8 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
           </section>
 
           {immagini.length > 0 && (
-            <section className="mb-6 border-b border-surface-200 pb-6 dark:border-surface-700 sm:mb-8 sm:pb-8 print:break-inside-avoid">
-              <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white sm:mb-5 sm:text-xl print:text-2xl">
+            <section className="mb-6 border-b border-border pb-6 dark:border-border sm:mb-8 sm:pb-8 print:break-inside-avoid">
+              <h2 className="mb-4 font-heading text-lg font-bold text-foreground sm:mb-5 sm:text-xl print:text-2xl">
                 Foto intervento
               </h2>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -204,7 +204,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
                     href={img.url || `/api/rapportini/${rapportino.id}/immagini/${img.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block aspect-square overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700 print:break-inside-avoid"
+                    className="block aspect-square overflow-hidden rounded-lg border border-border dark:border-border print:break-inside-avoid"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -218,8 +218,8 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
             </section>
           )}
 
-          <section className="mt-6 border-t border-surface-200 pt-4 dark:border-surface-700 sm:mt-8 sm:pt-6 print:border-surface-800">
-            <h2 className="mb-4 text-lg font-bold text-surface-900 dark:text-white">Firme</h2>
+          <section className="mt-6 border-t border-border pt-4 dark:border-border sm:mt-8 sm:pt-6 print:border-border">
+            <h2 className="mb-4 font-heading text-lg font-bold text-foreground">Firme</h2>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {[
                 { label: 'Firma cliente privacy', value: intervento.firmaClientePrivacy },
@@ -227,8 +227,8 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
                 { label: 'Firma C.A.T.', value: intervento.firmaOperatore },
               ].map((firma) => (
                 <div key={firma.label}>
-                  <p className="mb-3 text-sm font-medium text-surface-500 dark:text-surface-400">{firma.label}</p>
-                  <div className="flex h-20 items-end border-b-2 border-surface-300 dark:border-surface-600">
+                  <p className="mb-3 text-sm font-medium text-muted-foreground">{firma.label}</p>
+                  <div className="flex h-20 items-end border-b-2 border-border">
                     {firma.value ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={firma.value} alt={firma.label} className="max-h-16 w-auto object-contain" />
@@ -237,7 +237,7 @@ export default function RapportinoDetail({ rapportino, settings, onClose, onEdit
                 </div>
               ))}
             </div>
-            <p className="mt-6 text-center text-xs text-surface-500 dark:text-surface-400">
+            <p className="mt-6 text-center text-xs text-muted-foreground">
               Rapportino creato il {format(new Date(rapportino.dataCreazione), 'dd/MM/yyyy HH:mm')}
             </p>
           </section>

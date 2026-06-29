@@ -17,7 +17,7 @@ export default function RapportinoStepTipologia({ intervento, setValue }: Props)
   return (
     <div className="space-y-6 pb-2 sm:pb-0">
       <FormSectionHeader
-        iconClassName="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+        iconClassName="bg-primary/10 text-primary ring-1 ring-inset ring-primary/20"
         icon={
           <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -29,7 +29,7 @@ export default function RapportinoStepTipologia({ intervento, setValue }: Props)
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
+          <label className="mb-1.5 block text-sm font-bold text-foreground">
             Tipologia intervento <span className="text-red-500">*</span>
           </label>
           <select
@@ -49,7 +49,7 @@ export default function RapportinoStepTipologia({ intervento, setValue }: Props)
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
+          <label className="mb-1.5 block text-sm font-bold text-foreground">
             Data richiesta
           </label>
           <input
@@ -61,7 +61,7 @@ export default function RapportinoStepTipologia({ intervento, setValue }: Props)
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
+          <label className="mb-1.5 block text-sm font-bold text-foreground">
             Data intervento <span className="text-red-500">*</span>
           </label>
           <input
@@ -74,7 +74,7 @@ export default function RapportinoStepTipologia({ intervento, setValue }: Props)
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-bold text-surface-700 dark:text-surface-300">
+          <label className="mb-1.5 block text-sm font-bold text-foreground">
             Ora intervento <span className="text-red-500">*</span>
           </label>
           <input

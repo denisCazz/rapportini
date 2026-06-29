@@ -147,7 +147,7 @@ export default function RapportiniList({
       >
         <div className="mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="min-w-0">
-            <h2 className="mb-0.5 text-lg font-semibold text-foreground">
+            <h2 className="mb-0.5 font-heading text-lg font-bold text-foreground">
               Rapportini
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -236,7 +236,7 @@ export default function RapportiniList({
                             {rapportino.cliente.nome} {rapportino.cliente.cognome}
                           </h3>
                           {rapportino.cliente.ragioneSociale && (
-                            <p className="truncate text-sm font-medium text-surface-500 dark:text-surface-400">
+                            <p className="truncate text-sm font-medium text-muted-foreground">
                               {rapportino.cliente.ragioneSociale}
                             </p>
                           )}
@@ -262,22 +262,22 @@ export default function RapportiniList({
 
                     {isExpanded && (
                       <div className="space-y-4 border-t border-border px-4 pb-4 sm:px-5 sm:pb-5">
-                        <div className="flex flex-col gap-3 pt-4 text-sm font-medium text-surface-600 dark:text-surface-400 sm:flex-row sm:flex-wrap sm:gap-5">
-                          <span className="flex min-w-0 items-center gap-2 rounded-xl border border-surface-100 bg-surface-50 px-3 py-2 dark:border-surface-800/50 dark:bg-surface-900/30">
-                            <svg className="h-4 w-4 shrink-0 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex flex-col gap-3 pt-4 text-sm font-medium text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-5">
+                          <span className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
+                            <svg className="h-4 w-4 shrink-0 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             </svg>
                             <span className="truncate break-words">
                               {rapportino.cliente.indirizzo}, {rapportino.cliente.citta}
                             </span>
                           </span>
-                          <span className="flex items-center gap-2 rounded-xl border border-surface-100 bg-surface-50 px-3 py-2 dark:border-surface-800/50 dark:bg-surface-900/30">
-                            <svg className="h-4 w-4 shrink-0 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <span className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
+                            <svg className="h-4 w-4 shrink-0 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                             </svg>
                             <a
                               href={`tel:${rapportino.cliente.telefono}`}
-                              className="transition-colors hover:text-primary-600 dark:hover:text-primary-400"
+                              className="transition-colors hover:text-primary"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {rapportino.cliente.telefono}
@@ -285,20 +285,20 @@ export default function RapportiniList({
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2 sm:gap-3">
-                          <span className="rounded-xl border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-bold text-surface-700 dark:border-surface-600 dark:bg-surface-700 dark:text-surface-300">
+                          <span className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">
                             {rapportino.intervento.tipoIntervento}
                           </span>
-                          <span className="rounded-xl border border-surface-100 bg-surface-50 px-3 py-1.5 text-xs font-semibold text-surface-600 dark:border-surface-700/50 dark:bg-surface-800/50 dark:text-surface-400">
+                          <span className="rounded-xl border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                             {rapportino.intervento.marca} {rapportino.intervento.modello}
                           </span>
-                          <span className="rounded-xl border border-surface-100 bg-surface-50 px-3 py-1.5 text-xs font-semibold text-surface-500 dark:border-surface-700/50 dark:bg-surface-800/50">
+                          <span className="rounded-xl border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                             Op: {rapportino.operatore.nome} {rapportino.operatore.cognome}
                           </span>
                         </div>
                         {(immaginiCount > 0 || immaginiLoading) && (
-                          <div className="rounded-xl border border-surface-100 bg-surface-50 px-3 py-2 text-sm dark:border-surface-800/50 dark:bg-surface-900/30">
-                            <p className="mb-2 flex items-center gap-2 font-medium text-surface-700 dark:text-surface-300">
-                              <Camera className="h-4 w-4 shrink-0 text-surface-400" aria-hidden />
+                          <div className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm">
+                            <p className="mb-2 flex items-center gap-2 font-medium text-foreground">
+                              <Camera className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                               Foto intervento
                             </p>
                             {immaginiLoading ? (
@@ -327,7 +327,7 @@ export default function RapportiniList({
                             )}
                           </div>
                         )}
-                        <div className="flex flex-wrap gap-2 border-t border-surface-100 pt-4 dark:border-surface-700 sm:gap-3">
+                        <div className="flex flex-wrap gap-2 border-t border-border pt-4 sm:gap-3">
                           <Button
                             onClick={() => setSelectedRapportino(rapportino)}
                             className="min-w-[110px] flex-1 sm:flex-none"

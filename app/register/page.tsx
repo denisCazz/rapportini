@@ -169,10 +169,14 @@ function RegisterPageContent() {
     }
   };
 
+  const inputClass =
+    'w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50';
+  const labelClass = 'mb-2 block text-sm font-semibold text-foreground';
+
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="app-shell flex min-h-screen">
       <AuthSidePanel />
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-6">
       <div className="saas-card w-full max-w-md p-8">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -194,8 +198,8 @@ function RegisterPageContent() {
           <div className="inline-flex items-center rounded-full border border-primary-200 dark:border-primary-800 bg-primary-50/80 dark:bg-primary-900/30 px-3 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300 mb-3">
             Software di Gestione Specializzato
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Crea il tuo accesso</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">Crea il tuo accesso</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {catLabel
               ? `Registrazione operatore per ${catLabel}`
               : 'Onboarding rapido per operatori della piattaforma verticale'}
@@ -204,23 +208,23 @@ function RegisterPageContent() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {inviteLoading && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
               Caricamento dati CAT dall&apos;invito...
             </div>
           )}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 animate-slideUp">
+            <div className="animate-slideUp rounded-lg border border-destructive/30 bg-destructive/10 p-4">
               <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 flex-shrink-0 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            <label className={labelClass}>
               Partita IVA del CAT <span className="text-red-500">*</span>
             </label>
             <input
@@ -230,14 +234,14 @@ function RegisterPageContent() {
               required={!inviteToken}
               disabled={isLoading || Boolean(inviteToken)}
               readOnly={Boolean(inviteToken)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              className={inputClass}
               placeholder="12345678901"
               inputMode="numeric"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            <label className={labelClass}>
               Ragione sociale CAT
             </label>
             <input
@@ -246,14 +250,14 @@ function RegisterPageContent() {
               onChange={(e) => setFormData({ ...formData, ragione_sociale: e.target.value })}
               disabled={isLoading || Boolean(inviteToken)}
               readOnly={Boolean(inviteToken)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              className={inputClass}
               placeholder="Assistenza Stufe S.r.l."
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Nome <span className="text-red-500">*</span>
               </label>
               <input
@@ -262,12 +266,12 @@ function RegisterPageContent() {
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+                className={inputClass}
                 placeholder="Nome"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Cognome <span className="text-red-500">*</span>
               </label>
               <input
@@ -276,14 +280,14 @@ function RegisterPageContent() {
                 onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+                className={inputClass}
                 placeholder="Cognome"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            <label className={labelClass}>
               Username <span className="text-red-500">*</span>
             </label>
             <input
@@ -292,7 +296,7 @@ function RegisterPageContent() {
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
               disabled={isLoading}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              className={inputClass}
               placeholder="Username"
               autoComplete="username"
             />
@@ -300,7 +304,7 @@ function RegisterPageContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -311,14 +315,14 @@ function RegisterPageContent() {
                   required
                   disabled={isLoading}
                   minLength={6}
-                  className="w-full px-4 py-3 pr-12 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+                  className={`${inputClass} pr-12`}
                   placeholder="Min. 6 caratteri"
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,7 +338,7 @@ function RegisterPageContent() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Conferma Password <span className="text-red-500">*</span>
               </label>
               <input
@@ -343,7 +347,7 @@ function RegisterPageContent() {
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+                className={inputClass}
                 placeholder="Conferma password"
                 autoComplete="new-password"
               />
@@ -351,7 +355,7 @@ function RegisterPageContent() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            <label className={labelClass}>
               Telefono <span className="text-red-500">*</span>
             </label>
             <input
@@ -360,13 +364,13 @@ function RegisterPageContent() {
               onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
               required
               disabled={isLoading}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              className={inputClass}
               placeholder="+39 333 1234567"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            <label className={labelClass}>
               Email
             </label>
             <input
@@ -374,13 +378,13 @@ function RegisterPageContent() {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               disabled={isLoading}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-all disabled:opacity-50"
+              className={inputClass}
               placeholder="email@esempio.it"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            <label className={labelClass}>
               Qualifica <span className="text-red-500">*</span>
             </label>
             <select
@@ -388,11 +392,11 @@ function RegisterPageContent() {
               onChange={(e) => setFormData({ ...formData, qualifica: e.target.value })}
               required
               disabled={isLoading}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-all disabled:opacity-50"
+              className={inputClass}
             >
               <option value="">Seleziona qualifica</option>
               {OPERATOR_QUALIFICHE.map((qualifica) => (
-                <option key={qualifica} value={qualifica} className="bg-white dark:bg-gray-700">
+                <option key={qualifica} value={qualifica}>
                   {qualifica}
                 </option>
               ))}
@@ -420,23 +424,23 @@ function RegisterPageContent() {
           </button>
         </form>
 
-        <div className="mt-6 text-center space-y-2">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-6 space-y-2 text-center">
+          <p className="text-sm text-muted-foreground">
             Hai già un account?{' '}
-            <Link href="/login" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
+            <Link href="/login" className="font-semibold text-primary hover:underline">
               Accedi
             </Link>
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Sei un CAT?{' '}
-            <Link href="/register-cat" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
+            <Link href="/register-cat" className="font-semibold text-primary hover:underline">
               Registra il centro assistenza
             </Link>
           </p>
         </div>
 
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+        <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <p className="text-center text-xs text-muted-foreground">
             <strong>Nota:</strong> La registrazione crea un account con ruolo <strong>operatore</strong>.
             <br />
             Solo gli amministratori possono creare account admin.
@@ -444,29 +448,29 @@ function RegisterPageContent() {
         </div>
 
         <div className="mt-6 text-center">
-          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+          <div className="space-y-1 text-xs text-muted-foreground">
             <p>
-              <a 
-                href="https://bitora.it" 
-                target="_blank" 
+              <a
+                href="https://bitora.it"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                className="transition-colors hover:text-primary"
               >
                 Bitora Software di Gestione Specializzato
               </a>
               {' è un prodotto di '}
-              <a 
-                href="https://bitora.it" 
-                target="_blank" 
+              <a
+                href="https://bitora.it"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-semibold"
+                className="font-semibold transition-colors hover:text-primary"
               >
                 Bitora.it
               </a>
             </p>
             <p>© {new Date().getFullYear()} Bitora.it - Tutti i diritti riservati</p>
             <p>
-              <Link href="/privacy" className="hover:text-primary-600 transition-colors underline">
+              <Link href="/privacy" className="underline transition-colors hover:text-primary">
                 Privacy Policy
               </Link>
             </p>

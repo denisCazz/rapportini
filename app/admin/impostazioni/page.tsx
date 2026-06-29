@@ -105,6 +105,10 @@ export default function ImpostazioniPage() {
 
   if (!isAuthenticated) return <PageLoader fullScreen message="Verifica accesso…" />;
 
+  const inputClass =
+    'w-full rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40';
+  const labelClass = 'mb-2 block text-sm font-medium text-foreground';
+
   return (
     <SidebarLayout
       settings={settings}
@@ -113,30 +117,30 @@ export default function ImpostazioniPage() {
       onLogout={handleLogout}
     >
       {loading ? (
-        <div className="max-w-2xl space-y-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <div className="saas-card max-w-2xl space-y-6 p-6">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-2/3" />
         </div>
       ) : (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 max-w-2xl">
+      <div className="saas-card max-w-2xl p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className={labelClass}>
               Nome Azienda
             </label>
             <input
               type="text"
               value={formData.nomeAzienda}
               onChange={(e) => setFormData({ ...formData, nomeAzienda: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className={inputClass}
               placeholder="Es. EVA CALÒR"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className={labelClass}>
               Logo
             </label>
             <div className="flex items-center gap-4">
@@ -144,7 +148,7 @@ export default function ImpostazioniPage() {
                 <img
                   src={formData.logo}
                   alt="Logo"
-                  className="h-16 w-auto object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+                  className="h-16 w-auto rounded-lg border border-border object-contain"
                 />
               )}
               <div>
@@ -152,9 +156,9 @@ export default function ImpostazioniPage() {
                   type="file"
                   accept="image/*"
                   onChange={handleLogoChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900/30 dark:file:text-primary-300"
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary"
                 />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   PNG, JPG. Usato in PDF e intestazioni.
                 </p>
               </div>
@@ -162,27 +166,27 @@ export default function ImpostazioniPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className={labelClass}>
               Indirizzo
             </label>
             <input
               type="text"
               value={formData.indirizzo}
               onChange={(e) => setFormData({ ...formData, indirizzo: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className={inputClass}
               placeholder="Via Example 1, 00100 Roma"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className={labelClass}>
               Partita IVA
             </label>
             <input
               type="text"
               value={formData.partitaIva}
               onChange={(e) => setFormData({ ...formData, partitaIva: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className={inputClass}
               placeholder="IT12345678901"
             />
           </div>
@@ -191,14 +195,14 @@ export default function ImpostazioniPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               {saving ? 'Salvataggio...' : 'Salva'}
             </button>

@@ -20,23 +20,23 @@ export default function CondizioniGaranziaSection({
 }: CondizioniGaranziaSectionProps) {
   return (
     <div className="space-y-4 rounded-md border border-amber-200/80 bg-amber-50/50 p-4 dark:border-amber-800/40 dark:bg-amber-900/10 sm:p-5">
-      <h4 className="text-sm font-bold uppercase tracking-wide text-surface-800 dark:text-surface-200">
+      <h4 className="font-heading text-sm font-bold uppercase tracking-wide text-foreground">
         Condizioni di garanzia
       </h4>
-      <p className="text-sm leading-relaxed text-surface-700 dark:text-surface-300">
+      <p className="text-sm leading-relaxed text-foreground/80">
         {CONDIZIONI_GARANZIA_INTRO}
       </p>
-      <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-surface-700 dark:text-surface-300">
+      <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-foreground/80">
         {CONDIZIONI_GARANZIA_ITEMS.map((item) => (
           <li key={item}>{item}</li>
         ))}
       </ul>
-      <p className="text-sm font-medium text-surface-800 dark:text-surface-200">
+      <p className="text-sm font-medium text-foreground">
         {CONDIZIONI_GARANZIA_DICHIARAZIONE}
       </p>
 
       {readOnly ? (
-        <p className="text-sm font-bold text-surface-900 dark:text-white">
+        <p className="text-sm font-bold text-foreground">
           {checked ? '☑' : '☐'} {CONDIZIONI_GARANZIA_CHECKBOX_LABEL}
         </p>
       ) : (
@@ -48,7 +48,7 @@ export default function CondizioniGaranziaSection({
             className="mt-0.5 h-5 w-5 shrink-0 rounded border-input text-primary focus:ring-ring"
             required
           />
-          <span className="text-sm font-semibold text-surface-900 dark:text-white">
+          <span className="text-sm font-semibold text-foreground">
             {CONDIZIONI_GARANZIA_CHECKBOX_LABEL}
           </span>
         </label>

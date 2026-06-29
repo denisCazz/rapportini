@@ -21,13 +21,13 @@ import InterventoPianificatoActions from '@/components/modules/InterventoPianifi
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
 const TIPO_COLORI: Record<string, string> = {
-  pianificato: 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/50 dark:text-blue-100 dark:border-blue-800',
+  pianificato: 'bg-primary/10 text-primary border-primary/30 dark:bg-primary/15 dark:text-primary',
   rapportino: 'bg-green-50 text-green-900 border-green-200 dark:bg-green-950/50 dark:text-green-100 dark:border-green-800',
   manutenzione: 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/50 dark:text-amber-100 dark:border-amber-800',
 };
 
 const TIPO_ACCENT: Record<string, string> = {
-  pianificato: 'border-l-blue-500',
+  pianificato: 'border-l-primary',
   rapportino: 'border-l-green-500',
   manutenzione: 'border-l-amber-500',
 };

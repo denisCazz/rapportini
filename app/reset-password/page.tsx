@@ -71,17 +71,17 @@ function ResetPasswordContent() {
   const inner = success ? (
     <Card className="w-full max-w-md border-border shadow-xl text-center">
       <CardHeader>
-        <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15">
-          <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" aria-hidden />
+        <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15">
+          <CheckCircle2 className="h-8 w-8 text-primary" aria-hidden />
         </div>
-        <CardTitle>Password aggiornata</CardTitle>
+        <CardTitle className="font-heading">Password aggiornata</CardTitle>
         <CardDescription>Reindirizzamento al login...</CardDescription>
       </CardHeader>
     </Card>
   ) : (
     <Card className="w-full max-w-md border-border shadow-xl">
       <CardHeader>
-        <CardTitle className="text-2xl">Nuova password</CardTitle>
+        <CardTitle className="font-heading text-2xl">Nuova password</CardTitle>
         <CardDescription>Inserisci la nuova password (min. 8 caratteri)</CardDescription>
       </CardHeader>
       <CardContent>
@@ -128,9 +128,9 @@ function ResetPasswordContent() {
   );
 
   return (
-    <div className="relative min-h-screen flex overflow-hidden bg-background">
+    <div className="app-shell relative flex min-h-screen overflow-hidden">
       <AuthSidePanel />
-      <div className="relative flex flex-1 items-center justify-center p-6">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-6">
         <div className="relative z-10 w-full flex justify-center">{inner}</div>
       </div>
     </div>

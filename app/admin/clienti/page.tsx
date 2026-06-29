@@ -253,12 +253,12 @@ export default function AdminClientiPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Clienti totali</p>
-                  <p className="mt-1 text-3xl font-semibold">{summary.totaleClienti}</p>
+                  <p className="mt-1 font-heading text-3xl font-bold tracking-tight">{summary.totaleClienti}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {summary.clientiConInterventoAnno} attivi nel {new Date().getFullYear()}
                   </p>
                 </div>
-                <div className="rounded-md bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                <div className="rounded-lg bg-primary/10 p-3 text-primary ring-1 ring-inset ring-primary/20">
                   <Users className="h-7 w-7" />
                 </div>
               </div>
@@ -268,12 +268,12 @@ export default function AdminClientiPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Rapportini totali</p>
-                  <p className="mt-1 text-3xl font-semibold">{summary.totaleRapportini}</p>
+                  <p className="mt-1 font-heading text-3xl font-bold tracking-tight">{summary.totaleRapportini}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Media {summary.mediaRapportiniPerCliente} per cliente
                   </p>
                 </div>
-                <div className="rounded-md bg-emerald-100 p-3 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                <div className="rounded-lg bg-amber-500/10 p-3 text-amber-600 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400">
                   <FileText className="h-7 w-7" />
                 </div>
               </div>
@@ -283,17 +283,17 @@ export default function AdminClientiPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Stufe pellet / legno</p>
-                  <p className="mt-1 text-3xl font-semibold">
+                  <p className="mt-1 font-heading text-3xl font-bold tracking-tight">
                     <span className="text-orange-600">{summary.totalePellet}</span>
                     <span className="mx-1 text-muted-foreground">/</span>
                     <span className="text-amber-700">{summary.totaleLegno}</span>
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <div className="rounded-md bg-orange-100 p-2 text-orange-600 dark:bg-orange-900/30">
+                  <div className="rounded-lg bg-orange-500/10 p-2 text-orange-600 ring-1 ring-inset ring-orange-500/20 dark:text-orange-400">
                     <Flame className="h-5 w-5" />
                   </div>
-                  <div className="rounded-md bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/30">
+                  <div className="rounded-lg bg-amber-800/10 p-2 text-amber-800 ring-1 ring-inset ring-amber-800/20 dark:text-amber-500">
                     <TreePine className="h-5 w-5" />
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export default function AdminClientiPage() {
                     )}
                   </div>
                 </div>
-                <div className="rounded-md bg-violet-100 p-3 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                <div className="rounded-lg bg-primary/10 p-3 text-primary ring-1 ring-inset ring-primary/20">
                   <MapPin className="h-7 w-7" />
                 </div>
               </div>

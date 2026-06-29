@@ -13,7 +13,7 @@ interface SiNoNcFieldProps {
 export default function SiNoNcField({ label, value, onChange, name }: SiNoNcFieldProps) {
   return (
     <fieldset className="rounded-md border border-input bg-background p-3 sm:p-4">
-      <legend className="px-1 text-sm font-bold text-surface-700 dark:text-surface-300">
+      <legend className="px-1 text-sm font-bold text-foreground">
         {label}
       </legend>
       <div className="mt-2 flex flex-wrap gap-2">
