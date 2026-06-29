@@ -56,10 +56,10 @@ interface SidebarLayoutProps {
 
 const navLinkClass = (active: boolean) =>
   cn(
-    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+    'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
     active
-      ? 'bg-primary/10 text-primary'
-      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      ? 'border border-primary/20 bg-primary/10 text-primary shadow-sm backdrop-blur-sm'
+      : 'border border-transparent text-muted-foreground hover:border-white/40 hover:bg-white/40 hover:text-foreground hover:shadow-sm dark:hover:border-white/10 dark:hover:bg-white/5'
   );
 
 export default function SidebarLayout({
@@ -120,7 +120,7 @@ export default function SidebarLayout({
 
   const NavContent = ({ showCloseButton = false }: { showCloseButton?: boolean }) => (
     <>
-      <div className="border-b border-border px-4 py-4">
+      <div className="border-b border-white/30 px-4 py-4 dark:border-white/10">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex min-w-0 flex-1 items-center gap-3" onClick={() => setMobileOpen(false)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -266,7 +266,7 @@ export default function SidebarLayout({
       </nav>
 
       {((auth.canCreateRapportini()) || onExportPDF) && (
-        <div className="space-y-2 border-t border-border px-3 py-3">
+        <div className="space-y-2 border-t border-white/30 px-3 py-3 dark:border-white/10">
           {auth.canCreateRapportini() && (
             <Link
               href="/rapportini/nuovo"
@@ -288,7 +288,7 @@ export default function SidebarLayout({
         </div>
       )}
 
-      <div className="border-t border-border p-3 space-y-2">
+      <div className="border-t border-white/30 p-3 space-y-2 dark:border-white/10">
         <InstallPWAButton />
 
         <Button variant="outline" className="w-full justify-center gap-2" onClick={toggleDarkMode}>
@@ -299,7 +299,7 @@ export default function SidebarLayout({
         <Link
           href="/utente"
           onClick={() => setMobileOpen(false)}
-          className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-muted"
+          className="flex items-center gap-3 rounded-lg border border-white/40 bg-white/30 p-2 backdrop-blur-sm transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
             {user?.nome?.charAt(0)}{user?.cognome?.charAt(0)}
@@ -323,13 +323,17 @@ export default function SidebarLayout({
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-border bg-card lg:flex">
+    <div className="app-shell min-h-screen bg-background text-foreground">
+      <aside className="glass-panel fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-y-0 border-l-0 border-r lg:flex">
         <NavContent />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" showCloseButton={false} className="w-[min(88vw,320px)] gap-0 p-0 lg:hidden">
+        <SheetContent
+          side="left"
+          showCloseButton={false}
+          className="glass-panel w-[min(88vw,320px)] gap-0 border-y-0 border-l-0 border-r bg-transparent p-0 lg:hidden"
+        >
           <div className="flex h-full max-h-[100dvh] flex-col overflow-y-auto">
             <NavContent showCloseButton />
           </div>
@@ -337,7 +341,7 @@ export default function SidebarLayout({
       </Sheet>
 
       <div className="flex min-h-screen flex-col lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
+        <header className="glass-panel sticky top-0 z-30 border-x-0 border-t-0 border-b">
           <div className="flex items-center gap-3 px-4 py-3.5 sm:px-6">
             <Button
               type="button"
