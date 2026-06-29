@@ -65,69 +65,72 @@ export default function ChangePasswordRequiredPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-300">
+      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
         Caricamento…
       </div>
     );
   }
 
+  const inputClass =
+    'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40';
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div className="saas-card w-full max-w-md p-8">
-        <h1 className="mb-2 text-xl font-semibold text-foreground">Cambio password obbligatorio</h1>
+    <div className="app-shell flex min-h-screen flex-col items-center justify-center p-4">
+      <div className="saas-card relative z-10 w-full max-w-md p-8">
+        <h1 className="mb-2 font-heading text-xl font-bold tracking-tight text-foreground">Cambio password obbligatorio</h1>
         <p className="mb-6 text-sm text-muted-foreground">
           Per sicurezza devi impostare una nuova password prima di usare l&apos;applicazione.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-lg bg-red-950/50 border border-red-800/50 px-3 py-2 text-sm text-red-200">
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
             </div>
           )}
           <div>
-            <label className="block text-xs font-medium text-stone-400 mb-1">Password attuale</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Password attuale</label>
             <input
               type="password"
               required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 text-stone-100"
+              className={inputClass}
               autoComplete="current-password"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-400 mb-1">Nuova password (min. 8)</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Nuova password (min. 8)</label>
             <input
               type="password"
               required
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 text-stone-100"
+              className={inputClass}
               autoComplete="new-password"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-400 mb-1">Conferma nuova password</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Conferma nuova password</label>
             <input
               type="password"
               required
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 text-stone-100"
+              className={inputClass}
               autoComplete="new-password"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-amber-600 py-2.5 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-60"
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             {loading ? 'Salvataggio…' : 'Aggiorna password'}
           </button>
         </form>
-        <p className="mt-6 text-center text-xs text-stone-500">
-          <Link href="/login" className="text-amber-600/80 hover:text-amber-500">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          <Link href="/login" className="font-medium text-primary hover:underline">
             Esci e torna al login
           </Link>
         </p>

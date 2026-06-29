@@ -72,7 +72,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="app-shell flex min-h-screen">
       <AuthSidePanel />
       <div className="flex flex-1 items-center justify-center p-6">
         <div className="w-full max-w-md">
@@ -93,7 +93,7 @@ export default function LoginPage() {
                 target.style.display = 'none';
               }}
             />
-            <h1 className="text-2xl font-semibold text-foreground">Accedi a EVA CALÒR</h1>
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">Accedi a EVA CALÒR</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Inserisci le tue credenziali per continuare
             </p>

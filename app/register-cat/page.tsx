@@ -95,27 +95,31 @@ export default function RegisterCatPage() {
     }
   };
 
+  const inputClass =
+    'w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50';
+  const labelClass = 'mb-2 block text-sm font-semibold text-foreground';
+
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="app-shell flex min-h-screen">
       <AuthSidePanel />
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-6">
         <div className="saas-card w-full max-w-md p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Registra il tuo CAT</h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          <div className="mb-8 text-center">
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">Registra il tuo CAT</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Centro Assistenza Tecnica — crea l&apos;organizzazione e l&apos;account amministratore
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Ragione sociale <span className="text-red-500">*</span>
               </label>
               <input
@@ -124,13 +128,13 @@ export default function RegisterCatPage() {
                 onChange={(e) => setFormData({ ...formData, ragione_sociale: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className={inputClass}
                 placeholder="Assistenza Stufe S.r.l."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Partita IVA <span className="text-red-500">*</span>
               </label>
               <input
@@ -139,14 +143,14 @@ export default function RegisterCatPage() {
                 onChange={(e) => setFormData({ ...formData, partita_iva: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className={inputClass}
                 placeholder="12345678901"
                 inputMode="numeric"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Indirizzo sede <span className="text-red-500">*</span>
               </label>
               <input
@@ -155,14 +159,14 @@ export default function RegisterCatPage() {
                 onChange={(e) => setFormData({ ...formData, indirizzo: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className={inputClass}
                 placeholder="Via Roma 1, 00100 Roma (RM)"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                <label className={labelClass}>
                   Codice fiscale <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -171,11 +175,11 @@ export default function RegisterCatPage() {
                   onChange={(e) => setFormData({ ...formData, codice_fiscale: e.target.value })}
                   required
                   disabled={isLoading}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  className={inputClass}
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                <label className={labelClass}>
                   Codice SDI <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -187,14 +191,14 @@ export default function RegisterCatPage() {
                   required
                   disabled={isLoading}
                   maxLength={7}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  className={inputClass}
                   placeholder="XXXXXXX"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 PEC <span className="text-red-500">*</span>
               </label>
               <input
@@ -203,14 +207,14 @@ export default function RegisterCatPage() {
                 onChange={(e) => setFormData({ ...formData, pec: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className={inputClass}
                 placeholder="cat@pec.it"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                <label className={labelClass}>
                   Nome <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -219,11 +223,11 @@ export default function RegisterCatPage() {
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   required
                   disabled={isLoading}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  className={inputClass}
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                <label className={labelClass}>
                   Cognome <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -232,13 +236,13 @@ export default function RegisterCatPage() {
                   onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
                   required
                   disabled={isLoading}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Username <span className="text-red-500">*</span>
               </label>
               <input
@@ -247,14 +251,14 @@ export default function RegisterCatPage() {
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className={inputClass}
                 autoComplete="username"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                <label className={labelClass}>
                   Password <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -264,12 +268,12 @@ export default function RegisterCatPage() {
                   required
                   minLength={6}
                   disabled={isLoading}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  className={inputClass}
                   autoComplete="new-password"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                <label className={labelClass}>
                   Conferma <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -278,7 +282,7 @@ export default function RegisterCatPage() {
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   required
                   disabled={isLoading}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                  className={inputClass}
                   autoComplete="new-password"
                 />
               </div>
@@ -294,7 +298,7 @@ export default function RegisterCatPage() {
             </label>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Telefono <span className="text-red-500">*</span>
               </label>
               <input
@@ -303,12 +307,12 @@ export default function RegisterCatPage() {
                 onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className={inputClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className={labelClass}>
                 Email
               </label>
               <input
@@ -316,7 +320,7 @@ export default function RegisterCatPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 disabled={isLoading}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                className={inputClass}
               />
             </div>
 
@@ -329,23 +333,23 @@ export default function RegisterCatPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400 space-y-2">
+          <div className="mt-6 space-y-2 text-center text-sm text-muted-foreground">
             <p>
               Hai già un account?{' '}
-              <Link href="/login" className="text-primary-600 font-semibold hover:underline">
+              <Link href="/login" className="font-semibold text-primary hover:underline">
                 Accedi
               </Link>
             </p>
             <p>
               Sei un operatore?{' '}
-              <Link href="/register" className="text-primary-600 font-semibold hover:underline">
+              <Link href="/register" className="font-semibold text-primary hover:underline">
                 Registrazione operatore
               </Link>
             </p>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+          <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <p className="text-center text-xs text-muted-foreground">
               La registrazione crea un account <strong>admin_cat</strong> in attesa di approvazione.
               Dopo l&apos;approvazione potrai gestire operatori, condividere il link invito e attivare i moduli.
             </p>
