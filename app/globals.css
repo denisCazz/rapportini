@@ -92,7 +92,36 @@ input::placeholder, textarea::placeholder {
 
 @layer components {
   .saas-card {
-    @apply rounded-lg border border-border bg-card shadow-sm;
+    @apply rounded-xl border border-white/40 bg-card/70 shadow-sm backdrop-blur-xl supports-backdrop-filter:bg-card/60;
+  }
+
+  .dark .saas-card {
+    @apply border-white/10 bg-card/50 supports-backdrop-filter:bg-card/40;
+  }
+
+  /* Reusable frosted-glass surface */
+  .glass-panel {
+    @apply border border-white/40 bg-white/55 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.18)] backdrop-blur-xl backdrop-saturate-150 supports-backdrop-filter:bg-white/40;
+  }
+
+  .dark .glass-panel {
+    @apply border-white/10 bg-white/[0.06] shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)] supports-backdrop-filter:bg-white/[0.04];
+  }
+
+  /* App background with ambient color blobs so the blur has something to refract */
+  .app-shell {
+    @apply relative isolate overflow-x-hidden;
+    background:
+      radial-gradient(1200px 600px at 8% -10%, oklch(0.58 0.19 45 / 0.16), transparent 60%),
+      radial-gradient(1000px 600px at 100% 0%, oklch(0.62 0.14 60 / 0.14), transparent 55%),
+      radial-gradient(900px 700px at 50% 120%, oklch(0.55 0.12 30 / 0.12), transparent 60%);
+  }
+
+  .dark .app-shell {
+    background:
+      radial-gradient(1200px 600px at 8% -10%, oklch(0.65 0.18 45 / 0.22), transparent 60%),
+      radial-gradient(1000px 600px at 100% 0%, oklch(0.5 0.12 60 / 0.18), transparent 55%),
+      radial-gradient(900px 700px at 50% 120%, oklch(0.45 0.1 30 / 0.16), transparent 60%);
   }
 }
 

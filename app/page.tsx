@@ -20,6 +20,9 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recha
 
 const RECENT_LIMIT = 10;
 
+const glassCardClass =
+  'border-white/40 bg-card/60 ring-white/20 backdrop-blur-xl backdrop-saturate-150 transition-shadow duration-300 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-white/[0.06] dark:ring-white/10';
+
 export default function Home() {
   const router = useRouter();
   const [rapportini, setRapportini] = useState<Rapportino[]>([]);
@@ -143,7 +146,9 @@ export default function Home() {
         ) : (
           <div className="space-y-6">
             {canCreateRapportini && (
-              <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-6 shadow-sm sm:p-8">
+              <div className="relative overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-primary/20 via-primary/5 to-white/10 p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.18)] backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:from-primary/25 dark:via-white/[0.04] dark:to-white/[0.02] sm:p-8">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/30 blur-3xl" aria-hidden />
+                <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" aria-hidden />
                 <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="max-w-xl">
                     <p className="text-xs font-semibold uppercase tracking-wide text-primary">Azione rapida</p>
@@ -172,36 +177,42 @@ export default function Home() {
               </div>
             )}
             <div className="grid gap-4 md:grid-cols-3">
-              <Card>
+              <Card className={glassCardClass}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Rapportini totali</CardTitle>
-                  <FileText className="h-4 w-4 text-primary-600" aria-hidden />
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary-600 ring-1 ring-inset ring-primary/20">
+                    <FileText className="h-4 w-4" aria-hidden />
+                  </span>
                 </CardHeader>
                 <CardContent>
                   <p className="font-heading text-3xl font-bold text-foreground">{kpi.total}</p>
                   <p className="text-xs text-muted-foreground mt-1">Tutti i rapportini registrati</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className={glassCardClass}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Pellet</CardTitle>
-                  <Flame className="h-4 w-4 text-orange-500" aria-hidden />
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 ring-1 ring-inset ring-orange-500/20">
+                    <Flame className="h-4 w-4" aria-hidden />
+                  </span>
                 </CardHeader>
                 <CardContent>
                   <p className="font-heading text-3xl font-bold">{kpi.pellet}</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className={glassCardClass}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Legna</CardTitle>
-                  <Trees className="h-4 w-4 text-amber-800 dark:text-amber-600" aria-hidden />
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-800/10 text-amber-800 ring-1 ring-inset ring-amber-800/20 dark:text-amber-600">
+                    <Trees className="h-4 w-4" aria-hidden />
+                  </span>
                 </CardHeader>
                 <CardContent>
                   <p className="font-heading text-3xl font-bold">{kpi.legno}</p>
                 </CardContent>
               </Card>
             </div>
-            <Card className="border-border">
+            <Card className={glassCardClass}>
               <CardHeader className="pb-0">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Distribuzione tipologia</CardTitle>
               </CardHeader>
@@ -236,7 +247,7 @@ export default function Home() {
               </div>
               <Link
                 href="/rapportini"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/40 bg-white/40 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
               >
                 <svg className="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
