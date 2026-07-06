@@ -9,6 +9,7 @@ const updateSchema = z.object({
   giacenza: z.number().int().min(0).optional(),
   sogliaMinima: z.number().int().min(0).optional(),
   prezzoUnitario: z.number().min(0).optional().nullable(),
+  carico: z.number().int().min(1).optional(),
   scarico: z.number().int().min(1).optional(),
 });
 
@@ -35,7 +36,12 @@ export async function PATCH(
     }
 
     const d = parsed.data;
+    if (d.carico && d.scarico) {
+      return NextResponse.json({ error: 'Specificare solo carico o scarico' }, { status: 400 });
+    }
+
     let giacenza = existing.giacenza;
+    if (d.carico) giacenza += d.carico;
     if (d.scarico) giacenza = Math.max(0, giacenza - d.scarico);
     if (d.giacenza !== undefined) giacenza = d.giacenza;
 
