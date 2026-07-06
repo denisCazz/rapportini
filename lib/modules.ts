@@ -59,7 +59,7 @@ export const PAID_MODULES: PaidModuleDefinition[] = [
   {
     code: MODULE_CODES.PLANNER,
     nome: 'Planner',
-    descrizione: 'Pianificazione intelligente dei percorsi e CRM contatti',
+    descrizione: 'App dedicata per percorsi ottimizzati, navigazione e CRM contatti su planner.bitora.it',
     href: '/moduli/planner',
   },
 ];
