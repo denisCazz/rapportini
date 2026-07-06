@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { ricambixImageProxyUrl } from '@/lib/ricambixstufe-catalog';
 
 const SHOP_URL = process.env.NEXT_PUBLIC_RICAMBI_SHOP_URL || 'https://www.ricambixstufe.it';
 
@@ -282,6 +283,7 @@ export default function MagazzinoRicambi() {
                   const codice = String(prodotto.id);
                   const inMagazzino = existingByCodice.get(codice);
                   const selected = selectedProdotto?.id === prodotto.id;
+                  const imageSrc = ricambixImageProxyUrl(prodotto.immagine);
                   return (
                     <button
                       key={prodotto.id}
@@ -292,11 +294,12 @@ export default function MagazzinoRicambi() {
                         selected && 'bg-primary/5 ring-1 ring-inset ring-primary/30'
                       )}
                     >
-                      {prodotto.immagine ? (
+                      {imageSrc ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={prodotto.immagine}
+                          src={imageSrc}
                           alt=""
+                          loading="lazy"
                           className="h-12 w-12 shrink-0 rounded object-cover bg-muted"
                         />
                       ) : (

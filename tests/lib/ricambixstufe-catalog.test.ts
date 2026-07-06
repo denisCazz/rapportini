@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   filterRicambixProducts,
+  isAllowedRicambixImageUrl,
   parseRicambixProductsFromHtml,
   resetRicambixCatalogCache,
+  ricambixImageProxyUrl,
   type RicambixProdotto,
 } from '@/lib/ricambixstufe-catalog';
 
@@ -56,5 +58,15 @@ describe('ricambixstufe-catalog', () => {
     expect(filterRicambixProducts(products, 'motore')).toHaveLength(1);
     expect(filterRicambixProducts(products, undefined, 'resistenze')).toHaveLength(1);
     expect(filterRicambixProducts(products, '2')).toHaveLength(1);
+  });
+
+  it('builds same-origin proxy URLs for RicambiXStufe images', () => {
+    const url =
+      'https://pub-e5b1a861541243efa43922161ac876d7.r2.dev/products/10/test.jpg';
+    expect(isAllowedRicambixImageUrl(url)).toBe(true);
+    expect(ricambixImageProxyUrl(url)).toBe(
+      '/api/moduli/magazzino/immagine?url=' + encodeURIComponent(url)
+    );
+    expect(ricambixImageProxyUrl('https://evil.example/x.jpg')).toBeNull();
   });
 });
