@@ -1,4 +1,14 @@
 /** @type {import('next').NextConfig} */
+
+const ricambiShopUrl =
+  process.env.NEXT_PUBLIC_RICAMBI_SHOP_URL || 'https://www.ricambixstufe.it';
+let ricambiShopOrigin = 'https://www.ricambixstufe.it';
+try {
+  ricambiShopOrigin = new URL(ricambiShopUrl).origin;
+} catch {
+  // keep default
+}
+
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
@@ -12,6 +22,13 @@ const nextConfig = {
   // Ottimizzazioni delle immagini (se usate in futuro)
   images: {
     formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'pub-e5b1a861541243efa43922161ac876d7.r2.dev',
+        pathname: '/products/**',
+      },
+    ],
   },
   async headers() {
     const security = [
@@ -36,7 +53,7 @@ const nextConfig = {
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob:",
+        "img-src 'self' data: blob: https://*.r2.dev " + ricambiShopOrigin,
         "font-src 'self' data:",
         "connect-src 'self'",
         "frame-ancestors 'none'",

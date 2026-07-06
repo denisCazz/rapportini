@@ -14,6 +14,7 @@ export interface RicambixProdotto {
 }
 
 const DEFAULT_SHOP_URL = 'https://www.ricambixstufe.it';
+const RICAMBIX_IMAGE_HOST = 'pub-e5b1a861541243efa43922161ac876d7.r2.dev';
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
 let cachedProducts: RicambixProdotto[] | null = null;
@@ -123,6 +124,23 @@ export function filterRicambixProducts(
 
 export function ricambixProductUrl(slug: string): string {
   return `${shopBaseUrl()}/products/${slug}`;
+}
+
+export function isAllowedRicambixImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' &&
+      (parsed.hostname === RICAMBIX_IMAGE_HOST || parsed.hostname.endsWith('.r2.dev'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function ricambixImageProxyUrl(imageUrl: string | null): string | null {
+  if (!imageUrl || !isAllowedRicambixImageUrl(imageUrl)) return null;
+  return `/api/moduli/magazzino/immagine?url=${encodeURIComponent(imageUrl)}`;
 }
 
 /** Solo per test: resetta la cache in memoria. */
