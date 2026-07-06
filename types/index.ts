@@ -240,3 +240,99 @@ export interface ScadenzaManutenzione {
     cognome: string;
   };
 }
+
+export interface PlannerClienteListItem {
+  id: string;
+  nome: string;
+  cognome: string;
+  citta: string;
+  telefono: string;
+  email?: string;
+  indirizzo: string;
+  haCoordinate: boolean;
+  totaleRapportini: number;
+  totaleContatti: number;
+  totaleNote: number;
+}
+
+export interface ClienteContattoCrm {
+  id: string;
+  nome: string;
+  ruolo?: string;
+  telefono?: string;
+  email?: string;
+  principale: boolean;
+  createdAt?: string;
+}
+
+export interface ClienteNotaCrm {
+  id: string;
+  testo: string;
+  createdAt: string;
+  utenteId?: string;
+}
+
+export interface PlannerClienteDettaglio {
+  id: string;
+  nome: string;
+  cognome: string;
+  ragioneSociale?: string;
+  via?: string;
+  numeroCivico?: string;
+  indirizzo: string;
+  citta: string;
+  cap: string;
+  provincia?: string;
+  telefono: string;
+  email?: string;
+  partitaIva?: string;
+  codiceFiscale?: string;
+  lat?: number;
+  lng?: number;
+  geocodedAt?: string;
+  dataRegistrazione?: string;
+  contatti: ClienteContattoCrm[];
+  note: ClienteNotaCrm[];
+  rapportini: Array<{
+    id: string;
+    dataIntervento: string;
+    tipoIntervento: string;
+    marca: string;
+    modello: string;
+    operatore: { nome: string; cognome: string };
+  }>;
+  interventiPianificati: Array<{
+    id: string;
+    titolo: string;
+    dataPianificata: string;
+    stato: string;
+  }>;
+}
+
+export interface PlannerRouteStop {
+  interventoId: string;
+  titolo: string;
+  clienteId?: string;
+  clienteNome?: string;
+  indirizzo: string;
+  citta: string;
+  telefono?: string;
+  oraPianificata?: string;
+  lat: number;
+  lng: number;
+}
+
+export interface PlannerPercorso {
+  data: string;
+  depot: { lat: number; lng: number };
+  tecnici: Array<{ id: string; nome: string; cognome: string }>;
+  percorso: {
+    stops: PlannerRouteStop[];
+    distanzaTotaleKm: number;
+    durataStimataMin: number;
+    senzaCoordinate: number;
+  };
+  totaleInterventi: number;
+  senzaCoordinate: number;
+  mapsUrl: string;
+}

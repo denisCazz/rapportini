@@ -7,6 +7,11 @@ import {
   InterventoPianificato,
   ScadenzaManutenzione,
   TecnicoCaricoLavoro,
+  PlannerPercorso,
+  PlannerClienteListItem,
+  PlannerClienteDettaglio,
+  ClienteNotaCrm,
+  ClienteContattoCrm,
 } from '@/types';
 import type { RapportinoFormValues } from '@/lib/validators/rapportino-form';
 import { auth } from './auth';
@@ -608,6 +613,133 @@ export const api = {
       throw new Error(getApiErrorMessage(result, 'Errore nel recupero tecnici'));
     }
     return result?.data ?? [];
+  },
+
+  // Moduli — Planner (percorsi + CRM)
+  getPlannerPercorso: async (data: string, utenteId?: string, geocodifica = false): Promise<PlannerPercorso> => {
+    const params = new URLSearchParams({ data });
+    if (utenteId) params.set('utenteId', utenteId);
+    if (geocodifica) params.set('geocodifica', 'true');
+    const response = await fetchWithAuth(`${API_BASE}/moduli/planner?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{ data?: PlannerPercorso; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero del percorso'));
+    }
+    return result!.data!;
+  },
+
+  optimizePlannerPercorso: async (data: string, utenteId?: string): Promise<{
+    percorso: PlannerPercorso['percorso'];
+    mapsUrl: string;
+    orariAggiornati: number;
+  }> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/planner`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ data, utenteId, geocodificaMancanti: true }),
+    });
+    const result = await parseResponseBody<{
+      data?: { percorso: PlannerPercorso['percorso']; mapsUrl: string; orariAggiornati: number };
+      error?: string;
+    }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nell\'ottimizzazione del percorso'));
+    }
+    return result!.data!;
+  },
+
+  getPlannerClienti: async (q?: string): Promise<PlannerClienteListItem[]> => {
+    const params = q ? `?q=${encodeURIComponent(q)}` : '';
+    const response = await fetchWithAuth(`${API_BASE}/moduli/planner/clienti${params}`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{ data?: PlannerClienteListItem[]; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero contatti'));
+    }
+    return result?.data ?? [];
+  },
+
+  getPlannerCliente: async (id: string): Promise<PlannerClienteDettaglio> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/planner/clienti/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    const result = await parseResponseBody<{ data?: PlannerClienteDettaglio; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nel recupero del cliente'));
+    }
+    return result!.data!;
+  },
+
+  updatePlannerCliente: async (
+    id: string,
+    data: Partial<{
+      nome: string;
+      cognome: string;
+      telefono: string;
+      email: string | null;
+      indirizzo: string;
+      citta: string;
+      cap: string;
+      provincia: string | null;
+      note: string | null;
+    }>
+  ): Promise<{ id: string; nome: string; cognome: string; telefono: string; email?: string; indirizzo: string; citta: string }> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/planner/clienti/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await parseResponseBody<{
+      data?: { id: string; nome: string; cognome: string; telefono: string; email?: string; indirizzo: string; citta: string };
+      error?: string;
+    }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nell\'aggiornamento del cliente'));
+    }
+    return result!.data!;
+  },
+
+  addPlannerClienteNota: async (clienteId: string, testo: string): Promise<ClienteNotaCrm> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/planner/clienti/${clienteId}/note`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ testo }),
+    });
+    const result = await parseResponseBody<{ data?: ClienteNotaCrm; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nella creazione della nota'));
+    }
+    return result!.data!;
+  },
+
+  addPlannerClienteContatto: async (
+    clienteId: string,
+    data: { nome: string; ruolo?: string; telefono?: string; email?: string; principale?: boolean }
+  ): Promise<ClienteContattoCrm> => {
+    const response = await fetchWithAuth(`${API_BASE}/moduli/planner/clienti/${clienteId}/contatti`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await parseResponseBody<{ data?: ClienteContattoCrm; error?: string }>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(result, 'Errore nella creazione del contatto'));
+    }
+    return result!.data!;
+  },
+
+  deletePlannerClienteContatto: async (clienteId: string, contattoId: string): Promise<void> => {
+    const response = await fetchWithAuth(
+      `${API_BASE}/moduli/planner/clienti/${clienteId}/contatti?contattoId=${encodeURIComponent(contattoId)}`,
+      { method: 'DELETE', headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const result = await parseResponseBody<{ error?: string }>(response);
+      throw new Error(getApiErrorMessage(result, 'Errore nell\'eliminazione del contatto'));
+    }
   },
 
   // Ottieni documentazione API

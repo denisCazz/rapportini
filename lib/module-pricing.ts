@@ -55,6 +55,12 @@ export const MODULE_EARNINGS_ESTIMATES: Record<ModuleCode, ModuleEarningsEstimat
     rationale:
       'Accelera la chiusura lavori con preventivi professionali e conversione rapida in rapportino.',
   },
+  [MODULE_CODES.PLANNER]: {
+    minMonthlyEur: 180,
+    maxMonthlyEur: 420,
+    rationale:
+      'Riduce km percorsi e tempo in viaggio con percorsi ottimizzati; centralizza contatti e note cliente.',
+  },
 };
 
 export function getModuleEarningsEstimate(code: ModuleCode): ModuleEarningsEstimate {
