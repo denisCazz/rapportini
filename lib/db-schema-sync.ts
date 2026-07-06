@@ -171,6 +171,36 @@ const SCHEMA_PATCHES: string[] = [
   `ALTER TABLE IF EXISTS utente_moduli ADD COLUMN IF NOT EXISTS stripe_subscription_status VARCHAR(50)`,
   `ALTER TABLE IF EXISTS utente_moduli ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ`,
   `CREATE INDEX IF NOT EXISTS idx_utente_moduli_stripe_subscription ON utente_moduli(stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL`,
+  `ALTER TABLE IF EXISTS clienti ADD COLUMN IF NOT EXISTS lat DECIMAL(10, 7)`,
+  `ALTER TABLE IF EXISTS clienti ADD COLUMN IF NOT EXISTS lng DECIMAL(10, 7)`,
+  `ALTER TABLE IF EXISTS clienti ADD COLUMN IF NOT EXISTS geocoded_at TIMESTAMPTZ`,
+  `ALTER TABLE IF EXISTS organizzazioni ADD COLUMN IF NOT EXISTS base_lat DECIMAL(10, 7)`,
+  `ALTER TABLE IF EXISTS organizzazioni ADD COLUMN IF NOT EXISTS base_lng DECIMAL(10, 7)`,
+  `CREATE TABLE IF NOT EXISTS cliente_contatti (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id VARCHAR(100) NOT NULL DEFAULT 'default',
+    cliente_id UUID NOT NULL REFERENCES clienti(id) ON DELETE CASCADE,
+    nome VARCHAR(255) NOT NULL,
+    ruolo VARCHAR(100),
+    telefono VARCHAR(50),
+    email VARCHAR(255),
+    principale BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cliente_contatti_org_cliente ON cliente_contatti(org_id, cliente_id)`,
+  `CREATE TABLE IF NOT EXISTS cliente_note (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id VARCHAR(100) NOT NULL DEFAULT 'default',
+    cliente_id UUID NOT NULL REFERENCES clienti(id) ON DELETE CASCADE,
+    utente_id UUID REFERENCES utenti(id) ON DELETE SET NULL,
+    testo TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cliente_note_org_cliente ON cliente_note(org_id, cliente_id)`,
+  `INSERT INTO moduli (code, nome, descrizione) VALUES
+    ('planner', 'Planner', 'Pianificazione intelligente dei percorsi e CRM contatti')
+  ON CONFLICT (code) DO NOTHING`,
 ];
 
 let syncPromise: Promise<void> | null = null;

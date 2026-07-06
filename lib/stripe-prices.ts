@@ -99,6 +99,13 @@ export const STRIPE_CATALOG: StripeCatalogProduct[] = [
     metadata: { module_code: 'preventivi', product_type: 'module' },
   },
   {
+    moduleCode: 'planner',
+    name: 'Bitora — Planner',
+    description: 'Abbonamento mensile modulo (primo mese gratuito)',
+    amountEur: MODULE_MONTHLY_PRICE_EUR,
+    metadata: { module_code: 'planner', product_type: 'module' },
+  },
+  {
     name: 'Bitora — Bundle tutti i moduli',
     description: 'Tutti i moduli per un operatore (primo mese gratuito)',
     amountEur: USER_BUNDLE_MONTHLY_PRICE_EUR, // €29

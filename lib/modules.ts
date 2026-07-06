@@ -5,6 +5,7 @@ export const MODULE_CODES = {
   MAGAZZINO_RICAMBI: 'magazzino_ricambi',
   REPORT_CLIENTE: 'report_cliente',
   PREVENTIVI: 'preventivi',
+  PLANNER: 'planner',
 } as const;
 
 export type ModuleCode = (typeof MODULE_CODES)[keyof typeof MODULE_CODES];
@@ -54,6 +55,12 @@ export const PAID_MODULES: PaidModuleDefinition[] = [
     nome: 'Preventivi',
     descrizione: 'Creazione preventivi e conversione in rapportino',
     href: '/moduli/preventivi',
+  },
+  {
+    code: MODULE_CODES.PLANNER,
+    nome: 'Planner',
+    descrizione: 'Pianificazione intelligente dei percorsi e CRM contatti',
+    href: '/moduli/planner',
   },
 ];
 

@@ -29,6 +29,7 @@ import {
   Package,
   Mail,
   CreditCard,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PAID_MODULES } from '@/lib/modules';
@@ -41,6 +42,7 @@ const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   magazzino_ricambi: Package,
   report_cliente: Mail,
   preventivi: FileText,
+  planner: MapPin,
 };
 
 interface SidebarLayoutProps {

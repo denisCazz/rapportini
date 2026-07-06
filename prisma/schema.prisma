@@ -92,15 +92,52 @@ model Clienti {
   email          String?   @db.VarChar(255)
   partita_iva    String?   @db.VarChar(50)
   codice_fiscale String?   @db.VarChar(50)
+  lat            Decimal?  @db.Decimal(10, 7)
+  lng            Decimal?  @db.Decimal(10, 7)
+  geocoded_at    DateTime? @db.Timestamptz(6)
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   rapportini             Rapportini[]
   interventi_pianificati InterventiPianificati[]
   preventivi             Preventivi[]
+  contatti               ClienteContatti[]
+  note_crm               ClienteNote[]
 
   @@unique([org_id, nome, cognome, telefono], map: "unique_cliente")
   @@map("clienti")
+}
+
+model ClienteContatti {
+  id         String    @id @default(uuid()) @db.Uuid
+  org_id     String    @default("default") @db.VarChar(100)
+  cliente_id String    @db.Uuid
+  nome       String    @db.VarChar(255)
+  ruolo      String?   @db.VarChar(100)
+  telefono   String?   @db.VarChar(50)
+  email      String?   @db.VarChar(255)
+  principale Boolean   @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  clienti Clienti @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id, cliente_id], map: "idx_cliente_contatti_org_cliente")
+  @@map("cliente_contatti")
+}
+
+model ClienteNote {
+  id         String    @id @default(uuid()) @db.Uuid
+  org_id     String    @default("default") @db.VarChar(100)
+  cliente_id String    @db.Uuid
+  utente_id  String?   @db.Uuid
+  testo      String
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  clienti Clienti @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id, cliente_id], map: "idx_cliente_note_org_cliente")
+  @@map("cliente_note")
 }
 
 model Rapportini {
@@ -197,6 +234,8 @@ model Organizzazioni {
   stripe_subscription_status String? @db.VarChar(50)
   licensed_operator_slots Int?
   trial_ends_at           DateTime? @db.Timestamptz(6)
+  base_lat                Decimal?  @db.Decimal(10, 7)
+  base_lng                Decimal?  @db.Decimal(10, 7)
   created_at              DateTime? @default(now()) @db.Timestamptz(6)
   updated_at              DateTime? @default(now()) @db.Timestamptz(6)
 
