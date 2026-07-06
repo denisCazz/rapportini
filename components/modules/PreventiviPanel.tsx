@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import PageLoader from '@/components/ui/PageLoader';
 import ErrorBanner from '@/components/ui/ErrorBanner';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { FileText, List, Pencil, Plus, Trash2 } from 'lucide-react';
 
 interface PreventivoRiga {
@@ -54,6 +55,8 @@ export default function PreventiviPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Preventivo | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // form state
   const [titolo, setTitolo] = useState('');
@@ -197,6 +200,25 @@ export default function PreventiviPanel() {
   };
 
   const handleCreate = handleSave;
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetchWithAuth(`/api/moduli/preventivi/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      const data = await parseResponseBody<{ error?: string }>(res);
+      if (!res.ok) throw new Error(data?.error || 'Errore');
+      toast.success('Preventivo eliminato');
+      setDeleteTarget(null);
+      load();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Errore');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const accetta = async (id: string) => {
     try {
@@ -487,12 +509,38 @@ export default function PreventiviPanel() {
                       Apri rapportino
                     </a>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-destructive hover:text-destructive"
+                    onClick={() => setDeleteTarget(p)}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    Elimina
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Elimina preventivo"
+        description={
+          deleteTarget?.rapportinoId
+            ? `Sei sicuro di voler eliminare il preventivo ${deleteTarget.numero}? Il rapportino collegato non verrà eliminato.`
+            : `Sei sicuro di voler eliminare il preventivo ${deleteTarget?.numero ?? ''}? L'operazione non può essere annullata.`
+        }
+        confirmLabel="Elimina"
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

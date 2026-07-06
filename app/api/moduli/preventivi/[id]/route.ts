@@ -285,3 +285,29 @@ export async function PATCH(
     return NextResponse.json({ error: 'Errore aggiornamento preventivo' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await requireModuleAccess(request, MODULE_CODES.PREVENTIVI);
+    if (!auth.ok) return auth.response;
+
+    const { id } = await params;
+    const preventivo = await findPreventivo(id, auth.user.org_id);
+    if (!preventivo) {
+      return NextResponse.json({ error: 'Preventivo non trovato' }, { status: 404 });
+    }
+    if (!canAccessPreventivo(preventivo, auth.user.id, auth.user.ruolo)) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 });
+    }
+
+    await prisma.preventivi.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('DELETE preventivo error:', error);
+    return NextResponse.json({ error: 'Errore eliminazione preventivo' }, { status: 500 });
+  }
+}
